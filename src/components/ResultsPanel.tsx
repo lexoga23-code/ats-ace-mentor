@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertCircle, Tag } from "lucide-react";
+import { AlertCircle, Tag, Lock } from "lucide-react";
 import { type AnalysisResult, rewriteSelection as apiRewriteSelection, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import { useRegion } from "@/contexts/RegionContext";
 
@@ -110,7 +110,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
   return (
-    <div className="mt-12 space-y-12">
+    <div className="mt-12 space-y-8">
       {/* Score Overview */}
       <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
         <ScoreCircle score={results.score} />
@@ -126,6 +126,29 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           </div>
         </div>
       </div>
+
+      {/* Paywall CTA — between scores and problems */}
+      {!isPaid && (
+        <div className="p-6 rounded-2xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Lock className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            <h4 className="font-bold text-foreground text-sm">Débloquez votre rapport complet</h4>
+            <p className="text-muted-foreground text-xs mt-1">
+              Réécriture IA, checklist 10 critères, lettre de motivation et export PDF/DOCX.
+            </p>
+          </div>
+          <a
+            href={STRIPE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap"
+          >
+            Débloquer — {prices.single}{currency}
+          </a>
+        </div>
+      )}
 
       {/* Free: Problems & Keywords */}
       <div className="grid md:grid-cols-2 gap-6">
@@ -151,24 +174,8 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         </div>
       </div>
 
-      {/* Paywall or Paid Content */}
-      {!isPaid ? (
-        <div className="relative p-12 bg-foreground rounded-3xl text-center overflow-hidden">
-          <div className="relative z-10">
-            <h3 className="text-2xl font-bold mb-4 text-background">Débloquez votre rapport complet</h3>
-            <p className="text-background/60 mb-8 max-w-md mx-auto">
-              Accédez à la checklist de 10 critères, la réécriture complète par IA et l'export PDF/DOCX pour seulement {prices.single}{currency}.
-            </p>
-            <a
-              href={STRIPE_URL}
-              className="inline-block px-8 py-4 bg-background text-foreground rounded-xl font-bold hover:opacity-90 transition-all"
-            >
-              Débloquer maintenant — {prices.single}{currency}
-            </a>
-          </div>
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,hsl(var(--primary)),transparent)]" />
-        </div>
-      ) : (
+      {/* Paid Content */}
+      {isPaid && (
         <div className="space-y-12">
           {/* Checklist */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
