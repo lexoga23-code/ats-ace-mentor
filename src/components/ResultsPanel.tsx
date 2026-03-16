@@ -3,8 +3,7 @@ import { AlertCircle, Tag, Lock } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import CVPreview from "./CVPreview";
 import { useRegion } from "@/contexts/RegionContext";
-
-const STRIPE_URL = "https://buy.stripe.com/test_aFa5kD1yPgp2ayKeqS4AU00";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ResultsPanelProps {
   results: AnalysisResult;

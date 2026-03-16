@@ -5,6 +5,7 @@ import { useRegion } from "@/contexts/RegionContext";
 import { analyzeCV, rewriteCV, type AnalysisResult } from "@/lib/analysis";
 import ResultsPanel from "./ResultsPanel";
 import LoadingOverlay from "./LoadingOverlay";
+import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "scorecv_analysis";
 
@@ -28,37 +29,63 @@ const CVAnalyzer = () => {
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [rewrittenCV, setRewrittenCV] = useState("");
   const [restoringPaid, setRestoringPaid] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
-  const isPaid = new URLSearchParams(window.location.search).get("paid") === "true";
 
-  // Restore state after Stripe payment redirect
+  // Verify payment via webhook-recorded data
   useEffect(() => {
-    if (!isPaid) return;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if (!sessionId) return;
 
-    try {
-      const state = JSON.parse(saved);
-      setCvText(state.cvText || "");
-      setTargetJob(state.targetJob || "");
-      setJobDescription(state.jobDescription || "");
-      setIndustry(state.industry || "");
-      setResults(state.results || null);
+    const verifyPayment = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("verify-payment", {
+          body: { sessionId },
+        });
 
-      // Auto-generate rewritten CV for paid users
-      if (state.results && state.cvText && state.targetJob) {
-        setRestoringPaid(true);
-        rewriteCV(state.cvText, state.targetJob, region, state.results.keywordsMissing || [])
-          .then(setRewrittenCV)
-          .catch(console.error)
-          .finally(() => setRestoringPaid(false));
+        if (error) {
+          console.error("Payment verification error:", error);
+          return;
+        }
+
+        if (data?.paid) {
+          setIsPaid(true);
+          // Restore saved analysis state
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            try {
+              const state = JSON.parse(saved);
+              setCvText(state.cvText || "");
+              setTargetJob(state.targetJob || "");
+              setJobDescription(state.jobDescription || "");
+              setIndustry(state.industry || "");
+              setResults(state.results || null);
+
+              if (state.results && state.cvText && state.targetJob) {
+                setRestoringPaid(true);
+                rewriteCV(state.cvText, state.targetJob, region, state.results.keywordsMissing || [])
+                  .then(setRewrittenCV)
+                  .catch(console.error)
+                  .finally(() => setRestoringPaid(false));
+              }
+            } catch {
+              console.error("Failed to restore analysis state");
+            }
+          }
+          // Clean URL
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      } catch (err) {
+        console.error("Verification failed:", err);
       }
-    } catch {
-      console.error("Failed to restore analysis state");
-    }
-  }, [isPaid, region]);
+    };
 
-  // Save state to localStorage after each analysis (so it persists across Stripe redirect)
+    // Small delay to let webhook process
+    setTimeout(verifyPayment, 1500);
+  }, [region]);
+
+  // Save state to localStorage after each analysis
   const saveState = (analysisResults: AnalysisResult) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       cvText,
