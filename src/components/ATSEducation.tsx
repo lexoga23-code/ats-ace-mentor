@@ -1,41 +1,107 @@
-import { FileSearch, Filter, CheckCircle } from "lucide-react";
+import { ShieldAlert, Skull, Eye, EyeOff, TrendingDown, AlertTriangle } from "lucide-react";
 
 const ATSEducation = () => {
-  const steps = [
-    {
-      icon: <FileSearch className="w-8 h-8" />,
-      title: "1. Votre CV est scanné",
-      description: "Les logiciels ATS (Applicant Tracking System) analysent automatiquement chaque CV reçu. Ils extraient le texte et cherchent des mots-clés correspondant au poste.",
-    },
-    {
-      icon: <Filter className="w-8 h-8" />,
-      title: "2. Un score est attribué",
-      description: "Le CV est noté selon sa compatibilité avec l'offre d'emploi. Format, mots-clés, structure — tout est évalué. Un score trop bas = élimination automatique.",
-    },
-    {
-      icon: <CheckCircle className="w-8 h-8" />,
-      title: "3. Seuls les meilleurs passent",
-      description: "Seuls les CV ayant un score suffisant arrivent sur le bureau du recruteur. 75% des candidatures sont éliminées avant toute lecture humaine.",
-    },
-  ];
-
   return (
-    <section id="ats" className="py-20 px-6 bg-surface-warm">
+    <section id="ats" className="py-24 px-6 bg-surface-warm relative overflow-hidden">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-4 text-foreground">{"C'est quoi un ATS ?"}</h2>
-        <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto">
-          Comprendre le système qui décide si votre CV sera lu ou ignoré.
+        {/* Headline choc */}
+        <div className="text-center mb-6">
+          <span className="inline-block px-4 py-1.5 bg-destructive/10 text-destructive text-sm font-bold rounded-full mb-4">
+            ⚠️ CE QUE LES RECRUTEURS NE VOUS DIRONT JAMAIS
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
+            {"Votre CV est probablement"}<br />
+            <span className="text-destructive">{"éliminé avant d'être lu."}</span>
+          </h2>
+        </div>
+
+        <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto text-lg">
+          Un logiciel robot — {"l'ATS"} — juge votre candidature en quelques secondes.
+          <span className="font-bold text-foreground"> Aucun recruteur ne verra jamais votre CV</span> {"s'il ne passe pas ce filtre."}
         </p>
-        <div className="grid md:grid-cols-3 gap-8">
-          {steps.map((step) => (
-            <div key={step.title} className="bg-card p-8 rounded-2xl shadow-soft text-center">
-              <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
-                {step.icon}
-              </div>
-              <h3 className="text-lg font-bold mb-3 text-foreground">{step.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+
+        {/* Stat choc */}
+        <div className="bg-destructive/5 border-2 border-destructive/20 rounded-3xl p-8 md:p-12 mb-16 text-center">
+          <div className="text-7xl md:text-8xl font-bold text-destructive mb-4">75%</div>
+          <p className="text-xl md:text-2xl font-bold text-foreground mb-2">
+            des CV sont éliminés automatiquement
+          </p>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Avant même {"qu'un"} être humain ne les regarde. Votre expérience, vos compétences, votre motivation — <span className="font-bold text-destructive">tout ça ne compte pas</span> si votre CV {"n'est"} pas optimisé pour {"l'ATS"}.
+          </p>
+        </div>
+
+        {/* 3 étapes effrayantes */}
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          <div className="bg-card border border-border p-8 rounded-2xl shadow-soft">
+            <div className="w-14 h-14 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mb-5">
+              <Eye className="w-7 h-7" />
             </div>
-          ))}
+            <h3 className="text-lg font-bold mb-3 text-foreground">{"1. Le robot scanne votre CV"}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {"Dès que vous postulez, un logiciel ATS analyse votre CV en quelques secondes. Il ne lit pas — il scanne. Pas de pitié, pas de seconde chance."}
+            </p>
+          </div>
+
+          <div className="bg-card border border-border p-8 rounded-2xl shadow-soft">
+            <div className="w-14 h-14 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mb-5">
+              <TrendingDown className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold mb-3 text-foreground">{"2. Un score décide de votre sort"}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {"Mots-clés absents ? Mauvais format ? Score trop bas → votre CV est rejeté. Vous ne recevez même pas de refus. Juste... le silence."} 
+            </p>
+          </div>
+
+          <div className="bg-card border border-border p-8 rounded-2xl shadow-soft">
+            <div className="w-14 h-14 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mb-5">
+              <EyeOff className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold mb-3 text-foreground">{"3. Personne ne verra jamais votre CV"}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {"Le recruteur ne sait même pas que vous existez. Votre CV dort dans une base de données. Vos semaines de recherche — pour rien."}
+            </p>
+          </div>
+        </div>
+
+        {/* Signes que votre CV est rejeté */}
+        <div className="bg-card border border-destructive/20 rounded-3xl p-8 md:p-10 mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <AlertTriangle className="w-6 h-6 text-destructive" />
+            <h3 className="text-xl font-bold text-foreground">{"Vous reconnaissez-vous ?"}</h3>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {[
+              "Vous postulez et ne recevez jamais de réponse",
+              "Votre CV a été fait sur Canva ou avec un template graphique",
+              "Vous n'adaptez pas votre CV à chaque offre",
+              "Vous ne savez pas ce qu'est un score ATS",
+              "Vous utilisez des tableaux, colonnes ou icônes dans votre CV",
+              "Vous avez un trou dans votre parcours non expliqué",
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-3 p-3 bg-destructive/5 rounded-xl">
+                <Skull className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                <span className="text-sm text-foreground">{item}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-muted-foreground text-sm">
+            Si vous avez coché <span className="font-bold text-destructive">ne serait-ce {"qu'un"} seul point</span>, votre CV est probablement filtré par les ATS.
+          </p>
+        </div>
+
+        {/* CTA */}
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground mb-6">
+            <span className="font-bold text-foreground">La bonne nouvelle ?</span> {"Il suffit d'optimiser votre CV pour battre l'ATS."}
+          </p>
+          <button
+            onClick={() => document.querySelector("#optimiser")?.scrollIntoView({ behavior: "smooth" })}
+            className="bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+          >
+            {"Vérifier mon CV maintenant — c'est gratuit"}
+          </button>
+          <p className="mt-3 text-sm text-muted-foreground">Analyse en 30 secondes · Aucune inscription</p>
         </div>
       </div>
     </section>
