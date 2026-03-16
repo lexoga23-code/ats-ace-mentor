@@ -81,8 +81,14 @@ const CVAnalyzer = () => {
       }
     };
 
-    // Small delay to let webhook process
-    setTimeout(verifyPayment, 1500);
+    // Poll with retries to let webhook process
+    const tryVerify = async (attempt = 0) => {
+      const result = await verifyPayment();
+      if (!result && attempt < 5) {
+        setTimeout(() => tryVerify(attempt + 1), 2000);
+      }
+    };
+    setTimeout(() => tryVerify(), 1500);
   }, [region]);
 
   // Save state to localStorage after each analysis
