@@ -14,7 +14,7 @@ const RegionContext = createContext<RegionContextType | undefined>(undefined);
 
 const PRICES = {
   FR: { single: 4, pro: 12, human: 29 },
-  CH: { single: 4, pro: 14, human: 35 },
+  CH: { single: 6, pro: 20, human: 40 },
 };
 
 export const RegionProvider = ({ children }: { children: ReactNode }) => {
