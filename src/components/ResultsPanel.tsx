@@ -125,14 +125,13 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
               Réécriture IA, checklist 10 critères, lettre de motivation et export PDF/DOCX.
             </p>
           </div>
-          <a
-            href={STRIPE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap"
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutLoading}
+            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap disabled:opacity-50"
           >
-            Débloquer — {prices.single}{currency}
-          </a>
+            {checkoutLoading ? "Redirection..." : `Débloquer — ${prices.single}${currency}`}
+          </button>
         </div>
       )}
 
