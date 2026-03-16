@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { prompt, maxTokens = 1500 } = await req.json();
+    const { prompt, maxTokens = 1500, temperature = 0.3 } = await req.json();
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt requis' }), {
@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: maxTokens,
+        temperature,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
