@@ -21,7 +21,7 @@ const Pricing = () => {
       name: "Rapport Complet",
       price: String(prices.single),
       period: "",
-      features: ["Checklist 10 critères", "Réécriture IA complète", "Lettre de motivation", "Export PDF & DOCX"],
+      features: ["Réécriture IA complète", "Checklist 10 critères", "Lettre de motivation", "Export PDF & DOCX"],
       cta: "Choisir",
       action: STRIPE_URL,
       featured: true,
