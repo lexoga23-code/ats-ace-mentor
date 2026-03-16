@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertCircle, Tag, ChevronDown } from "lucide-react";
+import { AlertCircle, Tag } from "lucide-react";
 import { type AnalysisResult, rewriteSelection as apiRewriteSelection, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import { useRegion } from "@/contexts/RegionContext";
 
