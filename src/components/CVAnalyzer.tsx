@@ -84,7 +84,7 @@ const CVAnalyzer = () => {
             </div>
             <div>
               <label className="label-ui block mb-2">
-                Offre d'emploi <span className="text-destructive">*</span>
+                Offre d'emploi
               </label>
               <p className="text-xs text-muted-foreground mb-2">
                 Plus vous collez l'offre complète, plus l'analyse sera précise et personnalisée.
