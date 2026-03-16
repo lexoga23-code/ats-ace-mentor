@@ -99,7 +99,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       });
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
       }
     } catch (err) {
       console.error("Checkout error:", err);
@@ -123,8 +123,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
         <ScoreCircle score={results.score} />
         <div className="md:col-span-2 space-y-4">
-          <div className="p-4 bg-primary/10 rounded-xl text-primary font-medium text-sm">
-            {results.verdict}
+          <div className="p-4 bg-primary/10 rounded-xl text-primary font-medium text-sm space-y-1.5">
+            {results.verdict.split("\n").filter(Boolean).map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <ScoreBar label="FORMAT" value={results.scoreDetails.format} max={20} />
@@ -150,7 +152,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           <button
             onClick={handleCheckout}
             disabled={checkoutLoading}
-            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap disabled:opacity-50"
+            className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-base hover:opacity-90 transition-all disabled:opacity-50"
           >
             {checkoutLoading ? "Redirection..." : `Débloquer — ${prices.single}${currency}`}
           </button>

@@ -38,7 +38,7 @@ const CVAnalyzer = () => {
     const sessionId = params.get("session_id");
     if (!sessionId) return;
 
-    const verifyPayment = async () => {
+    const verifyPayment = async (): Promise<boolean> => {
       try {
         const { data, error } = await supabase.functions.invoke("verify-payment", {
           body: { sessionId },
@@ -46,7 +46,7 @@ const CVAnalyzer = () => {
 
         if (error) {
           console.error("Payment verification error:", error);
-          return;
+          return false;
         }
 
         if (data?.paid) {
@@ -75,14 +75,23 @@ const CVAnalyzer = () => {
           }
           // Clean URL
           window.history.replaceState({}, "", window.location.pathname);
+          return true;
         }
+        return false;
       } catch (err) {
         console.error("Verification failed:", err);
+        return false;
       }
     };
 
-    // Small delay to let webhook process
-    setTimeout(verifyPayment, 1500);
+    // Poll with retries to let webhook process
+    const tryVerify = async (attempt = 0) => {
+      const result = await verifyPayment();
+      if (!result && attempt < 5) {
+        setTimeout(() => tryVerify(attempt + 1), 2000);
+      }
+    };
+    setTimeout(() => tryVerify(), 1500);
   }, [region]);
 
   // Save state to localStorage after each analysis

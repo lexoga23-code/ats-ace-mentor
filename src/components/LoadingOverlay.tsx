@@ -26,7 +26,7 @@ const LoadingOverlay = () => {
   const progress = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60">
       <div className="bg-card p-10 rounded-3xl shadow-soft max-w-md w-full mx-4 text-center space-y-6">
         <div className="relative w-24 h-24 mx-auto">
           <svg className="w-24 h-24 animate-spin-slow" viewBox="0 0 96 96">
