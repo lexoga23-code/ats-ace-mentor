@@ -29,8 +29,8 @@ const CVAnalyzer = () => {
   const isPaid = new URLSearchParams(window.location.search).get("paid") === "true";
 
   const startAnalysis = async () => {
-    if (!cvText || !targetJob || !jobDescription) {
-      alert("Veuillez charger un CV, indiquer le poste ciblé et coller l'offre d'emploi.");
+    if (!cvText || !targetJob) {
+      alert("Veuillez charger un CV et indiquer le poste ciblé.");
       return;
     }
 
