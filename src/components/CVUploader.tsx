@@ -46,21 +46,21 @@ const CVUploader = ({ onTextExtracted }: CVUploaderProps) => {
 
   return (
     <div className="space-y-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.docx,.txt"
+        onChange={handleFileChange}
+      />
       <div
-        className={`relative group border-2 border-dashed rounded-3xl p-12 text-center transition-all cursor-pointer ${
+        className={`group border-2 border-dashed rounded-3xl p-12 text-center transition-all cursor-pointer ${
           uploaded
             ? "border-emerald-500 bg-emerald-50/30"
             : "border-border hover:border-primary hover:bg-primary/5"
         }`}
         onClick={() => fileInputRef.current?.click()}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="absolute inset-0 opacity-0 cursor-pointer"
-          accept=".pdf,.docx,.txt"
-          onChange={handleFileChange}
-        />
         <div
           className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform ${
             uploaded ? "bg-emerald-100 text-emerald-600" : "bg-primary/10 text-primary"
