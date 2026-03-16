@@ -88,6 +88,27 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     setLoadingLetter(false);
   };
 
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          successUrl: `${window.location.origin}/?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${window.location.origin}/#optimiser`,
+        },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      alert("Erreur lors de la redirection vers le paiement.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   const statusColors = {
     ok: "bg-emerald-50 text-emerald-900",
     fail: "bg-destructive/10 text-destructive",
