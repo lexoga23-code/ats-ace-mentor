@@ -81,7 +81,7 @@ const CVAnalyzer = () => {
               />
             </div>
             <div>
-              <label className="label-ui block mb-2">{"Lien de l'offre d'emploi"}</label>
+              <label className="label-ui block mb-2">{"Lien de l'offre d'emploi (optionnel)"}</label>
               <input
                 type="url"
                 value={jobOfferUrl}
