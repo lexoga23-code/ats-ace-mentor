@@ -64,6 +64,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const [coverLetter, setCoverLetter] = useState("");
   const [loadingRewrite, setLoadingRewrite] = useState(false);
   const [loadingLetter, setLoadingLetter] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     setRewrittenCV(initialRewrite);
