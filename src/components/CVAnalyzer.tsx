@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import CVUploader from "./CVUploader";
 import { useRegion } from "@/contexts/RegionContext";
@@ -21,11 +21,11 @@ const CVAnalyzer = () => {
   const [cvText, setCvText] = useState("");
   const [targetJob, setTargetJob] = useState("");
   const [jobOfferUrl, setJobOfferUrl] = useState("");
-  const [industry, setIndustry] = useState(INDUSTRIES[0]);
+  const [industry, setIndustry] = useState("");
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [rewrittenCV, setRewrittenCV] = useState("");
+  const resultsRef = useRef<HTMLDivElement>(null);
   const isPaid = new URLSearchParams(window.location.search).get("paid") === "true";
 
   const startAnalysis = async () => {
@@ -35,12 +35,10 @@ const CVAnalyzer = () => {
     }
 
     setLoading(true);
-    setProgress(30);
     setResults(null);
 
     try {
-      const result = await analyzeCV(cvText, targetJob, region, industry);
-      // Cap scores
+      const result = await analyzeCV(cvText, targetJob, region, industry || "Non précisé");
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);
@@ -48,7 +46,6 @@ const CVAnalyzer = () => {
       result.score = Math.min(result.score, 100);
 
       setResults(result);
-      setProgress(70);
 
       if (isPaid) {
         const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
@@ -59,9 +56,14 @@ const CVAnalyzer = () => {
       alert("Erreur lors de l'analyse. Veuillez réessayer.");
     } finally {
       setLoading(false);
-      setProgress(0);
     }
   };
+
+  useEffect(() => {
+    if (results && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [results]);
 
   return (
     <section id="optimiser" className="py-20 px-6 bg-card border-y border-border/50">
@@ -91,12 +93,13 @@ const CVAnalyzer = () => {
               />
             </div>
             <div>
-              <label className="label-ui block mb-2">Secteur d'activité</label>
+              <label className="label-ui block mb-2">{"Secteur d'activité (optionnel)"}</label>
               <select
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
                 className="w-full p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
               >
+                <option value="">— Sélectionner —</option>
                 {INDUSTRIES.map((ind) => (
                   <option key={ind}>{ind}</option>
                 ))}
@@ -114,25 +117,19 @@ const CVAnalyzer = () => {
 
         {loading && <LoadingOverlay />}
 
-        {results && (
-          <ResultsPanel
-            results={results}
-            isPaid={isPaid}
-            rewrittenCV={rewrittenCV}
-            cvText={cvText}
-            targetJob={targetJob}
-            region={region}
-          />
-        )}
+        <div ref={resultsRef}>
+          {results && (
+            <ResultsPanel
+              results={results}
+              isPaid={isPaid}
+              rewrittenCV={rewrittenCV}
+              cvText={cvText}
+              targetJob={targetJob}
+              region={region}
+            />
+          )}
+        </div>
       </div>
-
-      {/* Progress bar */}
-      {progress > 0 && (
-        <div
-          className="fixed top-0 left-0 z-[100] h-1 progress-gradient transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
-      )}
     </section>
   );
 };
