@@ -88,8 +88,13 @@ CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/wa
 9. Compétences techniques — les outils et compétences spécifiques sont-ils listés ?
 10. Orthographe — absence de fautes détectées ?
 
+VERDICT — remplace le mot unique par 3 lignes personnalisées séparées par \\n :
+Ligne 1 : "✅ [point fort principal du CV, concret et spécifique]"
+Ligne 2 : "⚠️ [problème prioritaire à corriger, avec conseil concret]"
+Ligne 3 : "💡 [conseil principal adapté au poste visé et au pays]"
+
 JSON À RETOURNER :
-{"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"Excellent|Bon|À améliorer|Faible","checklist":[{"label":"","status":"ok","detail":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
+{"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"✅ Point fort\\n⚠️ Problème\\n💡 Conseil","checklist":[{"label":"","status":"ok","detail":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
   // Strip markdown code fences if present

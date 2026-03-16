@@ -75,9 +75,12 @@ const CVAnalyzer = () => {
           }
           // Clean URL
           window.history.replaceState({}, "", window.location.pathname);
+          return true;
         }
+        return false;
       } catch (err) {
         console.error("Verification failed:", err);
+        return false;
       }
     };
 
