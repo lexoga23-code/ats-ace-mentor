@@ -3,8 +3,7 @@ import { AlertCircle, Tag, Lock } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import CVPreview from "./CVPreview";
 import { useRegion } from "@/contexts/RegionContext";
-
-const STRIPE_URL = "https://buy.stripe.com/test_aFa5kD1yPgp2ayKeqS4AU00";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ResultsPanelProps {
   results: AnalysisResult;
@@ -65,6 +64,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const [coverLetter, setCoverLetter] = useState("");
   const [loadingRewrite, setLoadingRewrite] = useState(false);
   const [loadingLetter, setLoadingLetter] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     setRewrittenCV(initialRewrite);
@@ -86,6 +86,27 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       setCoverLetter(text);
     } catch { alert("Erreur. Réessayez."); }
     setLoadingLetter(false);
+  };
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          successUrl: `${window.location.origin}/?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${window.location.origin}/#optimiser`,
+        },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      alert("Erreur lors de la redirection vers le paiement.");
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const statusColors = {
@@ -126,14 +147,13 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
               Réécriture IA, checklist 10 critères, lettre de motivation et export PDF/DOCX.
             </p>
           </div>
-          <a
-            href={STRIPE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap"
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutLoading}
+            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap disabled:opacity-50"
           >
-            Débloquer — {prices.single}{currency}
-          </a>
+            {checkoutLoading ? "Redirection..." : `Débloquer — ${prices.single}${currency}`}
+          </button>
         </div>
       )}
 
