@@ -152,7 +152,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           <button
             onClick={handleCheckout}
             disabled={checkoutLoading}
-            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap disabled:opacity-50"
+            className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-base hover:opacity-90 transition-all disabled:opacity-50"
           >
             {checkoutLoading ? "Redirection..." : `Débloquer — ${prices.single}${currency}`}
           </button>
