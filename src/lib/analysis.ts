@@ -34,6 +34,9 @@ const callAnthropic = async (prompt: string, maxTokens = 1500): Promise<string> 
     }),
   });
   const data = await response.json();
+  if (!response.ok || data.type === "error") {
+    throw new Error(data.error?.message || "Erreur API Anthropic");
+  }
   return data.content[0].text;
 };
 
