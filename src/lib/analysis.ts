@@ -92,7 +92,9 @@ JSON À RETOURNER :
 {"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"Excellent|Bon|À améliorer|Faible","checklist":[{"label":"","status":"ok","detail":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
-  return JSON.parse(text);
+  // Strip markdown code fences if present
+  const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
+  return JSON.parse(cleaned);
 };
 
 export const rewriteCV = async (
