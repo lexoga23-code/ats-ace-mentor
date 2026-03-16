@@ -38,7 +38,7 @@ const CVAnalyzer = () => {
     const sessionId = params.get("session_id");
     if (!sessionId) return;
 
-    const verifyPayment = async () => {
+    const verifyPayment = async (): Promise<boolean> => {
       try {
         const { data, error } = await supabase.functions.invoke("verify-payment", {
           body: { sessionId },
@@ -46,7 +46,7 @@ const CVAnalyzer = () => {
 
         if (error) {
           console.error("Payment verification error:", error);
-          return;
+          return false;
         }
 
         if (data?.paid) {
