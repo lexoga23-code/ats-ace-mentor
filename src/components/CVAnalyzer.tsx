@@ -81,7 +81,17 @@ const CVAnalyzer = () => {
               />
             </div>
             <div>
-              <label className="label-ui block mb-2">{"Secteur d'activité"}</label>
+              <label className="label-ui block mb-2">{"Lien de l'offre d'emploi"}</label>
+              <input
+                type="url"
+                value={jobOfferUrl}
+                onChange={(e) => setJobOfferUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <div>
+              <label className="label-ui block mb-2">Secteur d'activité</label>
               <select
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
