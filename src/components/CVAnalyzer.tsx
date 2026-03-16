@@ -20,7 +20,7 @@ const CVAnalyzer = () => {
   const { region } = useRegion();
   const [cvText, setCvText] = useState("");
   const [targetJob, setTargetJob] = useState("");
-  const [jobOfferUrl, setJobOfferUrl] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [industry, setIndustry] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
@@ -29,8 +29,8 @@ const CVAnalyzer = () => {
   const isPaid = new URLSearchParams(window.location.search).get("paid") === "true";
 
   const startAnalysis = async () => {
-    if (!cvText || !targetJob) {
-      alert("Veuillez charger un CV et indiquer le poste ciblé.");
+    if (!cvText || !targetJob || !jobDescription) {
+      alert("Veuillez charger un CV, indiquer le poste ciblé et coller l'offre d'emploi.");
       return;
     }
 
@@ -38,7 +38,7 @@ const CVAnalyzer = () => {
     setResults(null);
 
     try {
-      const result = await analyzeCV(cvText, targetJob, region, industry || "Non précisé");
+      const result = await analyzeCV(cvText, targetJob, region, industry || "Non précisé", jobDescription);
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);
@@ -83,13 +83,18 @@ const CVAnalyzer = () => {
               />
             </div>
             <div>
-              <label className="label-ui block mb-2">{"Lien de l'offre d'emploi (optionnel)"}</label>
-              <input
-                type="url"
-                value={jobOfferUrl}
-                onChange={(e) => setJobOfferUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground"
+              <label className="label-ui block mb-2">
+                Offre d'emploi <span className="text-destructive">*</span>
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Plus vous collez l'offre complète, plus l'analyse sera précise et personnalisée.
+              </p>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Collez ici le texte complet de l'offre d'emploi..."
+                className="w-full h-32 p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground resize-none text-sm"
+                required
               />
             </div>
             <div>
