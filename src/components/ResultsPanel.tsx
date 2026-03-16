@@ -128,8 +128,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           </div>
           <a
             href={STRIPE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap"
           >
             Débloquer — {prices.single}{currency}
