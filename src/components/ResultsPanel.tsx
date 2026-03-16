@@ -257,30 +257,8 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           {/* Rewritten CV */}
           {rewrittenCV && (
             <div className="bg-card p-8 rounded-3xl shadow-soft">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-foreground">Optimisation IA</h3>
-                <button
-                  onClick={handleRewriteSelection}
-                  className="text-xs font-bold bg-secondary px-3 py-1.5 rounded-lg hover:bg-secondary/80 text-foreground"
-                >
-                  Réécrire la sélection
-                </button>
-              </div>
-              <textarea
-                id="ai-rewrite-output"
-                value={rewrittenCV}
-                onChange={(e) => setRewrittenCV(e.target.value)}
-                className="w-full h-96 p-6 bg-secondary border-none rounded-2xl font-mono text-sm leading-relaxed focus:ring-2 focus:ring-primary focus:outline-none text-foreground resize-none"
-                spellCheck={false}
-              />
-              <div className="mt-6 flex gap-4">
-                <button className="flex-1 py-3 bg-foreground text-background rounded-xl font-bold text-sm hover:opacity-90 transition-all">
-                  Exporter en PDF
-                </button>
-                <button className="flex-1 py-3 bg-card text-foreground border border-border rounded-xl font-bold text-sm hover:bg-secondary transition-all">
-                  Exporter en DOCX
-                </button>
-              </div>
+              <h3 className="text-xl font-bold mb-6 text-foreground">Optimisation IA</h3>
+              <CVPreview cvText={rewrittenCV} onChange={setRewrittenCV} />
             </div>
           )}
 
