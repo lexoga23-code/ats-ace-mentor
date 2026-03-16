@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface AnalysisResult {
   score: number;
   scoreDetails: {
@@ -14,30 +16,14 @@ export interface AnalysisResult {
   suggestions: Array<{ title: string; text: string; priority: "high" | "medium" | "low"; impact?: string }>;
 }
 
-const API_HEADERS = {
-  "Content-Type": "application/json",
-  "x-api-key": "COLLE_TA_CLÉ_ICI",
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true",
-};
-
-const MODEL = "claude-sonnet-4-20250514";
-
 const callAnthropic = async (prompt: string, maxTokens = 1500): Promise<string> => {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: API_HEADERS,
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      messages: [{ role: "user", content: prompt }],
-    }),
+  const { data, error } = await supabase.functions.invoke('anthropic-proxy', {
+    body: { prompt, maxTokens },
   });
-  const data = await response.json();
-  if (!response.ok || data.type === "error") {
-    throw new Error(data.error?.message || "Erreur API Anthropic");
-  }
-  return data.content[0].text;
+
+  if (error) throw new Error(error.message || "Erreur lors de l'appel API");
+  if (data?.error) throw new Error(data.error);
+  return data.text;
 };
 
 export const analyzeCV = async (
