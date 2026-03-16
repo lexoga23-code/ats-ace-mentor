@@ -6,6 +6,8 @@ import { analyzeCV, rewriteCV, type AnalysisResult } from "@/lib/analysis";
 import ResultsPanel from "./ResultsPanel";
 import LoadingOverlay from "./LoadingOverlay";
 
+const STORAGE_KEY = "scorecv_analysis";
+
 const INDUSTRIES = [
   "Finance / Banque",
   "Technologie / IT",
@@ -25,8 +27,47 @@ const CVAnalyzer = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [rewrittenCV, setRewrittenCV] = useState("");
+  const [restoringPaid, setRestoringPaid] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
   const isPaid = new URLSearchParams(window.location.search).get("paid") === "true";
+
+  // Restore state after Stripe payment redirect
+  useEffect(() => {
+    if (!isPaid) return;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+
+    try {
+      const state = JSON.parse(saved);
+      setCvText(state.cvText || "");
+      setTargetJob(state.targetJob || "");
+      setJobDescription(state.jobDescription || "");
+      setIndustry(state.industry || "");
+      setResults(state.results || null);
+
+      // Auto-generate rewritten CV for paid users
+      if (state.results && state.cvText && state.targetJob) {
+        setRestoringPaid(true);
+        rewriteCV(state.cvText, state.targetJob, region, state.results.keywordsMissing || [])
+          .then(setRewrittenCV)
+          .catch(console.error)
+          .finally(() => setRestoringPaid(false));
+      }
+    } catch {
+      console.error("Failed to restore analysis state");
+    }
+  }, [isPaid, region]);
+
+  // Save state to localStorage after each analysis (so it persists across Stripe redirect)
+  const saveState = (analysisResults: AnalysisResult) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      cvText,
+      targetJob,
+      jobDescription,
+      industry,
+      results: analysisResults,
+    }));
+  };
 
   const startAnalysis = async () => {
     if (!cvText || !targetJob) {
@@ -46,6 +87,7 @@ const CVAnalyzer = () => {
       result.score = Math.min(result.score, 100);
 
       setResults(result);
+      saveState(result);
 
       if (isPaid) {
         const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
@@ -94,7 +136,6 @@ const CVAnalyzer = () => {
                 onChange={(e) => setJobDescription(e.target.value)}
                 placeholder="Collez ici le texte complet de l'offre d'emploi..."
                 className="w-full h-32 p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground resize-none text-sm"
-                required
               />
             </div>
             <div>
@@ -120,7 +161,7 @@ const CVAnalyzer = () => {
           </div>
         </div>
 
-        {loading && <LoadingOverlay />}
+        {(loading || restoringPaid) && <LoadingOverlay />}
 
         <div ref={resultsRef}>
           {results && (
