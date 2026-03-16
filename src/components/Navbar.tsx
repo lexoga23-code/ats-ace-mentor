@@ -15,7 +15,6 @@ const Navbar = () => {
           <div className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
             <button onClick={() => smoothTo("#optimiser")} className="hover:text-primary transition-colors">Optimiser</button>
             <button onClick={() => smoothTo("#ats")} className="hover:text-primary transition-colors">{"C'est quoi l'ATS ?"}</button>
-            <button onClick={() => smoothTo("#faq")} className="hover:text-primary transition-colors">FAQ</button>
             <button onClick={() => smoothTo("#tarifs")} className="hover:text-primary transition-colors">Tarifs</button>
           </div>
         </div>
