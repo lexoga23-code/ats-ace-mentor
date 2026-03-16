@@ -1,4 +1,4 @@
-import { ShieldAlert, Skull, Eye, EyeOff, TrendingDown, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, TrendingDown, AlertTriangle, ShieldAlert } from "lucide-react";
 
 const ATSEducation = () => {
   return (
@@ -6,12 +6,12 @@ const ATSEducation = () => {
       <div className="max-w-5xl mx-auto">
         {/* Headline choc */}
         <div className="text-center mb-6">
-          <span className="inline-block px-4 py-1.5 bg-destructive/10 text-destructive text-sm font-bold rounded-full mb-4">
+          <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-bold rounded-full mb-4">
             ⚠️ CE QUE LES RECRUTEURS NE VOUS DIRONT JAMAIS
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
             {"Votre CV est probablement"}<br />
-            <span className="text-destructive">{"éliminé avant d'être lu."}</span>
+            <span className="text-primary">{"éliminé avant d'être lu."}</span>
           </h2>
         </div>
 
@@ -21,20 +21,20 @@ const ATSEducation = () => {
         </p>
 
         {/* Stat choc */}
-        <div className="bg-destructive/5 border-2 border-destructive/20 rounded-3xl p-8 md:p-12 mb-16 text-center">
-          <div className="text-7xl md:text-8xl font-bold text-destructive mb-4">75%</div>
+        <div className="bg-primary/5 border-2 border-primary/20 rounded-3xl p-8 md:p-12 mb-16 text-center">
+          <div className="text-7xl md:text-8xl font-bold text-primary mb-4">75%</div>
           <p className="text-xl md:text-2xl font-bold text-foreground mb-2">
             des CV sont éliminés automatiquement
           </p>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Avant même {"qu'un"} être humain ne les regarde. Votre expérience, vos compétences, votre motivation — <span className="font-bold text-destructive">tout ça ne compte pas</span> si votre CV {"n'est"} pas optimisé pour {"l'ATS"}.
+            Avant même {"qu'un"} être humain ne les regarde. Votre expérience, vos compétences, votre motivation — <span className="font-bold text-primary">tout ça ne compte pas</span> si votre CV {"n'est"} pas optimisé pour {"l'ATS"}.
           </p>
         </div>
 
         {/* 3 étapes effrayantes */}
         <div className="grid md:grid-cols-3 gap-6 mb-16">
           <div className="bg-card border border-border p-8 rounded-2xl shadow-soft">
-            <div className="w-14 h-14 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mb-5">
+            <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-5">
               <Eye className="w-7 h-7" />
             </div>
             <h3 className="text-lg font-bold mb-3 text-foreground">{"1. Le robot scanne votre CV"}</h3>
@@ -44,17 +44,17 @@ const ATSEducation = () => {
           </div>
 
           <div className="bg-card border border-border p-8 rounded-2xl shadow-soft">
-            <div className="w-14 h-14 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mb-5">
+            <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-5">
               <TrendingDown className="w-7 h-7" />
             </div>
             <h3 className="text-lg font-bold mb-3 text-foreground">{"2. Un score décide de votre sort"}</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {"Mots-clés absents ? Mauvais format ? Score trop bas → votre CV est rejeté. Vous ne recevez même pas de refus. Juste... le silence."} 
+              {"Mots-clés absents ? Mauvais format ? Score trop bas → votre CV est rejeté. Vous ne recevez même pas de refus. Juste... le silence."}
             </p>
           </div>
 
           <div className="bg-card border border-border p-8 rounded-2xl shadow-soft">
-            <div className="w-14 h-14 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mb-5">
+            <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-5">
               <EyeOff className="w-7 h-7" />
             </div>
             <h3 className="text-lg font-bold mb-3 text-foreground">{"3. Personne ne verra jamais votre CV"}</h3>
@@ -65,9 +65,9 @@ const ATSEducation = () => {
         </div>
 
         {/* Signes que votre CV est rejeté */}
-        <div className="bg-card border border-destructive/20 rounded-3xl p-8 md:p-10 mb-16">
+        <div className="bg-card border border-primary/20 rounded-3xl p-8 md:p-10 mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <AlertTriangle className="w-6 h-6 text-destructive" />
+            <AlertTriangle className="w-6 h-6 text-primary" />
             <h3 className="text-xl font-bold text-foreground">{"Vous reconnaissez-vous ?"}</h3>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
@@ -79,14 +79,14 @@ const ATSEducation = () => {
               "Vous utilisez des tableaux, colonnes ou icônes dans votre CV",
               "Vous avez un trou dans votre parcours non expliqué",
             ].map((item) => (
-              <div key={item} className="flex items-start gap-3 p-3 bg-destructive/5 rounded-xl">
-                <Skull className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div key={item} className="flex items-start gap-3 p-3 bg-primary/5 rounded-xl">
+                <ShieldAlert className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <span className="text-sm text-foreground">{item}</span>
               </div>
             ))}
           </div>
           <p className="mt-6 text-center text-muted-foreground text-sm">
-            Si vous avez coché <span className="font-bold text-destructive">ne serait-ce {"qu'un"} seul point</span>, votre CV est probablement filtré par les ATS.
+            Si vous avez coché <span className="font-bold text-primary">ne serait-ce {"qu'un"} seul point</span>, votre CV est probablement filtré par les ATS.
           </p>
         </div>
 
