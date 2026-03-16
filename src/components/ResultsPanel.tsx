@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertCircle, Tag, Lock } from "lucide-react";
-import { type AnalysisResult, rewriteSelection as apiRewriteSelection, generateCoverLetter, rewriteCV } from "@/lib/analysis";
+import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import CVPreview from "./CVPreview";
 import { useRegion } from "@/contexts/RegionContext";
 
