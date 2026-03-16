@@ -2,7 +2,7 @@ import "https://deno.land/std@0.168.0/dotenv/load.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const { prompt, maxTokens = 1500, temperature = 0.3 } = await req.json();
+    console.log("Received request, prompt length:", prompt?.length, "maxTokens:", maxTokens, "temperature:", temperature);
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt requis' }), {
@@ -22,6 +23,7 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) {
+      console.error("ANTHROPIC_API_KEY not configured");
       return new Response(JSON.stringify({ error: 'Clé API non configurée' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -44,8 +46,10 @@ Deno.serve(async (req) => {
     });
 
     const data = await response.json();
+    console.log("Anthropic response status:", response.status);
 
     if (!response.ok || data.type === 'error') {
+      console.error("Anthropic API error:", JSON.stringify(data));
       return new Response(JSON.stringify({ error: data.error?.message || 'Erreur API Anthropic' }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -56,6 +60,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error("Edge function error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
