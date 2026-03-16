@@ -20,6 +20,7 @@ const CVAnalyzer = () => {
   const { region } = useRegion();
   const [cvText, setCvText] = useState("");
   const [targetJob, setTargetJob] = useState("");
+  const [jobOfferUrl, setJobOfferUrl] = useState("");
   const [industry, setIndustry] = useState(INDUSTRIES[0]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
