@@ -123,8 +123,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
         <ScoreCircle score={results.score} />
         <div className="md:col-span-2 space-y-4">
-          <div className="p-4 bg-primary/10 rounded-xl text-primary font-medium text-sm">
-            {results.verdict}
+          <div className="p-4 bg-primary/10 rounded-xl text-primary font-medium text-sm space-y-1.5">
+            {results.verdict.split("\n").filter(Boolean).map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <ScoreBar label="FORMAT" value={results.scoreDetails.format} max={20} />
