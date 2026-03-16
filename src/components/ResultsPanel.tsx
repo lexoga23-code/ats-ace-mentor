@@ -88,20 +88,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     setLoadingLetter(false);
   };
 
-  const handleRewriteSelection = async () => {
-    const textarea = document.querySelector("#ai-rewrite-output") as HTMLTextAreaElement;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    if (start === end) { alert("Sélectionnez du texte à réécrire."); return; }
-    const selection = textarea.value.substring(start, end);
-    try {
-      const rewritten = await apiRewriteSelection(selection, targetJob, results.keywordsMissing);
-      const newText = textarea.value.substring(0, start) + rewritten + textarea.value.substring(end);
-      setRewrittenCV(newText);
-    } catch { alert("Erreur. Réessayez."); }
-  };
-
   const statusColors = {
     ok: "bg-emerald-50 text-emerald-900",
     fail: "bg-destructive/10 text-destructive",
