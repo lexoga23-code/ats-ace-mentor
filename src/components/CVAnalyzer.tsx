@@ -32,26 +32,17 @@ const CVAnalyzer = () => {
   const [isPaid, setIsPaid] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Verify payment via webhook-recorded data
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
-    if (!sessionId) return;
-
+  // Restore paid state from URL param (new tab redirect) or localStorage (original tab polling)
+  const restoreAfterPayment = (sessionId: string) => {
     const verifyPayment = async (): Promise<boolean> => {
       try {
         const { data, error } = await supabase.functions.invoke("verify-payment", {
           body: { sessionId },
         });
-
-        if (error) {
-          console.error("Payment verification error:", error);
-          return false;
-        }
-
+        if (error) return false;
         if (data?.paid) {
           setIsPaid(true);
-          // Restore saved analysis state
+          localStorage.removeItem("scorecv_checkout_session");
           const saved = localStorage.getItem(STORAGE_KEY);
           if (saved) {
             try {
@@ -61,7 +52,6 @@ const CVAnalyzer = () => {
               setJobDescription(state.jobDescription || "");
               setIndustry(state.industry || "");
               setResults(state.results || null);
-
               if (state.results && state.cvText && state.targetJob) {
                 setRestoringPaid(true);
                 rewriteCV(state.cvText, state.targetJob, region, state.results.keywordsMissing || [])
@@ -73,26 +63,43 @@ const CVAnalyzer = () => {
               console.error("Failed to restore analysis state");
             }
           }
-          // Clean URL
           window.history.replaceState({}, "", window.location.pathname);
           return true;
         }
         return false;
-      } catch (err) {
-        console.error("Verification failed:", err);
+      } catch {
         return false;
       }
     };
 
-    // Poll with retries to let webhook process
     const tryVerify = async (attempt = 0) => {
       const result = await verifyPayment();
-      if (!result && attempt < 5) {
+      if (!result && attempt < 8) {
         setTimeout(() => tryVerify(attempt + 1), 2000);
       }
     };
-    setTimeout(() => tryVerify(), 1500);
+    setTimeout(() => tryVerify(), 1000);
+  };
+
+  // Check URL param (Stripe redirect in new tab)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if (sessionId) restoreAfterPayment(sessionId);
   }, [region]);
+
+  // Poll on window focus for original tab (checkout opened in new tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isPaid) return;
+      const pendingSession = localStorage.getItem("scorecv_checkout_session");
+      if (pendingSession) {
+        restoreAfterPayment(pendingSession);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [isPaid, region]);
 
   // Save state to localStorage after each analysis
   const saveState = (analysisResults: AnalysisResult) => {
