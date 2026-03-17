@@ -6,6 +6,7 @@ import { analyzeCV, rewriteCV, type AnalysisResult } from "@/lib/analysis";
 import ResultsPanel from "./ResultsPanel";
 import LoadingOverlay from "./LoadingOverlay";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "scorecv_analysis";
 
@@ -32,76 +33,73 @@ const CVAnalyzer = () => {
   const [isPaid, setIsPaid] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Restore paid state from URL param (new tab redirect) or localStorage (original tab polling)
-  const restoreAfterPayment = (sessionId: string) => {
-    const verifyPayment = async (): Promise<boolean> => {
-      try {
-        const { data, error } = await supabase.functions.invoke("verify-payment", {
-          body: { sessionId },
-        });
-        if (error) return false;
-        if (data?.paid) {
-          setIsPaid(true);
-          localStorage.removeItem("scorecv_checkout_session");
-          const saved = localStorage.getItem(STORAGE_KEY);
-          if (saved) {
-            try {
-              const state = JSON.parse(saved);
-              setCvText(state.cvText || "");
-              setTargetJob(state.targetJob || "");
-              setJobDescription(state.jobDescription || "");
-              setIndustry(state.industry || "");
-              setResults(state.results || null);
-              if (state.results && state.cvText && state.targetJob) {
-                setRestoringPaid(true);
-                rewriteCV(state.cvText, state.targetJob, region, state.results.keywordsMissing || [])
-                  .then(setRewrittenCV)
-                  .catch(console.error)
-                  .finally(() => setRestoringPaid(false));
-              }
-            } catch {
-              console.error("Failed to restore analysis state");
-            }
-          }
-          window.history.replaceState({}, "", window.location.pathname);
-          return true;
-        }
-        return false;
-      } catch {
-        return false;
-      }
-    };
-
-    const tryVerify = async (attempt = 0) => {
-      const result = await verifyPayment();
-      if (!result && attempt < 8) {
-        setTimeout(() => tryVerify(attempt + 1), 2000);
-      }
-    };
-    setTimeout(() => tryVerify(), 1000);
-  };
-
-  // Check URL param (Stripe redirect in new tab)
+  // On mount: check for session_id in URL (return from Stripe same-tab redirect)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
-    if (sessionId) restoreAfterPayment(sessionId);
-  }, [region]);
+    if (!sessionId) return;
 
-  // Poll on window focus for original tab (checkout opened in new tab)
-  useEffect(() => {
-    const handleFocus = () => {
-      if (isPaid) return;
-      const pendingSession = localStorage.getItem("scorecv_checkout_session");
-      if (pendingSession) {
-        restoreAfterPayment(pendingSession);
+    // Restore saved analysis state from localStorage
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        setCvText(state.cvText || "");
+        setTargetJob(state.targetJob || "");
+        setJobDescription(state.jobDescription || "");
+        setIndustry(state.industry || "");
+        setResults(state.results || null);
+      } catch { /* ignore */ }
+    }
+
+    // Verify payment with polling
+    setRestoringPaid(true);
+    const tryVerify = async (attempt = 0) => {
+      try {
+        const { data } = await supabase.functions.invoke("verify-payment", {
+          body: { sessionId },
+        });
+        if (data?.paid) {
+          setIsPaid(true);
+          localStorage.removeItem("scorecv_checkout_session");
+          window.history.replaceState({}, "", window.location.pathname + "#optimiser");
+          toast.success("✓ Paiement confirmé — votre rapport complet est prêt !");
+
+          // Trigger rewrite
+          const savedState = localStorage.getItem(STORAGE_KEY);
+          if (savedState) {
+            try {
+              const s = JSON.parse(savedState);
+              if (s.cvText && s.targetJob && s.results) {
+                const rewritten = await rewriteCV(s.cvText, s.targetJob, region, s.results.keywordsMissing || []);
+                setRewrittenCV(rewritten);
+              }
+            } catch { /* ignore */ }
+          }
+          setRestoringPaid(false);
+          return;
+        }
+      } catch { /* ignore */ }
+
+      if (attempt < 10) {
+        setTimeout(() => tryVerify(attempt + 1), 2000);
+      } else {
+        setRestoringPaid(false);
+        toast.error("Impossible de confirmer le paiement. Contactez-nous si le problème persiste.");
       }
     };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [isPaid, region]);
+    setTimeout(() => tryVerify(), 500);
+  }, [region]);
 
-  // Save state to localStorage after each analysis
+  // Scroll to results when restored
+  useEffect(() => {
+    if (results && isPaid && resultsRef.current) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [results, isPaid]);
+
   const saveState = (analysisResults: AnalysisResult) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       cvText,
@@ -145,7 +143,7 @@ const CVAnalyzer = () => {
   };
 
   useEffect(() => {
-    if (results && resultsRef.current) {
+    if (results && resultsRef.current && !isPaid) {
       resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [results]);
@@ -168,9 +166,7 @@ const CVAnalyzer = () => {
               />
             </div>
             <div>
-              <label className="label-ui block mb-2">
-                Offre d'emploi
-              </label>
+              <label className="label-ui block mb-2">Offre d'emploi</label>
               <p className="text-xs text-muted-foreground mb-2">
                 Plus vous collez l'offre complète, plus l'analyse sera précise et personnalisée.
               </p>

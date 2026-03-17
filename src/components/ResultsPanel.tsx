@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AlertCircle, Tag, Lock } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import CVPreview from "./CVPreview";
+import CoverLetterPreview from "./CoverLetterPreview";
 import { useRegion } from "@/contexts/RegionContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,13 +29,7 @@ const ScoreCircle = ({ score }: { score: number }) => {
       <div className="relative inline-flex items-center justify-center">
         <svg className="w-32 h-32 transform -rotate-90">
           <circle cx="64" cy="64" r="58" strokeWidth="8" fill="transparent" className="stroke-secondary" />
-          <circle
-            cx="64" cy="64" r="58" strokeWidth="8" fill="transparent"
-            strokeDasharray="364.4"
-            strokeDashoffset={offset}
-            className="stroke-primary transition-all duration-1000 ease-out"
-            strokeLinecap="round"
-          />
+          <circle cx="64" cy="64" r="58" strokeWidth="8" fill="transparent" strokeDasharray="364.4" strokeDashoffset={offset} className="stroke-primary transition-all duration-1000 ease-out" strokeLinecap="round" />
         </svg>
         <span className="absolute text-3xl font-bold text-foreground">{score}</span>
       </div>
@@ -50,13 +45,12 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
       <span>{value}/{max}</span>
     </div>
     <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-      <div
-        className="h-full bg-primary transition-all duration-1000 rounded-full"
-        style={{ width: `${(value / max) * 100}%` }}
-      />
+      <div className="h-full bg-primary transition-all duration-1000 rounded-full" style={{ width: `${(value / max) * 100}%` }} />
     </div>
   </div>
 );
+
+const STORAGE_KEY = "scorecv_analysis";
 
 const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region }: ResultsPanelProps) => {
   const { currency, prices } = useRegion();
@@ -98,10 +92,12 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         },
       });
       if (error) throw error;
-      if (data?.url && data?.sessionId) {
-        // Save sessionId so original tab can poll for payment
-        localStorage.setItem("scorecv_checkout_session", data.sessionId);
-        window.open(data.url, '_blank');
+      if (data?.url) {
+        // Save state before redirecting (same tab)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+        if (data.sessionId) localStorage.setItem("scorecv_checkout_session", data.sessionId);
+        // Redirect in same tab — NEVER open new tab
+        window.location.href = data.url;
       }
     } catch (err) {
       console.error("Checkout error:", err);
@@ -116,12 +112,11 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     fail: "bg-destructive/10 text-destructive",
     warn: "bg-amber-50 text-amber-900",
   };
-
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
   return (
     <div className="mt-12 space-y-8">
-      {/* Score Overview */}
+      {/* Score Overview — same results object, never recalculated */}
       <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
         <ScoreCircle score={results.score} />
         <div className="md:col-span-2 space-y-4">
@@ -139,7 +134,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         </div>
       </div>
 
-      {/* Paywall CTA — between scores and problems */}
+      {/* Paywall CTA */}
       {!isPaid && (
         <div className="p-6 rounded-2xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-center gap-4">
           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -188,16 +183,26 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       {/* Paid Content */}
       {isPaid && (
         <div className="space-y-12">
-          {/* Checklist */}
+          {/* Checklist with detailed corrections */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Checklist de conformité</h3>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {results.checklist.map((item, i) => (
-                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${statusColors[item.status]}`}>
-                  <span className="mt-0.5">{statusIcons[item.status]}</span>
-                  <div>
-                    <div className="text-sm font-bold">{item.label}</div>
-                    <div className="text-xs opacity-70">{item.detail}</div>
+                <div key={i} className={`p-4 rounded-xl ${statusColors[item.status]}`}>
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 text-lg">{statusIcons[item.status]}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-bold">{item.label}</div>
+                      <div className="text-xs mt-1 opacity-80">{item.detail}</div>
+                      {item.correction && item.status !== "ok" && (
+                        <div className="mt-2 text-xs bg-white/50 rounded-lg p-3 border border-current/10">
+                          <strong>💡 Correction :</strong> {item.correction}
+                        </div>
+                      )}
+                      {item.impact && item.status !== "ok" && (
+                        <div className="mt-1 text-xs font-bold opacity-70">📈 Impact estimé : {item.impact}</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -235,7 +240,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           </div>
 
-          {/* Suggestions by priority */}
+          {/* Suggestions */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Améliorations suggérées</h3>
             <div className="space-y-4">
@@ -249,6 +254,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
                   <div key={i} className={`p-4 rounded-xl border-l-4 ${prioColors[s.priority]}`}>
                     <div className="text-sm font-bold text-foreground">{s.title}</div>
                     <div className="text-xs text-muted-foreground mt-1">{s.text}</div>
+                    {s.impact && <div className="text-xs font-bold text-primary mt-1">📈 {s.impact}</div>}
                   </div>
                 );
               })}
@@ -276,11 +282,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Lettre de motivation</h3>
             {coverLetter ? (
-              <textarea
-                value={coverLetter}
-                onChange={(e) => setCoverLetter(e.target.value)}
-                className="w-full h-72 p-6 bg-secondary border-none rounded-2xl text-sm leading-relaxed focus:ring-2 focus:ring-primary focus:outline-none text-foreground resize-none"
-              />
+              <CoverLetterPreview letter={coverLetter} onChange={setCoverLetter} />
             ) : (
               <button
                 onClick={handleGenerateLetter}
