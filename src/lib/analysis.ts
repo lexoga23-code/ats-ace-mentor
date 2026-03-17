@@ -88,13 +88,18 @@ CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/wa
 9. Compétences techniques — les outils et compétences spécifiques sont-ils listés ?
 10. Orthographe — absence de fautes détectées ?
 
-VERDICT — remplace le mot unique par 3 lignes personnalisées séparées par \\n :
-Ligne 1 : "✅ [point fort principal du CV, concret et spécifique]"
-Ligne 2 : "⚠️ [problème prioritaire à corriger, avec conseil concret]"
-Ligne 3 : "💡 [conseil principal adapté au poste visé et au pays]"
+VERDICT — CRUCIAL : les 3 lignes doivent être ULTRA-SPÉCIFIQUES au CV analysé, jamais génériques.
+Chaque ligne doit citer des éléments concrets du CV (nom de poste, compétence, entreprise, chiffre).
+INTERDIT : "Profil cohérent", "Bonne expérience", "CV bien structuré", "Manque de résultats chiffrés" — trop vague.
+OBLIGATOIRE : citer des faits précis du CV. Exemples :
+- ✅ "4 ans comme professeur au Lycée Jean Favard avec responsabilité de classe principale — un parcours solide pour un poste en enseignement professionnel"
+- ⚠️ "Email @laposte.net pénalisant en Suisse et aucun chiffre d'impact : ajoutez votre taux de réussite aux examens (ex: 92% sur 3 ans)"
+- 💡 "Pour ce poste d'enseignant en Suisse, remplacez 'lycée professionnel' par 'école professionnelle' et ajoutez vos connaissances du système vaudois (DGEP, CFC)"
+
+Format : 3 lignes séparées par \\n, commençant par ✅, ⚠️ et 💡.
 
 JSON À RETOURNER :
-{"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"✅ Point fort\\n⚠️ Problème\\n💡 Conseil","checklist":[{"label":"","status":"ok","detail":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
+{"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
   // Strip markdown code fences if present

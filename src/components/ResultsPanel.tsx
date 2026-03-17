@@ -98,7 +98,9 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         },
       });
       if (error) throw error;
-      if (data?.url) {
+      if (data?.url && data?.sessionId) {
+        // Save sessionId so original tab can poll for payment
+        localStorage.setItem("scorecv_checkout_session", data.sessionId);
         window.open(data.url, '_blank');
       }
     } catch (err) {
