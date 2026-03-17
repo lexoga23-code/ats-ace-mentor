@@ -9,7 +9,7 @@ export interface AnalysisResult {
     readability: number;
   };
   verdict: string;
-  checklist: Array<{ label: string; status: "ok" | "fail" | "warn"; detail: string }>;
+  checklist: Array<{ label: string; status: "ok" | "fail" | "warn"; detail: string; correction?: string; impact?: string }>;
   keywordsFound: string[];
   keywordsMissing: string[];
   keywordsSuggested: string[];
@@ -76,7 +76,12 @@ RÈGLES POUR LES SUGGESTIONS :
 - Chaque suggestion doit indiquer l'impact estimé en points
 - Maximum 5 suggestions, classées par impact décroissant
 
-CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/warn et une phrase courte + conseil actionnable :
+CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/warn et des champs detail, correction, impact :
+- "detail" = une phrase décrivant ce qui est détecté dans le CV (factuel)
+- "correction" = si warn ou fail : une correction CONCRÈTE avec un EXEMPLE SPÉCIFIQUE basé sur le contenu réel du CV. Ne jamais donner un conseil générique. Si ok : chaîne vide.
+- "impact" = estimation de l'impact sur le score si corrigé (ex: "+3 pts format", "+5 pts keywords"). Si ok : chaîne vide.
+
+Critères dans cet ordre :
 1. Lisibilité ATS — le CV est-il en texte pur sans colonnes, tableaux, images ?
 2. Mots-clés secteur — les mots-clés du secteur et du poste sont-ils présents ?
 3. Pertinence du poste — le profil correspond-il à au moins 70% des exigences ?
@@ -90,8 +95,8 @@ CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/wa
 
 VERDICT — CRUCIAL : les 3 lignes doivent être ULTRA-SPÉCIFIQUES au CV analysé, jamais génériques.
 Chaque ligne doit citer des éléments concrets du CV (nom de poste, compétence, entreprise, chiffre).
-INTERDIT : "Profil cohérent", "Bonne expérience", "CV bien structuré", "Manque de résultats chiffrés" — trop vague.
-OBLIGATOIRE : citer des faits précis du CV. Exemples :
+PHRASES INTERDITES (ne jamais utiliser) : "Profil cohérent", "Bonne expérience", "CV bien structuré", "Manque de résultats chiffrés", "Profil intéressant", "Bon potentiel", "Expérience significative", "CV à améliorer", "Profil solide"
+OBLIGATOIRE : citer des faits PRÉCIS et UNIQUES au CV. Exemples :
 - ✅ "4 ans comme professeur au Lycée Jean Favard avec responsabilité de classe principale — un parcours solide pour un poste en enseignement professionnel"
 - ⚠️ "Email @laposte.net pénalisant en Suisse et aucun chiffre d'impact : ajoutez votre taux de réussite aux examens (ex: 92% sur 3 ans)"
 - 💡 "Pour ce poste d'enseignant en Suisse, remplacez 'lycée professionnel' par 'école professionnelle' et ajoutez vos connaissances du système vaudois (DGEP, CFC)"
@@ -99,10 +104,9 @@ OBLIGATOIRE : citer des faits précis du CV. Exemples :
 Format : 3 lignes séparées par \\n, commençant par ✅, ⚠️ et 💡.
 
 JSON À RETOURNER :
-{"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
+{"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
-  // Strip markdown code fences if present
   const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
   return JSON.parse(cleaned);
 };
@@ -120,7 +124,7 @@ export const rewriteCV = async (
 Règles absolues :
 - Structure ATS : une colonne, pas de tableau, texte pur
 - Ordre chronologique inverse obligatoire
-- Chaque poste doit avoir au moins un résultat chiffré
+- N'ajoute PAS de chiffres à chaque ligne — cela paraît artificiel et inventé. Garde UNIQUEMENT les 3 à 4 chiffres les plus impactants et crédibles qui existent déjà dans le CV original. Priorité : taux de réussite, nombre d'élèves/clients encadrés, années d'expérience. N'invente JAMAIS de statistiques. Si un chiffre n'est pas dans le CV original, ne l'ajoute pas.
 ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
 - Profil professionnel en début de CV : 3-4 lignes percutantes qui répondent directement à l'offre
 - Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
@@ -168,10 +172,29 @@ ${region === "CH" ? `- Ne jamais écrire "j'ai décidé de m'installer en Suisse
 - Ton professionnel mais humain
 - Jamais de formule creuse comme "je suis une personne motivée et dynamique"
 
+IMPORTANT — STRUCTURE OBLIGATOIRE de la lettre :
+- Ligne 1 : [NOM COMPLET EN MAJUSCULES]
+- Ligne 2 : [Adresse ou Ville]
+- Ligne 3 : [Téléphone]
+- Ligne 4 : [Email]
+- Ligne 5 : (vide)
+- Ligne 6 : [Nom de l'entreprise/établissement si connu, sinon "Entreprise"]
+- Ligne 7 : [Ville, le DATE DU JOUR]
+- Ligne 8 : (vide)
+- Ligne 9 : Objet : Candidature au poste de ${job}
+- Ligne 10 : (vide)
+- Ligne 11 : Madame, Monsieur,
+- Ligne 12 : (vide)
+- Puis les 3 paragraphes séparés par des lignes vides
+- Puis ligne vide
+- Puis formule de politesse complète
+- Puis ligne vide
+- Puis [Prénom NOM]
+
 CV : ${cvText.substring(0, 1500)}
 Offre : ${offerDetails || "Non précisée"}
 
-Retourne UNIQUEMENT la lettre, prête à envoyer.`;
+Retourne UNIQUEMENT la lettre, prête à envoyer, avec la structure ci-dessus.`;
 
   return callAnthropic(prompt, 1500, 0.4);
 };
