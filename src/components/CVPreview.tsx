@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { AlertTriangle, Download, Check, Info, FileText } from "lucide-react";
+import { AlertTriangle, Download, Check, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { exportCVToDocx } from "@/lib/docxExport";
