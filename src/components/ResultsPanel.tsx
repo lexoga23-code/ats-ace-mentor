@@ -106,6 +106,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
       // Open in new tab
       window.open(stripeUrl, '_blank');
+      setCheckoutLoading(false);
     } catch (err) {
       console.error("[Checkout] Error:", err);
       alert("Erreur lors de la redirection vers le paiement.");
