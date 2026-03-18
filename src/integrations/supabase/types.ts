@@ -86,6 +86,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_analyses: {
+        Row: {
+          cover_letter: string | null
+          created_at: string
+          cv_text: string
+          id: string
+          industry: string | null
+          is_paid: boolean
+          job_description: string | null
+          match_score: number | null
+          results: Json
+          rewritten_cv: string | null
+          score: number
+          target_job: string
+          user_id: string
+        }
+        Insert: {
+          cover_letter?: string | null
+          created_at?: string
+          cv_text: string
+          id?: string
+          industry?: string | null
+          is_paid?: boolean
+          job_description?: string | null
+          match_score?: number | null
+          results: Json
+          rewritten_cv?: string | null
+          score?: number
+          target_job: string
+          user_id: string
+        }
+        Update: {
+          cover_letter?: string | null
+          created_at?: string
+          cv_text?: string
+          id?: string
+          industry?: string | null
+          is_paid?: boolean
+          job_description?: string | null
+          match_score?: number | null
+          results?: Json
+          rewritten_cv?: string | null
+          score?: number
+          target_job?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

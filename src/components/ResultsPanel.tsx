@@ -6,8 +6,10 @@ import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
 import KeywordTable from "./KeywordTable";
 import { useRegion } from "@/contexts/RegionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ResultsPanelProps {
   results: AnalysisResult;
@@ -16,6 +18,7 @@ interface ResultsPanelProps {
   cvText: string;
   targetJob: string;
   region: string;
+  analysisId?: string | null;
 }
 
 const ScoreCircle = ({ score }: { score: number }) => {
@@ -55,8 +58,10 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
 
 const STORAGE_KEY = "scorecv_analysis";
 
-const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region }: ResultsPanelProps) => {
+const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId }: ResultsPanelProps) => {
   const { currency, prices } = useRegion();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [rewrittenCV, setRewrittenCV] = useState(initialRewrite);
   const [coverLetter, setCoverLetter] = useState("");
   const [loadingRewrite, setLoadingRewrite] = useState(false);
@@ -89,17 +94,35 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   };
 
   const handleCheckout = async () => {
+    // If not logged in, redirect to auth first
+    if (!user) {
+      localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      toast.info("Créez un compte pour obtenir votre rapport complet");
+      navigate("/auth");
+      return;
+    }
+
     setCheckoutLoading(true);
     try {
       // Save full state before redirecting
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
 
-      const stripeUrl = "https://buy.stripe.com/test_aFa5kD1yPgp2ayKeqS4AU00";
-      console.log("Redirection Stripe vers:", stripeUrl);
+      // Use edge function to create checkout with user email
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          email: user.email,
+          successUrl: `${window.location.origin}/payment-success`,
+          cancelUrl: `${window.location.origin}/#optimiser`,
+        },
+      });
 
-      // Open in new tab
-      window.open(stripeUrl, '_blank');
+      if (error || !data?.url) {
+        throw new Error("Impossible de créer la session de paiement");
+      }
+
+      window.open(data.url, '_blank');
       setCheckoutLoading(false);
     } catch (err) {
       console.error("[Checkout] Error:", err);

@@ -4,6 +4,7 @@ import CVUploader from "./CVUploader";
 import JobOfferInput from "./JobOfferInput";
 import AnalysisHistory, { saveToHistory, type HistoryEntry } from "./AnalysisHistory";
 import { useRegion } from "@/contexts/RegionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { analyzeCV, rewriteCV, type AnalysisResult } from "@/lib/analysis";
 import ResultsPanel from "./ResultsPanel";
 import LoadingOverlay from "./LoadingOverlay";
@@ -24,6 +25,7 @@ const INDUSTRIES = [
 
 const CVAnalyzer = () => {
   const { region } = useRegion();
+  const { user } = useAuth();
   const [cvText, setCvText] = useState("");
   const [targetJob, setTargetJob] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -33,7 +35,34 @@ const CVAnalyzer = () => {
   const [rewrittenCV, setRewrittenCV] = useState("");
   const [restoringPaid, setRestoringPaid] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // On mount: restore from DB if user is logged in, or from localStorage
+  useEffect(() => {
+    if (!user) return;
+    const restoreFromDb = async () => {
+      const { data } = await supabase
+        .from("user_analyses")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        const latest = data[0];
+        setCvText(latest.cv_text || "");
+        setTargetJob(latest.target_job || "");
+        setJobDescription(latest.job_description || "");
+        setIndustry(latest.industry || "");
+        setResults(latest.results as unknown as AnalysisResult);
+        setIsPaid(latest.is_paid);
+        setCurrentAnalysisId(latest.id);
+        if (latest.rewritten_cv) setRewrittenCV(latest.rewritten_cv);
+      }
+    };
+    restoreFromDb();
+  }, [user]);
 
   // On mount: check for session_id in URL (return from Stripe same-tab redirect)
   useEffect(() => {
@@ -100,41 +129,66 @@ const CVAnalyzer = () => {
 
   // Poll localStorage for cross-tab payment signal
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       const paid = localStorage.getItem("scorecv_paid");
       if (paid === "true") {
         clearInterval(interval);
         localStorage.removeItem("scorecv_paid");
 
-        // Restore data from scorecv_data
-        const saved = localStorage.getItem("scorecv_data");
-        if (saved) {
-          try {
-            const s = JSON.parse(saved);
-            if (s.cvText) setCvText(s.cvText);
-            if (s.targetJob) setTargetJob(s.targetJob);
-            if (s.jobDescription) setJobDescription(s.jobDescription);
-            if (s.industry) setIndustry(s.industry);
-            if (s.results) setResults(s.results);
-          } catch { /* ignore */ }
-        }
+        // If user is logged in, restore from DB
+        if (user) {
+          const { data } = await supabase
+            .from("user_analyses")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1);
 
-        setIsPaid(true);
-        toast.success("✓ Paiement confirmé — voici votre rapport complet");
-
-        // Auto-generate rewritten CV
-        const savedData = localStorage.getItem("scorecv_data");
-        if (savedData) {
-          try {
-            const s = JSON.parse(savedData);
-            if (s.cvText && s.targetJob && s.results) {
-              rewriteCV(s.cvText, s.targetJob, region, s.results.keywordsMissing || [])
+          if (data && data.length > 0) {
+            const latest = data[0];
+            setCvText(latest.cv_text || "");
+            setTargetJob(latest.target_job || "");
+            setResults(latest.results as unknown as AnalysisResult);
+            setIsPaid(true);
+            setCurrentAnalysisId(latest.id);
+            if (latest.rewritten_cv) {
+              setRewrittenCV(latest.rewritten_cv);
+            } else if (latest.cv_text && latest.target_job) {
+              const r = latest.results as unknown as AnalysisResult;
+              rewriteCV(latest.cv_text, latest.target_job, region, r.keywordsMissing || [])
                 .then(setRewrittenCV)
                 .catch(() => {});
             }
-          } catch { /* ignore */ }
+          }
+        } else {
+          // Fallback: restore from localStorage
+          const saved = localStorage.getItem("scorecv_data");
+          if (saved) {
+            try {
+              const s = JSON.parse(saved);
+              if (s.cvText) setCvText(s.cvText);
+              if (s.targetJob) setTargetJob(s.targetJob);
+              if (s.jobDescription) setJobDescription(s.jobDescription);
+              if (s.industry) setIndustry(s.industry);
+              if (s.results) setResults(s.results);
+            } catch { /* ignore */ }
+          }
+          setIsPaid(true);
+
+          const savedData = localStorage.getItem("scorecv_data");
+          if (savedData) {
+            try {
+              const s = JSON.parse(savedData);
+              if (s.cvText && s.targetJob && s.results) {
+                rewriteCV(s.cvText, s.targetJob, region, s.results.keywordsMissing || [])
+                  .then(setRewrittenCV)
+                  .catch(() => {});
+              }
+            } catch { /* ignore */ }
+          }
         }
 
+        toast.success("✓ Paiement confirmé — voici votre rapport complet");
         setTimeout(() => {
           resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 300);
@@ -142,7 +196,7 @@ const CVAnalyzer = () => {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [region]);
+  }, [region, user]);
 
   const saveState = (analysisResults: AnalysisResult) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -171,7 +225,7 @@ const CVAnalyzer = () => {
       setResults(result);
       saveState(result);
 
-      // Save to history
+      // Save to local history
       saveToHistory({
         targetJob,
         score: result.score,
@@ -181,6 +235,23 @@ const CVAnalyzer = () => {
         jobDescription,
         industry,
       });
+
+      // Save to DB if user is logged in
+      if (user) {
+        const { data: inserted } = await supabase.from("user_analyses").insert({
+          user_id: user.id,
+          cv_text: cvText,
+          target_job: targetJob,
+          job_description: jobDescription,
+          industry: industry,
+          results: result as any,
+          score: result.score,
+          match_score: result.matchScore || null,
+          is_paid: isPaid,
+        }).select("id").single();
+
+        if (inserted) setCurrentAnalysisId(inserted.id);
+      }
 
       if (isPaid) {
         const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
@@ -268,6 +339,7 @@ const CVAnalyzer = () => {
               cvText={cvText}
               targetJob={targetJob}
               region={region}
+              analysisId={currentAnalysisId}
             />
           )}
         </div>
