@@ -126,6 +126,7 @@ const CVAnalyzer = () => {
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);
       result.scoreDetails.readability = Math.min(result.scoreDetails.readability, 20);
       result.score = Math.min(result.score, 100);
+      if (!result.sectionScores) result.sectionScores = [];
 
       setResults(result);
       saveState(result);
