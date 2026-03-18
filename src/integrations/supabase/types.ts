@@ -47,6 +47,45 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_reports: {
+        Row: {
+          cover_letter: string | null
+          created_at: string
+          email: string | null
+          expires_at: string
+          id: string
+          match_score: number | null
+          results: Json
+          rewritten_cv: string | null
+          score: number
+          target_job: string
+        }
+        Insert: {
+          cover_letter?: string | null
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          match_score?: number | null
+          results: Json
+          rewritten_cv?: string | null
+          score: number
+          target_job: string
+        }
+        Update: {
+          cover_letter?: string | null
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          match_score?: number | null
+          results?: Json
+          rewritten_cv?: string | null
+          score?: number
+          target_job?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

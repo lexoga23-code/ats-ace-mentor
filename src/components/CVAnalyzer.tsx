@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import CVUploader from "./CVUploader";
+import JobOfferInput from "./JobOfferInput";
+import AnalysisHistory, { saveToHistory, type HistoryEntry } from "./AnalysisHistory";
 import { useRegion } from "@/contexts/RegionContext";
 import { analyzeCV, rewriteCV, type AnalysisResult } from "@/lib/analysis";
 import ResultsPanel from "./ResultsPanel";
@@ -39,7 +41,6 @@ const CVAnalyzer = () => {
     const sessionId = params.get("session_id");
     if (!sessionId) return;
 
-    // Restore saved analysis state from localStorage
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -52,7 +53,6 @@ const CVAnalyzer = () => {
       } catch { /* ignore */ }
     }
 
-    // Verify payment with polling
     setRestoringPaid(true);
     const tryVerify = async (attempt = 0) => {
       try {
@@ -65,7 +65,6 @@ const CVAnalyzer = () => {
           window.history.replaceState({}, "", window.location.pathname + "#optimiser");
           toast.success("✓ Paiement confirmé — votre rapport complet est prêt !");
 
-          // Trigger rewrite
           const savedState = localStorage.getItem(STORAGE_KEY);
           if (savedState) {
             try {
@@ -91,7 +90,6 @@ const CVAnalyzer = () => {
     setTimeout(() => tryVerify(), 500);
   }, [region]);
 
-  // Scroll to results when restored
   useEffect(() => {
     if (results && isPaid && resultsRef.current) {
       setTimeout(() => {
@@ -102,11 +100,7 @@ const CVAnalyzer = () => {
 
   const saveState = (analysisResults: AnalysisResult) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      cvText,
-      targetJob,
-      jobDescription,
-      industry,
-      results: analysisResults,
+      cvText, targetJob, jobDescription, industry, results: analysisResults,
     }));
   };
 
@@ -131,6 +125,17 @@ const CVAnalyzer = () => {
       setResults(result);
       saveState(result);
 
+      // Save to history
+      saveToHistory({
+        targetJob,
+        score: result.score,
+        matchScore: result.matchScore,
+        results: result,
+        cvText,
+        jobDescription,
+        industry,
+      });
+
       if (isPaid) {
         const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
         setRewrittenCV(rewritten);
@@ -143,6 +148,19 @@ const CVAnalyzer = () => {
     }
   };
 
+  const handleRestoreHistory = (entry: HistoryEntry) => {
+    setCvText(entry.cvText);
+    setTargetJob(entry.targetJob);
+    setJobDescription(entry.jobDescription);
+    setIndustry(entry.industry);
+    setResults(entry.results);
+    setRewrittenCV("");
+    saveState(entry.results);
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
   useEffect(() => {
     if (results && resultsRef.current && !isPaid) {
       resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -153,7 +171,10 @@ const CVAnalyzer = () => {
     <section id="optimiser" className="py-20 px-6 bg-card border-y border-border/50">
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-start">
-          <CVUploader onTextExtracted={setCvText} />
+          <div className="space-y-6">
+            <CVUploader onTextExtracted={setCvText} />
+            <AnalysisHistory onRestore={handleRestoreHistory} />
+          </div>
 
           <div className="bg-secondary p-8 rounded-3xl space-y-6">
             <div>
@@ -166,18 +187,7 @@ const CVAnalyzer = () => {
                 className="w-full p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <div>
-              <label className="label-ui block mb-2">Offre d'emploi</label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Plus vous collez l'offre complète, plus l'analyse sera précise et personnalisée.
-              </p>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Collez ici le texte complet de l'offre d'emploi..."
-                className="w-full h-32 p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground resize-none text-sm"
-              />
-            </div>
+            <JobOfferInput value={jobDescription} onChange={setJobDescription} />
             <div>
               <label className="label-ui block mb-2">{"Secteur d'activité (optionnel)"}</label>
               <select
