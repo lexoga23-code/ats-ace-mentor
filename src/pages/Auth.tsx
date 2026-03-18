@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { sendWelcomeEmail } from "@/lib/emailService";
 
 const Auth = () => {
   const navigate = useNavigate();
