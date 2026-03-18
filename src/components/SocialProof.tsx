@@ -1,43 +1,4 @@
 import { Shield, Star, Zap, Users } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-
-const AnimatedCounter = ({ target, suffix = "" }: { target: number; suffix?: string }) => {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          const duration = 2000;
-          const steps = 60;
-          const increment = target / steps;
-          let current = 0;
-          const timer = setInterval(() => {
-            current += increment;
-            if (current >= target) {
-              setCount(target);
-              clearInterval(timer);
-            } else {
-              setCount(Math.floor(current));
-            }
-          }, duration / steps);
-        }
-      },
-      { threshold: 0.3 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [target]);
-
-  return (
-    <div ref={ref} className="text-3xl font-bold text-primary">
-      {count.toLocaleString("fr-FR")}{suffix}
-    </div>
-  );
-};
 
 const TESTIMONIALS = [
   {
@@ -47,9 +8,9 @@ const TESTIMONIALS = [
     rating: 5,
   },
   {
-    name: "Thomas K.",
-    role: "Développeur, Lausanne",
-    text: "L'analyse des mots-clés m'a ouvert les yeux. Mon score est passé de 42 à 87 en une seule réécriture.",
+    name: "Marie T.",
+    role: "Responsable comptable, Lyon",
+    text: "Grâce à ScoreCV j'ai compris pourquoi mon CV était ignoré par les recruteurs. En 20 minutes j'avais un CV entièrement optimisé pour les ATS. J'ai décroché 3 entretiens la semaine suivante.",
     rating: 5,
   },
   {
@@ -63,30 +24,13 @@ const TESTIMONIALS = [
 const TRUST_BADGES = [
   { icon: Shield, label: "Données chiffrées SSL" },
   { icon: Zap, label: "Analyse en 30 secondes" },
-  { icon: Users, label: "Utilisé par +2 000 candidats" },
+  { icon: Users, label: "Utilisé par +5 000 candidats" },
 ];
 
 const SocialProof = () => {
   return (
     <section className="py-16 px-6 bg-secondary/30">
       <div className="max-w-6xl mx-auto">
-        {/* Counters */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-          {[
-            { target: 2847, suffix: "+", label: "CV analysés" },
-            { target: 94, suffix: "%", label: "Taux de satisfaction" },
-            { target: 67, suffix: "%", label: "Score moyen amélioré" },
-            { target: 3, suffix: "x", label: "Plus d'entretiens" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <AnimatedCounter target={stat.target} suffix={stat.suffix} />
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mt-1">
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
-
         {/* Testimonials */}
         <h2 className="text-2xl font-bold text-center mb-8 text-foreground">
           Ce que disent nos utilisateurs

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertCircle, Tag, Lock, Target, Share2, Mail, Loader2 } from "lucide-react";
+import { Target, Share2, Mail, Loader2 } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
@@ -98,17 +98,23 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         },
       });
       if (error) throw error;
-      if (data?.url) {
-        // Save state before redirecting (same tab)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
-        if (data.sessionId) localStorage.setItem("scorecv_checkout_session", data.sessionId);
-        // Redirect in same tab — NEVER open new tab
-        window.location.href = data.url;
+      const stripeUrl = data?.url;
+      console.log("[Checkout] Stripe URL:", stripeUrl);
+      console.log("[Checkout] Session ID:", data?.sessionId);
+      if (!stripeUrl) {
+        console.error("[Checkout] No URL returned from create-checkout", data);
+        alert("Erreur : lien de paiement non disponible. Réessayez.");
+        setCheckoutLoading(false);
+        return;
       }
+      // Save state before redirecting (same tab)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      if (data.sessionId) localStorage.setItem("scorecv_checkout_session", data.sessionId);
+      // Redirect in same tab
+      window.location.href = stripeUrl;
     } catch (err) {
-      console.error("Checkout error:", err);
+      console.error("[Checkout] Error:", err);
       alert("Erreur lors de la redirection vers le paiement.");
-    } finally {
       setCheckoutLoading(false);
     }
   };
@@ -122,7 +128,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
   return (
     <div className="mt-12 space-y-8">
-      {/* Score Overview — same results object, never recalculated */}
+      {/* Score Overview */}
       <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
         <div className="space-y-4">
           <ScoreCircle score={results.score} />
@@ -136,11 +142,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           )}
         </div>
         <div className="md:col-span-2 space-y-4">
-          <div className="p-4 bg-primary/10 rounded-xl text-primary font-medium text-sm space-y-1.5">
-            {results.verdict.split("\n").filter(Boolean).map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
-          </div>
           <div className="grid grid-cols-2 gap-4">
             <ScoreBar label="FORMAT" value={results.scoreDetails.format} max={20} />
             <ScoreBar label="MOTS-CLÉS" value={results.scoreDetails.keywords} max={35} />
@@ -150,51 +151,55 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         </div>
       </div>
 
-      {/* Paywall CTA */}
+      {/* Free: Problems as red impact cards + Paywall */}
       {!isPaid && (
-        <div className="p-6 rounded-2xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Lock className="w-5 h-5 text-primary" />
+        <div className="space-y-6">
+          <div className="bg-card p-8 rounded-3xl shadow-soft">
+            <h3 className="text-xl font-bold mb-6 text-destructive flex items-center gap-2">
+              ⚠️ Votre CV perd des points sur ces {Math.min(results.suggestions.length, 3)} problèmes
+            </h3>
+            <div className="space-y-4">
+              {results.suggestions.slice(0, 3).map((s, i) => {
+                const impactNum = s.impact?.match(/\d+/)?.[0] || "5";
+                return (
+                  <div key={i} className="p-5 rounded-2xl bg-destructive/5 border border-destructive/20">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <h4 className="font-bold text-destructive text-sm flex items-center gap-2">
+                        🔴 {s.title}
+                      </h4>
+                      <span className="text-destructive font-bold text-sm whitespace-nowrap">−{impactNum} pts</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{s.text}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex-1 text-center sm:text-left">
-            <h4 className="font-bold text-foreground text-sm">Débloquez votre rapport complet</h4>
-            <p className="text-muted-foreground text-xs mt-1">
-              Réécriture IA, checklist 10 critères, lettre de motivation et export PDF/DOCX.
+
+          {/* Compelling paywall CTA */}
+          <div className="p-8 rounded-3xl border-2 border-destructive/30 bg-destructive/5">
+            <p className="text-center text-foreground font-bold text-lg mb-2">
+              Ces {Math.min(results.suggestions.length, 3)} problèmes vous font perdre{" "}
+              <span className="text-destructive">
+                {results.suggestions.slice(0, 3).reduce((sum, s) => {
+                  const n = parseInt(s.impact?.match(/\d+/)?.[0] || "5");
+                  return sum + n;
+                }, 0)} pts
+              </span>.
             </p>
+            <p className="text-center text-muted-foreground text-sm mb-6">
+              Le rapport complet vous explique comment les corriger et réécrit votre CV automatiquement.
+            </p>
+            <button
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="w-full py-4 bg-destructive text-destructive-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {checkoutLoading ? "Redirection..." : `🔓 Corriger mon CV maintenant — ${prices.single}${currency}`}
+            </button>
           </div>
-          <button
-            onClick={handleCheckout}
-            disabled={checkoutLoading}
-            className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-base hover:opacity-90 transition-all disabled:opacity-50"
-          >
-            {checkoutLoading ? "Redirection..." : `Débloquer — ${prices.single}${currency}`}
-          </button>
         </div>
       )}
-
-      {/* Free: Problems & Keywords */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-card p-6 rounded-2xl shadow-soft">
-          <h4 className="font-bold mb-4 flex items-center gap-2 text-foreground">
-            <AlertCircle className="text-destructive w-5 h-5" /> Problèmes prioritaires
-          </h4>
-          <ul className="space-y-3 text-sm text-muted-foreground">
-            {results.suggestions.slice(0, 3).map((s, i) => (
-              <li key={i}>• <strong className="text-foreground">{s.title}</strong>: {s.text}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="bg-card p-6 rounded-2xl shadow-soft">
-          <h4 className="font-bold mb-4 flex items-center gap-2 text-foreground">
-            <Tag className="text-amber-500 w-5 h-5" /> Mots-clés manquants
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {results.keywordsMissing.slice(0, 5).map((k, i) => (
-              <span key={i} className="px-3 py-1 bg-destructive/10 text-destructive rounded-full text-xs font-bold">{k}</span>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Paid Content */}
       {isPaid && (

@@ -1,4 +1,5 @@
-import { Eye, EyeOff, TrendingDown, Info, CheckCircle, HelpCircle } from "lucide-react";
+import { Eye, EyeOff, TrendingDown, HelpCircle } from "lucide-react";
+import SocialProof from "./SocialProof";
 
 const ATSEducation = () => {
   return (
@@ -66,36 +67,11 @@ const ATSEducation = () => {
           </div>
         </div>
 
-        {/* Bonnes pratiques */}
-        <div className="bg-card border border-border rounded-3xl p-8 md:p-10 mb-16 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
-          
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Info className="w-5 h-5 text-primary" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground">Comment optimiser votre CV pour l'ATS ?</h3>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              "Utiliser un format simple sans tableaux ni colonnes",
-              "Inclure les mots-clés de l'offre d'emploi",
-              "Privilégier les polices classiques (Arial, Times, Calibri)",
-              "Sauvegarder en format .docx ou .pdf standard",
-              "Structurer avec des titres de section clairs",
-              "Éviter les images, logos et graphiques",
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
-                <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <span className="text-sm text-foreground font-medium">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Avis utilisateurs (moved here) */}
+        <SocialProof />
 
         {/* CTA */}
-        <div className="text-center">
+        <div className="text-center mt-16">
           <p className="text-lg text-muted-foreground mb-6">
             <span className="font-bold text-foreground">Prêt à tester votre CV ?</span> {"Découvrez si votre CV passe les filtres ATS."}
           </p>
