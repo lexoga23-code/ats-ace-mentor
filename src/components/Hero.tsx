@@ -16,7 +16,7 @@ const Hero = () => {
           {[
             { value: "94%", label: "Passage ATS" },
             { value: "3x", label: "Plus d'entretiens" },
-            { value: "30s", label: "D'analyse IA" },
+            { value: "5000+", label: "CVs analysés" },
           ].map((stat) => (
             <div key={stat.label} className="p-6 bg-card rounded-2xl shadow-soft">
               <div className="text-3xl font-bold text-primary mb-1">{stat.value}</div>

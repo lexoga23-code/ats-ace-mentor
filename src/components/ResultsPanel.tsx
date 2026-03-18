@@ -98,17 +98,23 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         },
       });
       if (error) throw error;
-      if (data?.url) {
-        // Save state before redirecting (same tab)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
-        if (data.sessionId) localStorage.setItem("scorecv_checkout_session", data.sessionId);
-        // Redirect in same tab — NEVER open new tab
-        window.location.href = data.url;
+      const stripeUrl = data?.url;
+      console.log("[Checkout] Stripe URL:", stripeUrl);
+      console.log("[Checkout] Session ID:", data?.sessionId);
+      if (!stripeUrl) {
+        console.error("[Checkout] No URL returned from create-checkout", data);
+        alert("Erreur : lien de paiement non disponible. Réessayez.");
+        setCheckoutLoading(false);
+        return;
       }
+      // Save state before redirecting (same tab)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      if (data.sessionId) localStorage.setItem("scorecv_checkout_session", data.sessionId);
+      // Redirect in same tab
+      window.location.href = stripeUrl;
     } catch (err) {
-      console.error("Checkout error:", err);
+      console.error("[Checkout] Error:", err);
       alert("Erreur lors de la redirection vers le paiement.");
-    } finally {
       setCheckoutLoading(false);
     }
   };
