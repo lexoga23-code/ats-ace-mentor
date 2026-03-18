@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, FileText, Clock } from "lucide-react";
+import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 interface AnalysisEntry {
@@ -46,6 +46,14 @@ const Account = () => {
     navigate("/");
   };
 
+  const hasPaidReport = analyses.some((a) => a.is_paid);
+
+  const handleViewLastReport = () => {
+    // Set flag to restore last report on homepage
+    localStorage.setItem("scorecv_restore_report", "true");
+    navigate("/");
+  };
+
   if (authLoading || !user) return null;
 
   return (
@@ -58,16 +66,34 @@ const Account = () => {
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
 
+        {/* Profile Card */}
         <div className="bg-card p-8 rounded-3xl shadow-soft">
           <h1 className="text-2xl font-bold text-foreground mb-2">Mon compte</h1>
           <p className="text-muted-foreground text-sm">{user.email}</p>
           <div className="mt-4 flex gap-3">
             <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
-              {analyses.some((a) => a.is_paid) ? "Premium" : "Gratuit"}
+              {hasPaidReport ? "✓ Rapport acheté" : "Gratuit"}
             </span>
           </div>
         </div>
 
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={handleViewLastReport}
+            className="flex items-center justify-center gap-2 p-4 bg-card rounded-2xl shadow-soft text-sm font-bold text-foreground hover:bg-secondary transition-all"
+          >
+            <Eye className="w-4 h-4 text-primary" /> Revoir mon rapport
+          </button>
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center justify-center gap-2 p-4 bg-primary text-primary-foreground rounded-2xl text-sm font-bold hover:opacity-90 transition-all"
+          >
+            <Plus className="w-4 h-4" /> Nouvelle analyse
+          </button>
+        </div>
+
+        {/* Analysis History */}
         <div className="bg-card p-8 rounded-3xl shadow-soft">
           <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" /> Historique des analyses
@@ -104,6 +130,7 @@ const Account = () => {
           )}
         </div>
 
+        {/* Sign Out */}
         <button
           onClick={handleSignOut}
           className="flex items-center gap-2 text-sm text-destructive hover:underline"

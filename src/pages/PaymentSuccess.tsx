@@ -9,12 +9,12 @@ const PaymentSuccess = () => {
   const [status, setStatus] = useState<"loading" | "done">("loading");
 
   useEffect(() => {
-    // Always set localStorage flag for cross-tab fallback
+    // Always set localStorage flag for cross-tab detection
     localStorage.setItem("scorecv_paid", "true");
 
     const markPaid = async () => {
       if (user) {
-        // Mark user's latest analysis as paid
+        // Mark user's latest unpaid analysis as paid
         const { data: analyses } = await supabase
           .from("user_analyses")
           .select("id")
@@ -34,7 +34,12 @@ const PaymentSuccess = () => {
 
       // Auto-redirect after 2 seconds
       setTimeout(() => {
-        navigate("/");
+        // Try closing tab (works if opened via window.open)
+        if (window.opener) {
+          window.close();
+        } else {
+          navigate("/");
+        }
       }, 2000);
     };
 
@@ -49,16 +54,22 @@ const PaymentSuccess = () => {
         <p className="text-muted-foreground">
           {status === "loading"
             ? "Vérification en cours..."
-            : "Vous allez être redirigé vers votre rapport complet."}
+            : "Retournez sur l'onglet ScoreCV pour voir votre rapport complet."}
         </p>
         <button
-          onClick={() => navigate("/")}
+          onClick={() => {
+            if (window.opener) {
+              window.close();
+            } else {
+              navigate("/");
+            }
+          }}
           className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-all"
         >
-          Voir mon rapport →
+          Retourner sur mon rapport →
         </button>
         <p className="text-xs text-muted-foreground">
-          Si vous n'êtes pas redirigé, cliquez sur le bouton ci-dessus.
+          Si l'onglet ne se ferme pas, retournez manuellement sur l'onglet ScoreCV.
         </p>
       </div>
     </div>

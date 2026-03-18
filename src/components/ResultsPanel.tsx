@@ -94,10 +94,11 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   };
 
   const handleCheckout = async () => {
-    // If not logged in, redirect to auth first
+    // If not logged in, save data and flag pending checkout, then redirect to auth
     if (!user) {
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      localStorage.setItem("scorecv_pending_checkout", "true");
       toast.info("Créez un compte pour obtenir votre rapport complet");
       navigate("/auth");
       return;
