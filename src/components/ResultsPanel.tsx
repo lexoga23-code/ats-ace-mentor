@@ -91,26 +91,14 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          successUrl: `${window.location.origin}/?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/#optimiser`,
-        },
-      });
-      if (error) throw error;
-      const stripeUrl = data?.url;
-      console.log("[Checkout] Stripe URL:", stripeUrl);
-      console.log("[Checkout] Session ID:", data?.sessionId);
-      if (!stripeUrl) {
-        console.error("[Checkout] No URL returned from create-checkout", data);
-        alert("Erreur : lien de paiement non disponible. Réessayez.");
-        setCheckoutLoading(false);
-        return;
-      }
-      // Save state before redirecting (same tab)
+      // Save state before redirecting
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
-      if (data.sessionId) localStorage.setItem("scorecv_checkout_session", data.sessionId);
-      // Redirect in same tab
+
+      // Hardcoded Stripe URL for testing
+      const stripeUrl = "https://buy.stripe.com/test_aFa5kD1yPgp2ayKeqS4AU00";
+      console.log("Redirection Stripe vers:", stripeUrl);
+
+      // Redirect in same tab — never use window.open
       window.location.href = stripeUrl;
     } catch (err) {
       console.error("[Checkout] Error:", err);
