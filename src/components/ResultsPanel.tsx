@@ -116,28 +116,30 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
   return (
     <div className="mt-12 space-y-8">
-      {/* Score Overview */}
-      <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
-        <div className="space-y-4">
-          <ScoreCircle score={results.score} />
-          {results.matchScore !== undefined && results.matchScore > 0 && (
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
-                <Target className="w-4 h-4 text-primary" />
-                <span className="text-sm font-bold text-primary">Match Offre : {results.matchScore}%</span>
+      {/* Score Overview — only shown for paid users (free users see it in the 2-col layout) */}
+      {isPaid && (
+        <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
+          <div className="space-y-4">
+            <ScoreCircle score={results.score} />
+            {results.matchScore !== undefined && results.matchScore > 0 && (
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
+                  <Target className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-bold text-primary">Match Offre : {results.matchScore}%</span>
+                </div>
               </div>
+            )}
+          </div>
+          <div className="md:col-span-2 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <ScoreBar label="FORMAT" value={results.scoreDetails.format} max={20} />
+              <ScoreBar label="MOTS-CLÉS" value={results.scoreDetails.keywords} max={35} />
+              <ScoreBar label="CONTENU" value={results.scoreDetails.experience} max={25} />
+              <ScoreBar label="LISIBILITÉ" value={results.scoreDetails.readability} max={20} />
             </div>
-          )}
-        </div>
-        <div className="md:col-span-2 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <ScoreBar label="FORMAT" value={results.scoreDetails.format} max={20} />
-            <ScoreBar label="MOTS-CLÉS" value={results.scoreDetails.keywords} max={35} />
-            <ScoreBar label="CONTENU" value={results.scoreDetails.experience} max={25} />
-            <ScoreBar label="LISIBILITÉ" value={results.scoreDetails.readability} max={20} />
           </div>
         </div>
-      </div>
+      )}
 
       {/* Free: Score + Problems side by side + Paywall */}
       {!isPaid && (
