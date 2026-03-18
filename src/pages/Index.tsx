@@ -5,6 +5,7 @@ import ATSEducation from "@/components/ATSEducation";
 import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
+import SocialProof from "@/components/SocialProof";
 import { RegionProvider } from "@/contexts/RegionContext";
 
 const Index = () => (
@@ -12,6 +13,7 @@ const Index = () => (
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
+      <SocialProof />
       <CVAnalyzer />
       <ATSEducation />
       <Pricing />

@@ -1,13 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface SectionScore {
+  name: string;
+  score: number;
+  maxScore: number;
+  status: "ok" | "warn" | "fail";
+  feedback: string;
+}
+
 export interface AnalysisResult {
   score: number;
+  matchScore?: number; // 0-100 compatibility with job offer
   scoreDetails: {
     format: number;
     keywords: number;
     experience: number;
     readability: number;
   };
+  sectionScores: SectionScore[];
   verdict: string;
   checklist: Array<{ label: string; status: "ok" | "fail" | "warn"; detail: string; correction?: string; impact?: string }>;
   keywordsFound: string[];
@@ -103,8 +113,18 @@ OBLIGATOIRE : citer des faits PRÉCIS et UNIQUES au CV. Exemples :
 
 Format : 3 lignes séparées par \\n, commençant par ✅, ⚠️ et 💡.
 
+SCORES PAR SECTION — note chaque section du CV sur 10 avec un statut ok/warn/fail et un feedback court :
+- Coordonnées (email, téléphone, ville)
+- Profil professionnel (résumé en début de CV)
+- Expérience professionnelle (pertinence, dates, résultats)
+- Formation (diplômes, certifications)
+- Compétences (techniques, outils, langues)
+Si une section est absente, score = 0 et status = "fail".
+
+${jobDescription ? `MATCH SCORE — calcule un pourcentage de correspondance (0-100) entre le CV et l'offre d'emploi fournie. Analyse point par point les exigences de l'offre et vérifie lesquelles sont couvertes par le CV. Ajoute le champ "matchScore" au JSON.` : ""}
+
 JSON À RETOURNER :
-{"score":0,"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
+{"score":0,"${jobDescription ? '"matchScore":0,' : ''}scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"sectionScores":[{"name":"Coordonnées","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Profil professionnel","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Expérience","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Formation","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Compétences","score":0,"maxScore":10,"status":"ok","feedback":""}],"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
   const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
