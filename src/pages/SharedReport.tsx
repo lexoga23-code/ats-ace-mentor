@@ -17,7 +17,6 @@ interface SharedReport {
 }
 
 const ScoreCircle = ({ score }: { score: number }) => {
-  const offset = 364.4 - (364.4 * score) / 100;
   return (
     <div className="text-center">
       <div className="relative inline-flex items-center justify-center">
