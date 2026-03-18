@@ -98,8 +98,14 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       const stripeUrl = "https://buy.stripe.com/test_aFa5kD1yPgp2ayKeqS4AU00";
       console.log("Redirection Stripe vers:", stripeUrl);
 
-      // Redirect in same tab — never use window.open
-      window.location.href = stripeUrl;
+      if (!stripeUrl) {
+        alert("Erreur : URL de paiement non définie.");
+        setCheckoutLoading(false);
+        return;
+      }
+
+      // Open in new tab
+      window.open(stripeUrl, '_blank');
     } catch (err) {
       console.error("[Checkout] Error:", err);
       alert("Erreur lors de la redirection vers le paiement.");
