@@ -81,6 +81,7 @@ ${region === "CH" ? `RÈGLES POUR LA SUISSE :
 
 RÈGLES POUR LES SUGGESTIONS :
 - Chaque suggestion doit être CONCRÈTE et ACTIONNABLE — jamais vague
+- Les 3 problèmes doivent citer des éléments concrets du CV. Exemple correct : "Votre email laposte.net coûte −8 pts : les recruteurs suisses associent cette adresse à un profil peu digital." Exemple à éviter : "Enrichissez votre vocabulaire" — trop vague.
 - Mauvais exemple à éviter : "Améliorez votre CV"
 - Bon exemple : "Ajoutez votre taux de réussite aux examens et le nombre d'élèves encadrés. Ex : 95% de réussite sur 3 ans, 28 élèves en classe principale"
 - Chaque suggestion doit indiquer l'impact estimé en points

@@ -14,9 +14,9 @@ const TESTIMONIALS = [
     rating: 5,
   },
   {
-    name: "Sophie R.",
-    role: "RH, Lyon",
-    text: "En tant que recruteuse, je recommande ScoreCV à tous les candidats. L'outil est bluffant de précision.",
+    name: "Marc D.",
+    role: "Chef de projet, Bordeaux",
+    text: "Reconverti après 15 ans dans la banque, je pensais que mon expérience parlait d'elle-même. ScoreCV m'a montré que sans les bons mots-clés, mon profil était invisible. 3 semaines après avoir optimisé mon CV, j'ai signé un CDI.",
     rating: 5,
   },
 ];
