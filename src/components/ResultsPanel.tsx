@@ -61,6 +61,9 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const [loadingRewrite, setLoadingRewrite] = useState(false);
   const [loadingLetter, setLoadingLetter] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareEmail, setShareEmail] = useState("");
 
   useEffect(() => {
     setRewrittenCV(initialRewrite);
