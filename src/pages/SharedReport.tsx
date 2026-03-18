@@ -53,7 +53,7 @@ const SharedReportPage = () => {
       if (err || !data) {
         setError("Ce rapport n'existe pas ou a expiré.");
       } else {
-        setReport(data as SharedReport);
+        setReport(data as unknown as SharedReport);
       }
       setLoading(false);
     };
