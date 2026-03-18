@@ -1,5 +1,13 @@
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, convertInchesToTwip } from "docx";
-import { saveAs } from "file-saver";
+
+const saveAs = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 export const exportCVToDocx = async (cvText: string) => {
   const lines = cvText.split("\n").filter(Boolean);
