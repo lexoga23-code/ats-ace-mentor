@@ -8,9 +8,9 @@ const TESTIMONIALS = [
     rating: 5,
   },
   {
-    name: "Marie T.",
-    role: "Responsable comptable, Lyon",
-    text: "Grâce à ScoreCV j'ai compris pourquoi mon CV était ignoré par les recruteurs. En 20 minutes j'avais un CV entièrement optimisé pour les ATS. J'ai décroché 3 entretiens la semaine suivante.",
+    name: "Sophie M.",
+    role: "Formatrice RH, Lausanne",
+    text: "En tant que professionnelle RH, je recommande ScoreCV à tous mes stagiaires. L'analyse est précise et les suggestions concrètes. Un outil indispensable pour le marché suisse.",
     rating: 5,
   },
   {
