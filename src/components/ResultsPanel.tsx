@@ -139,53 +139,90 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         </div>
       </div>
 
-      {/* Free: Problems as red impact cards + Paywall */}
+      {/* Free: Score + Problems side by side + Paywall */}
       {!isPaid && (
         <div className="space-y-6">
-          <div className="bg-card p-8 rounded-3xl shadow-soft">
-            <h3 className="text-xl font-bold mb-6 text-destructive flex items-center gap-2">
-              ⚠️ Votre CV perd des points sur ces {Math.min(results.suggestions.length, 3)} problèmes
-            </h3>
-            <div className="space-y-4">
-              {results.suggestions.slice(0, 3).map((s, i) => {
-                const impactNum = s.impact?.match(/\d+/)?.[0] || "5";
-                return (
-                  <div key={i} className="p-5 rounded-2xl bg-destructive/5 border border-destructive/20">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <h4 className="font-bold text-destructive text-sm flex items-center gap-2">
-                        🔴 {s.title}
-                      </h4>
-                      <span className="text-destructive font-bold text-sm whitespace-nowrap">−{impactNum} pts</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{s.text}</p>
+          {/* Top row: 2 columns */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Left: Score circle + bars */}
+            <div className="bg-card p-8 rounded-3xl shadow-soft space-y-4">
+              <ScoreCircle score={results.score} />
+              {results.matchScore !== undefined && results.matchScore > 0 && (
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
+                    <Target className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold text-primary">Match Offre : {results.matchScore}%</span>
                   </div>
-                );
-              })}
+                </div>
+              )}
+              <div className="space-y-3 pt-2">
+                <ScoreBar label="FORMAT" value={results.scoreDetails.format} max={20} />
+                <ScoreBar label="MOTS-CLÉS" value={results.scoreDetails.keywords} max={35} />
+                <ScoreBar label="CONTENU" value={results.scoreDetails.experience} max={25} />
+                <ScoreBar label="LISIBILITÉ" value={results.scoreDetails.readability} max={20} />
+              </div>
+            </div>
+
+            {/* Right: 3 problems */}
+            <div className="bg-card p-8 rounded-3xl shadow-soft">
+              <h3 className="text-lg font-bold mb-4 text-destructive flex items-center gap-2">
+                ⚠️ Votre CV perd des points sur ces {Math.min(results.suggestions.length, 3)} problèmes
+              </h3>
+              <div className="space-y-3">
+                {results.suggestions.slice(0, 3).map((s, i) => {
+                  const impactNum = s.impact?.match(/\d+/)?.[0] || "5";
+                  return (
+                    <div key={i} className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20">
+                      <div className="flex items-start justify-between gap-3 mb-1">
+                        <h4 className="font-bold text-destructive text-sm">🔴 {s.title}</h4>
+                        <span className="text-destructive font-bold text-sm whitespace-nowrap">−{impactNum} pts</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{s.text}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Compelling paywall CTA */}
-          <div className="p-8 rounded-3xl border-2 border-destructive/30 bg-destructive/5">
-            <p className="text-center text-foreground font-bold text-lg mb-2">
-              Ces {Math.min(results.suggestions.length, 3)} problèmes vous font perdre{" "}
-              <span className="text-destructive">
-                {results.suggestions.slice(0, 3).reduce((sum, s) => {
-                  const n = parseInt(s.impact?.match(/\d+/)?.[0] || "5");
-                  return sum + n;
-                }, 0)} pts
-              </span>.
+          {/* CTA block */}
+          <div className="p-8 rounded-3xl border-2 border-primary/30 bg-primary/5">
+            <p className="text-center text-foreground font-bold text-lg mb-1">
+              Réécrivez votre CV et obtenez le rapport complet
             </p>
             <p className="text-center text-muted-foreground text-sm mb-6">
-              Le rapport complet vous explique comment les corriger et réécrit votre CV automatiquement.
+              CV réécrit par l'IA · Checklist détaillée · Lettre de motivation · Export PDF & Word
             </p>
             <button
               onClick={handleCheckout}
               disabled={checkoutLoading}
-              className="w-full py-4 bg-destructive text-destructive-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {checkoutLoading ? "Redirection..." : `🔓 Corriger mon CV maintenant — ${prices.single}${currency}`}
+              {checkoutLoading ? "Ouverture..." : `🔓 Obtenir le rapport complet — ${prices.single}${currency}`}
             </button>
           </div>
+
+          {/* CV vs Job observations */}
+          {results.matchScore !== undefined && results.matchScore > 0 && (
+            <div className="bg-card p-8 rounded-3xl shadow-soft">
+              <h3 className="text-lg font-bold mb-4 text-foreground">🎯 Votre CV face à cette offre</h3>
+              <div className="space-y-3">
+                {results.keywordsFound.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    ✓ Votre CV contient {results.keywordsFound.length} mot{results.keywordsFound.length > 1 ? "s" : ""}-clé{results.keywordsFound.length > 1 ? "s" : ""} pertinent{results.keywordsFound.length > 1 ? "s" : ""} ({results.keywordsFound.slice(0, 3).join(", ")}{results.keywordsFound.length > 3 ? "…" : ""}).
+                  </p>
+                )}
+                {results.keywordsMissing.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    ⚠️ Il manque {results.keywordsMissing.length} mot{results.keywordsMissing.length > 1 ? "s" : ""}-clé{results.keywordsMissing.length > 1 ? "s" : ""} attendu{results.keywordsMissing.length > 1 ? "s" : ""} par l'offre. Le rapport complet identifie ces mots-clés et les intègre automatiquement dans votre CV réécrit.
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  📊 Score de compatibilité : {results.matchScore}% — {results.matchScore >= 70 ? "bon potentiel, mais des ajustements sont possibles" : "des optimisations ciblées peuvent significativement améliorer votre candidature"}.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
