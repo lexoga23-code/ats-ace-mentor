@@ -6,8 +6,10 @@ import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
 import KeywordTable from "./KeywordTable";
 import { useRegion } from "@/contexts/RegionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ResultsPanelProps {
   results: AnalysisResult;
@@ -16,6 +18,7 @@ interface ResultsPanelProps {
   cvText: string;
   targetJob: string;
   region: string;
+  analysisId?: string | null;
 }
 
 const ScoreCircle = ({ score }: { score: number }) => {
