@@ -78,6 +78,9 @@ const Auth = () => {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         toast.success("Compte créé ! Vous êtes connecté.");
+        // Send welcome email via EmailJS
+        const name = email.split("@")[0];
+        sendWelcomeEmail(name, email);
       }
     } catch (err: any) {
       toast.error(err.message || "Erreur d'authentification");

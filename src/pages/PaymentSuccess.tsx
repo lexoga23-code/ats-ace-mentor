@@ -36,6 +36,12 @@ const PaymentSuccess = () => {
         }
       }
 
+      // Send payment confirmation email
+      if (user?.email) {
+        const name = user.user_metadata?.full_name || user.email.split("@")[0];
+        sendPaymentConfirmEmail(name, user.email);
+      }
+
       // Set localStorage flag AFTER DB is updated so the other tab reads correct data
       localStorage.setItem("scorecv_paid", "true");
       setStatus("done");
