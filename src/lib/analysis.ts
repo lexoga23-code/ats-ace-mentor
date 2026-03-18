@@ -1,13 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface SectionScore {
+  name: string;
+  score: number;
+  maxScore: number;
+  status: "ok" | "warn" | "fail";
+  feedback: string;
+}
+
 export interface AnalysisResult {
   score: number;
+  matchScore?: number; // 0-100 compatibility with job offer
   scoreDetails: {
     format: number;
     keywords: number;
     experience: number;
     readability: number;
   };
+  sectionScores: SectionScore[];
   verdict: string;
   checklist: Array<{ label: string; status: "ok" | "fail" | "warn"; detail: string; correction?: string; impact?: string }>;
   keywordsFound: string[];
