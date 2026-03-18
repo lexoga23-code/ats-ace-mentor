@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 const PaymentSuccess = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "done">("loading");
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    // Always set localStorage flag for cross-tab detection
-    localStorage.setItem("scorecv_paid", "true");
+    // Wait for auth to finish loading before doing anything
+    if (authLoading) return;
+    // Only run once
+    if (hasRun.current) return;
+    hasRun.current = true;
 
     const markPaid = async () => {
       if (user) {
@@ -30,21 +34,23 @@ const PaymentSuccess = () => {
             .eq("id", analyses[0].id);
         }
       }
+
+      // Set localStorage flag AFTER DB is updated so the other tab reads correct data
+      localStorage.setItem("scorecv_paid", "true");
       setStatus("done");
 
       // Auto-redirect after 2 seconds
       setTimeout(() => {
-        // Try closing tab (works if opened via window.open)
         if (window.opener) {
           window.close();
         } else {
-          navigate("/");
+          navigate("/#optimiser");
         }
       }, 2000);
     };
 
     markPaid();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
@@ -61,7 +67,7 @@ const PaymentSuccess = () => {
             if (window.opener) {
               window.close();
             } else {
-              navigate("/");
+              navigate("/#optimiser");
             }
           }}
           className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-all"

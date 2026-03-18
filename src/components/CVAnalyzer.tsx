@@ -60,9 +60,59 @@ const CVAnalyzer = () => {
         setCurrentAnalysisId(latest.id);
         if (latest.rewritten_cv) setRewrittenCV(latest.rewritten_cv);
       }
+
+      // Also check localStorage flag (in case DB update was delayed)
+      if (localStorage.getItem("scorecv_paid") === "true") {
+        setIsPaid(true);
+        localStorage.removeItem("scorecv_paid");
+      }
     };
     restoreFromDb();
   }, [user]);
+
+  // Listen for cross-tab storage events (more reliable than polling)
+  useEffect(() => {
+    const handleStorage = async (e: StorageEvent) => {
+      if (e.key === "scorecv_paid" && e.newValue === "true") {
+        localStorage.removeItem("scorecv_paid");
+        setIsPaid(true);
+
+        // Refresh data from DB
+        if (user) {
+          const { data } = await supabase
+            .from("user_analyses")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (data && data.length > 0) {
+            const latest = data[0];
+            setCvText(latest.cv_text || "");
+            setTargetJob(latest.target_job || "");
+            setResults(latest.results as unknown as AnalysisResult);
+            setCurrentAnalysisId(latest.id);
+            if (latest.rewritten_cv) {
+              setRewrittenCV(latest.rewritten_cv);
+            } else if (latest.cv_text && latest.target_job) {
+              const r = latest.results as unknown as AnalysisResult;
+              rewriteCV(latest.cv_text, latest.target_job, region, r.keywordsMissing || [])
+                .then(setRewrittenCV)
+                .catch(() => {});
+            }
+          }
+        }
+
+        toast.success("✓ Paiement confirmé — voici votre rapport complet");
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 300);
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [user, region]);
 
   // On mount: check for session_id in URL (return from Stripe same-tab redirect)
   useEffect(() => {
@@ -127,15 +177,16 @@ const CVAnalyzer = () => {
     }
   }, [results, isPaid]);
 
-  // Poll localStorage for cross-tab payment signal
+  // Poll localStorage for same-tab payment signal (fallback for when storage event doesn't fire)
   useEffect(() => {
     const interval = setInterval(async () => {
       const paid = localStorage.getItem("scorecv_paid");
       if (paid === "true") {
         clearInterval(interval);
         localStorage.removeItem("scorecv_paid");
+        setIsPaid(true);
 
-        // If user is logged in, restore from DB
+        // Refresh data from DB if user is logged in
         if (user) {
           const { data } = await supabase
             .from("user_analyses")
@@ -149,7 +200,6 @@ const CVAnalyzer = () => {
             setCvText(latest.cv_text || "");
             setTargetJob(latest.target_job || "");
             setResults(latest.results as unknown as AnalysisResult);
-            setIsPaid(true);
             setCurrentAnalysisId(latest.id);
             if (latest.rewritten_cv) {
               setRewrittenCV(latest.rewritten_cv);
@@ -168,22 +218,7 @@ const CVAnalyzer = () => {
               const s = JSON.parse(saved);
               if (s.cvText) setCvText(s.cvText);
               if (s.targetJob) setTargetJob(s.targetJob);
-              if (s.jobDescription) setJobDescription(s.jobDescription);
-              if (s.industry) setIndustry(s.industry);
               if (s.results) setResults(s.results);
-            } catch { /* ignore */ }
-          }
-          setIsPaid(true);
-
-          const savedData = localStorage.getItem("scorecv_data");
-          if (savedData) {
-            try {
-              const s = JSON.parse(savedData);
-              if (s.cvText && s.targetJob && s.results) {
-                rewriteCV(s.cvText, s.targetJob, region, s.results.keywordsMissing || [])
-                  .then(setRewrittenCV)
-                  .catch(() => {});
-              }
             } catch { /* ignore */ }
           }
         }
