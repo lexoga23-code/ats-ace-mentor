@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { sendPaymentConfirmEmail } from "@/lib/emailService";
 
 const PaymentSuccess = () => {
   const { user, loading: authLoading } = useAuth();
@@ -33,6 +34,12 @@ const PaymentSuccess = () => {
             .update({ is_paid: true })
             .eq("id", analyses[0].id);
         }
+      }
+
+      // Send payment confirmation email
+      if (user?.email) {
+        const name = user.user_metadata?.full_name || user.email.split("@")[0];
+        sendPaymentConfirmEmail(name, user.email);
       }
 
       // Set localStorage flag AFTER DB is updated so the other tab reads correct data

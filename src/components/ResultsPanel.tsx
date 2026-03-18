@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { sendReviewRequestEmail } from "@/lib/emailService";
 
 interface ResultsPanelProps {
   results: AnalysisResult;
@@ -432,7 +433,15 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             <p className="text-muted-foreground text-sm mb-6">
               CV + lettre relus par un expert. Rapport PDF personnalisé sous 24h ouvrées. {prices.human}{currency}.
             </p>
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); alert("Demande envoyée à contact.scorecv@gmail.com"); }}>
+            <form className="space-y-4" onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const nameInput = form.elements[0] as HTMLInputElement;
+              const emailInput = form.elements[1] as HTMLInputElement;
+              sendReviewRequestEmail(nameInput.value, emailInput.value);
+              toast.success("Demande envoyée ! Vous recevrez un email de confirmation.");
+              form.reset();
+            }}>
               <input placeholder="Prénom" className="w-full p-3 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground" required />
               <input type="email" placeholder="Email" className="w-full p-3 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground" required />
               <textarea placeholder="Message (optionnel)" className="w-full h-24 p-3 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground resize-none" />
