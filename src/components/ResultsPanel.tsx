@@ -290,6 +290,84 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             )}
           </div>
 
+          {/* Share Report */}
+          <div className="bg-card p-8 rounded-3xl shadow-soft">
+            <h3 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-primary" /> Partager le rapport
+            </h3>
+            {shareUrl ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Lien valide 30 jours :</p>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={shareUrl}
+                    className="flex-1 p-3 bg-secondary rounded-xl text-sm text-foreground"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Lien copié !"); }}
+                    className="px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm"
+                  >
+                    Copier
+                  </button>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="Envoyer par email..."
+                    className="flex-1 p-3 bg-secondary rounded-xl text-sm text-foreground placeholder:text-muted-foreground"
+                  />
+                  <button
+                    onClick={() => {
+                      if (shareEmail) {
+                        window.open(`mailto:${shareEmail}?subject=Mon rapport ScoreCV&body=Consultez mon rapport : ${encodeURIComponent(shareUrl)}`);
+                        toast.success("Ouverture du client email...");
+                      }
+                    }}
+                    disabled={!shareEmail}
+                    className="px-4 py-3 bg-foreground text-background rounded-xl font-bold text-sm disabled:opacity-50"
+                  >
+                    Envoyer
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={async () => {
+                  setShareLoading(true);
+                  try {
+                    const { data, error } = await supabase.from("shared_reports").insert({
+                      target_job: targetJob,
+                      score: results.score,
+                      match_score: results.matchScore || null,
+                      results: results as any,
+                      rewritten_cv: rewrittenCV || null,
+                      cover_letter: coverLetter || null,
+                    }).select("id").single();
+                    if (error) throw error;
+                    const url = `${window.location.origin}/rapport/${data.id}`;
+                    setShareUrl(url);
+                    toast.success("Lien de partage créé !");
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Erreur lors de la création du lien.");
+                  } finally {
+                    setShareLoading(false);
+                  }
+                }}
+                disabled={shareLoading}
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {shareLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                {shareLoading ? "Création..." : "Créer un lien de partage"}
+              </button>
+            )}
+          </div>
+
           {/* Human Review Upsell */}
           <div className="bg-surface-warm p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-2 text-foreground">Relecture par un expert humain</h3>
