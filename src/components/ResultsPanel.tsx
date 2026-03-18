@@ -91,18 +91,12 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     try {
-      // Save state before redirecting
+      // Save full state before redirecting
+      localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
 
-      // Hardcoded Stripe URL for testing
       const stripeUrl = "https://buy.stripe.com/test_aFa5kD1yPgp2ayKeqS4AU00";
       console.log("Redirection Stripe vers:", stripeUrl);
-
-      if (!stripeUrl) {
-        alert("Erreur : URL de paiement non définie.");
-        setCheckoutLoading(false);
-        return;
-      }
 
       // Open in new tab
       window.open(stripeUrl, '_blank');

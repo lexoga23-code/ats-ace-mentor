@@ -98,6 +98,52 @@ const CVAnalyzer = () => {
     }
   }, [results, isPaid]);
 
+  // Poll localStorage for cross-tab payment signal
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const paid = localStorage.getItem("scorecv_paid");
+      if (paid === "true") {
+        clearInterval(interval);
+        localStorage.removeItem("scorecv_paid");
+
+        // Restore data from scorecv_data
+        const saved = localStorage.getItem("scorecv_data");
+        if (saved) {
+          try {
+            const s = JSON.parse(saved);
+            if (s.cvText) setCvText(s.cvText);
+            if (s.targetJob) setTargetJob(s.targetJob);
+            if (s.jobDescription) setJobDescription(s.jobDescription);
+            if (s.industry) setIndustry(s.industry);
+            if (s.results) setResults(s.results);
+          } catch { /* ignore */ }
+        }
+
+        setIsPaid(true);
+        toast.success("✓ Paiement confirmé — voici votre rapport complet");
+
+        // Auto-generate rewritten CV
+        const savedData = localStorage.getItem("scorecv_data");
+        if (savedData) {
+          try {
+            const s = JSON.parse(savedData);
+            if (s.cvText && s.targetJob && s.results) {
+              rewriteCV(s.cvText, s.targetJob, region, s.results.keywordsMissing || [])
+                .then(setRewrittenCV)
+                .catch(() => {});
+            }
+          } catch { /* ignore */ }
+        }
+
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 300);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [region]);
+
   const saveState = (analysisResults: AnalysisResult) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       cvText, targetJob, jobDescription, industry, results: analysisResults,
