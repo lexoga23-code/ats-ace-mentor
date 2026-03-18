@@ -7,6 +7,7 @@ import SectionScores from "./SectionScores";
 import KeywordTable from "./KeywordTable";
 import { useRegion } from "@/contexts/RegionContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ResultsPanelProps {
   results: AnalysisResult;
