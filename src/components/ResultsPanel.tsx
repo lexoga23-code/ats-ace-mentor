@@ -195,6 +195,11 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       {/* Paid Content */}
       {isPaid && (
         <div className="space-y-12">
+          {/* Section Scores */}
+          {results.sectionScores && results.sectionScores.length > 0 && (
+            <SectionScores sections={results.sectionScores} />
+          )}
+
           {/* Checklist with detailed corrections */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Checklist de conformité</h3>
@@ -221,36 +226,12 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           </div>
 
-          {/* All Keywords */}
-          <div className="bg-card p-8 rounded-3xl shadow-soft">
-            <h3 className="text-xl font-bold mb-6 text-foreground">Analyse des mots-clés</h3>
-            <div className="space-y-4">
-              <div>
-                <p className="label-ui mb-2">Présents</p>
-                <div className="flex flex-wrap gap-2">
-                  {results.keywordsFound.map((k, i) => (
-                    <span key={i} className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold">{k}</span>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="label-ui mb-2">Manquants</p>
-                <div className="flex flex-wrap gap-2">
-                  {results.keywordsMissing.map((k, i) => (
-                    <span key={i} className="px-3 py-1 bg-destructive/10 text-destructive rounded-full text-xs font-bold">{k}</span>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="label-ui mb-2">Suggérés</p>
-                <div className="flex flex-wrap gap-2">
-                  {results.keywordsSuggested.map((k, i) => (
-                    <span key={i} className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold">{k}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Interactive Keyword Table */}
+          <KeywordTable
+            found={results.keywordsFound}
+            missing={results.keywordsMissing}
+            suggested={results.keywordsSuggested}
+          />
 
           {/* Suggestions */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
