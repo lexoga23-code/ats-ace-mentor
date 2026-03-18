@@ -177,15 +177,16 @@ const CVAnalyzer = () => {
     }
   }, [results, isPaid]);
 
-  // Poll localStorage for cross-tab payment signal
+  // Poll localStorage for same-tab payment signal (fallback for when storage event doesn't fire)
   useEffect(() => {
     const interval = setInterval(async () => {
       const paid = localStorage.getItem("scorecv_paid");
       if (paid === "true") {
         clearInterval(interval);
         localStorage.removeItem("scorecv_paid");
+        setIsPaid(true);
 
-        // If user is logged in, restore from DB
+        // Refresh data from DB if user is logged in
         if (user) {
           const { data } = await supabase
             .from("user_analyses")
@@ -199,7 +200,6 @@ const CVAnalyzer = () => {
             setCvText(latest.cv_text || "");
             setTargetJob(latest.target_job || "");
             setResults(latest.results as unknown as AnalysisResult);
-            setIsPaid(true);
             setCurrentAnalysisId(latest.id);
             if (latest.rewritten_cv) {
               setRewrittenCV(latest.rewritten_cv);
@@ -218,22 +218,7 @@ const CVAnalyzer = () => {
               const s = JSON.parse(saved);
               if (s.cvText) setCvText(s.cvText);
               if (s.targetJob) setTargetJob(s.targetJob);
-              if (s.jobDescription) setJobDescription(s.jobDescription);
-              if (s.industry) setIndustry(s.industry);
               if (s.results) setResults(s.results);
-            } catch { /* ignore */ }
-          }
-          setIsPaid(true);
-
-          const savedData = localStorage.getItem("scorecv_data");
-          if (savedData) {
-            try {
-              const s = JSON.parse(savedData);
-              if (s.cvText && s.targetJob && s.results) {
-                rewriteCV(s.cvText, s.targetJob, region, s.results.keywordsMissing || [])
-                  .then(setRewrittenCV)
-                  .catch(() => {});
-              }
             } catch { /* ignore */ }
           }
         }
