@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertCircle, Tag, Lock, Target, Share2, Mail, Loader2 } from "lucide-react";
+import { Target, Share2, Mail, Loader2 } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
