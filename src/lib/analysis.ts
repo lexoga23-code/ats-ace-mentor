@@ -10,7 +10,7 @@ export interface SectionScore {
 
 export interface AnalysisResult {
   score: number;
-  matchScore?: number; // 0-100 compatibility with job offer
+  matchScore?: number;
   scoreDetails: {
     format: number;
     keywords: number;
@@ -73,6 +73,12 @@ RÈGLE DE COHÉRENCE ABSOLUE :
 - Relis le CV avant de lister les mots manquants
 - Si un mot apparaît même une fois dans le CV, il va dans keywordsFound, jamais dans keywordsMissing
 
+RÈGLE MOTS-CLÉS — PERTINENCE OBLIGATOIRE :
+- Les mots-clés doivent être directement liés au poste et au secteur
+- Éviter les termes génériques comme "communication", "travail en équipe", "motivation", "rigueur"
+- Privilégier les termes techniques spécifiques au métier et au pays
+- Exemples de bons mots-clés : "SAP", "IFRS", "React", "gestion de projet agile", "CFC", "DGEP"
+
 ${region === "CH" ? `RÈGLES POUR LA SUISSE :
 - Utiliser le vocabulaire suisse : école professionnelle (pas lycée professionnel), maître d'enseignement professionnel (pas professeur), secondaire II, DGEP, CFC, formation duale, maturité professionnelle, LPP, AVS, CCT
 - Signaler si l'email est non professionnel (laposte.net, hotmail, yahoo, orange) et recommander Gmail
@@ -88,8 +94,8 @@ RÈGLES POUR LES SUGGESTIONS :
 - Maximum 5 suggestions, classées par impact décroissant
 
 CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/warn et des champs detail, correction, impact :
-- "detail" = une phrase décrivant ce qui est détecté dans le CV (factuel)
-- "correction" = si warn ou fail : une correction CONCRÈTE avec un EXEMPLE SPÉCIFIQUE basé sur le contenu réel du CV. Ne jamais donner un conseil générique. Si ok : chaîne vide.
+- "detail" = une phrase décrivant ce qui est détecté dans le CV (factuel), citant un élément RÉEL et CONCRET du CV
+- "correction" = si warn ou fail : une correction CONCRÈTE avec un EXEMPLE SPÉCIFIQUE basé sur le contenu réel du CV. Exemple correct : "Votre email laposte.net pénalise votre candidature en Suisse — remplacez par une adresse Gmail prénom.nom (+3 pts)". Exemple à éviter : "Utilisez un email professionnel". Ne jamais donner un conseil générique. Si ok : chaîne vide.
 - "impact" = estimation de l'impact sur le score si corrigé (ex: "+3 pts format", "+5 pts keywords"). Si ok : chaîne vide.
 
 Critères dans cet ordre :
@@ -145,6 +151,8 @@ export const rewriteCV = async (
 Règles absolues :
 - Structure ATS : une colonne, pas de tableau, texte pur
 - Ordre chronologique inverse obligatoire
+- Le CV doit tenir sur UNE SEULE PAGE sauf si le CV original contient plus de 15 ans d'expérience
+- Pour tenir sur une page : maximum 3-4 puces par poste, supprimer les informations redondantes, garder uniquement les 10 dernières années d'expérience, synthétiser la formation en 2-3 lignes
 - N'ajoute PAS de chiffres à chaque ligne — cela paraît artificiel et inventé. Garde UNIQUEMENT les 3 à 4 chiffres les plus impactants et crédibles qui existent déjà dans le CV original. Priorité : taux de réussite, nombre d'élèves/clients encadrés, années d'expérience. N'invente JAMAIS de statistiques. Si un chiffre n'est pas dans le CV original, ne l'ajoute pas.
 ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
 - Profil professionnel en début de CV : 3-4 lignes percutantes qui répondent directement à l'offre
@@ -188,7 +196,9 @@ export const generateCoverLetter = async (
 Règles :
 ${region === "CH" ? `- Ne jamais écrire "j'ai décidé de m'installer en Suisse" — trop hésitant. Écrire plutôt "Installé en Suisse depuis [date], je souhaite contribuer au système éducatif vaudois"
 - Mentionner la connaissance ou la volonté d'apprendre le système éducatif local (DGEP, secondaire II, formation duale)` : ""}
-- 3 paragraphes maximum : accroche forte / expérience et valeur ajoutée / motivation spécifique à l'établissement
+- Lettre tenant sur UNE SEULE PAGE, maximum 350 mots
+- Structure : accroche personnalisée basée sur un élément concret du CV + paragraphe avec 2-3 réalisations chiffrées tirées du CV + paragraphe motivation spécifique au poste + formule de politesse
+- Utiliser uniquement des éléments réels du CV — jamais de contenu inventé
 - Personnalisée selon l'offre fournie, pas générique
 - Ton professionnel mais humain
 - Jamais de formule creuse comme "je suis une personne motivée et dynamique"

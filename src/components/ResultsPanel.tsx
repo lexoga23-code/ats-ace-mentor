@@ -4,7 +4,7 @@ import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analy
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
-import KeywordTable from "./KeywordTable";
+
 import { useRegion } from "@/contexts/RegionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +59,18 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
 
 const STORAGE_KEY = "scorecv_analysis";
 
+/** Verify payment status server-side before generating premium content */
+const verifyPaidStatus = async (userId: string): Promise<boolean> => {
+  const { data } = await supabase
+    .from("user_analyses")
+    .select("is_paid")
+    .eq("user_id", userId)
+    .eq("is_paid", true)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  return !!(data && data.length > 0);
+};
+
 const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId }: ResultsPanelProps) => {
   const { currency, prices } = useRegion();
   const { user } = useAuth();
@@ -77,6 +89,13 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   }, [initialRewrite]);
 
   const handleGenerateCV = async () => {
+    // Server-side payment check
+    if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
+    const serverPaid = await verifyPaidStatus(user.id);
+    if (!serverPaid) {
+      toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé.");
+      return;
+    }
     setLoadingRewrite(true);
     try {
       const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
@@ -86,6 +105,13 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   };
 
   const handleGenerateLetter = async () => {
+    // Server-side payment check
+    if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
+    const serverPaid = await verifyPaidStatus(user.id);
+    if (!serverPaid) {
+      toast.error("Veuillez débloquer le rapport complet pour générer votre lettre.");
+      return;
+    }
     setLoadingLetter(true);
     try {
       const text = await generateCoverLetter(cvText, targetJob, region);
@@ -95,7 +121,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   };
 
   const handleCheckout = async () => {
-    // If not logged in, save data and flag pending checkout, then redirect to auth
     if (!user) {
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
@@ -107,11 +132,9 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
     setCheckoutLoading(true);
     try {
-      // Save full state before redirecting
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
 
-      // Use edge function to create checkout with user email
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
           email: user.email,
@@ -140,9 +163,13 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   };
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
+  // Compute personalized AI summary for free report
+  const totalPossibleGain = 100 - results.score;
+  const matchPct = results.matchScore ?? Math.round(results.score * 0.85);
+
   return (
     <div className="mt-12 space-y-8">
-      {/* Score Overview — only shown for paid users (free users see it in the 2-col layout) */}
+      {/* Score Overview — only shown for paid users */}
       {isPaid && (
         <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
           <div className="space-y-4">
@@ -170,6 +197,11 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       {/* Free: Score + Problems side by side + Paywall */}
       {!isPaid && (
         <div className="space-y-6">
+          {/* Personalized AI summary */}
+          <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+            🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+          </p>
+
           {/* Top row: 2 columns */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Left: Score circle + bars */}
@@ -213,7 +245,44 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           </div>
 
-          {/* CTA block */}
+          {/* Missing keywords compact box */}
+          {results.keywordsMissing.length > 0 && (
+            <div className="bg-card p-6 rounded-3xl shadow-soft">
+              <h3 className="text-base font-bold mb-3 text-foreground flex items-center gap-2">
+                ❌ Mots-clés manquants
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {results.keywordsMissing.slice(0, 5).map((kw, i) => (
+                  <span key={i} className="px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive">
+                    {kw}
+                  </span>
+                ))}
+                {results.keywordsMissing.length > 5 && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-secondary text-muted-foreground">
+                    +{results.keywordsMissing.length - 5} autres
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Quick AI suggestions box */}
+          {results.suggestions.length > 0 && (
+            <div className="p-6 rounded-3xl" style={{ background: "#F0F7FF", border: "1px solid #2d6a8f" }}>
+              <h3 className="text-base font-bold mb-3 text-foreground flex items-center gap-2">
+                💡 Suggestions d'amélioration rapides
+              </h3>
+              <div className="space-y-2">
+                {results.suggestions.slice(0, 3).map((s, i) => (
+                  <p key={i} className="text-sm text-foreground">
+                    ➤ {s.text}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CTA block — bigger button */}
           <div className="p-8 rounded-3xl border-2 border-primary/30 bg-primary/5">
             <p className="text-center text-foreground font-bold text-lg mb-1">
               Réécrivez votre CV et obtenez le rapport complet
@@ -224,9 +293,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             <button
               onClick={handleCheckout}
               disabled={checkoutLoading}
-              className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-primary text-primary-foreground"
+              style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px" }}
             >
-              {checkoutLoading ? "Ouverture..." : `🔓 Obtenir le rapport complet — ${prices.single}${currency}`}
+              {checkoutLoading ? "Ouverture..." : `🔓 Débloquer le rapport complet — ${prices.single}${currency}`}
             </button>
           </div>
 
@@ -235,11 +305,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             <div className="bg-card p-8 rounded-3xl shadow-soft">
               <h3 className="text-lg font-bold mb-4 text-foreground">🎯 Votre CV face à cette offre</h3>
               <div className="space-y-3">
-                {results.keywordsFound.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    ✓ Votre CV contient {results.keywordsFound.length} mot{results.keywordsFound.length > 1 ? "s" : ""}-clé{results.keywordsFound.length > 1 ? "s" : ""} pertinent{results.keywordsFound.length > 1 ? "s" : ""} ({results.keywordsFound.slice(0, 3).join(", ")}{results.keywordsFound.length > 3 ? "…" : ""}).
-                  </p>
-                )}
                 {results.keywordsMissing.length > 0 && (
                   <p className="text-sm text-muted-foreground">
                     ⚠️ Il manque {results.keywordsMissing.length} mot{results.keywordsMissing.length > 1 ? "s" : ""}-clé{results.keywordsMissing.length > 1 ? "s" : ""} attendu{results.keywordsMissing.length > 1 ? "s" : ""} par l'offre. Le rapport complet identifie ces mots-clés et les intègre automatiquement dans votre CV réécrit.
@@ -267,7 +332,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             <h3 className="text-xl font-bold mb-6 text-foreground">Checklist de conformité</h3>
             <div className="space-y-4">
               {results.checklist.map((item, i) => (
-                <div key={i} className={`p-4 rounded-xl ${statusColors[item.status]}`}>
+                <div key={i} className={`p-5 rounded-xl ${statusColors[item.status]}`}>
                   <div className="flex items-start gap-3">
                     <span className="mt-0.5 text-lg">{statusIcons[item.status]}</span>
                     <div className="flex-1">
@@ -288,12 +353,30 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           </div>
 
-          {/* Interactive Keyword Table */}
-          <KeywordTable
-            found={results.keywordsFound}
-            missing={results.keywordsMissing}
-            suggested={results.keywordsSuggested}
-          />
+          {/* Keywords — only missing + suggested */}
+          <div className="bg-card p-8 rounded-3xl shadow-soft">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Mots-clés</h3>
+            {results.keywordsMissing.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-destructive mb-3 flex items-center gap-2">❌ Mots-clés manquants</h4>
+                <div className="flex flex-wrap gap-2">
+                  {results.keywordsMissing.map((kw, i) => (
+                    <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold bg-destructive/10 text-destructive">{kw}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {results.keywordsSuggested.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">💡 Mots-clés conseillés</h4>
+                <div className="flex flex-wrap gap-2">
+                  {results.keywordsSuggested.map((kw, i) => (
+                    <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700">{kw}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Suggestions */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
@@ -318,9 +401,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
               <button
                 onClick={handleGenerateCV}
                 disabled={loadingRewrite}
-                className="mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50"
+                className="mt-6 w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+                style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}
               >
-                {loadingRewrite ? "Génération en cours..." : "Générer mon CV optimisé →"}
+                {loadingRewrite ? "Génération en cours..." : "✨ Générer mon CV optimisé"}
               </button>
             )}
           </div>
