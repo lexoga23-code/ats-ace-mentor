@@ -8,8 +8,9 @@ const TEMPLATES = [
   { id: "classic", name: "Classique", desc: "Une colonne, sobre", ats: true },
   { id: "modern", name: "Moderne", desc: "Bandeau couleur en en-tête", ats: true },
   { id: "minimal", name: "Minimaliste", desc: "Typographie pure, épuré", ats: true },
+  { id: "chrono", name: "Chronologique moderne", desc: "Bandeau fin, sections espacées, 100% texte pur", ats: true, atsLabel: "✅ ATS optimal" },
+  { id: "functional", name: "Fonctionnel épuré", desc: "Compétences en premier, idéal reconversions", ats: true, atsLabel: "✅ ATS optimal" },
   { id: "timeline", name: "Timeline", desc: "Ligne chronologique gauche", ats: false },
-  { id: "twocol", name: "Deux colonnes", desc: "Colonne gauche colorée", ats: false },
   { id: "executive", name: "Exécutif", desc: "Fond sombre premium", ats: false },
 ] as const;
 
@@ -135,6 +136,40 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     </div>
   );
 
+  const renderChrono = () => (
+    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      <div style={{ height: 6, background: color, width: "100%" }} />
+      <div style={{ padding: "30px 40px 40px" }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color, textAlign: "center", marginBottom: 4 }}>{parsed.name}</h1>
+        {parsed.contact && <p style={{ textAlign: "center", fontSize: 12, color: "#666", marginBottom: 28 }}>{parsed.contact}</p>}
+        {parsed.sections.map((s, i) => (
+          <div key={i} style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${color}33` }}>{s.title}</h2>
+            {s.items.map(renderItem)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderFunctional = () => {
+    const competences = parsed.sections.filter(s => /compétence|skill|langue|outil/i.test(s.title));
+    const others = parsed.sections.filter(s => !/compétence|skill|langue|outil/i.test(s.title));
+    const ordered = [...competences, ...others];
+    return (
+      <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color, marginBottom: 4 }}>{parsed.name}</h1>
+        {parsed.contact && <p style={{ fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
+        {ordered.map((s, i) => (
+          <div key={i} style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, borderLeft: `4px solid ${color}`, paddingLeft: 10, marginBottom: 8 }}>{s.title}</h2>
+            {s.items.map(renderItem)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderTimeline = () => (
     <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       <h1 style={{ fontSize: 26, fontWeight: 700, color, marginBottom: 4 }}>{parsed.name}</h1>
@@ -161,29 +196,6 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     </div>
   );
 
-  const renderTwoCol = () => (
-    <div style={{ display: "flex", fontFamily: "'Segoe UI', system-ui, sans-serif", minHeight: 600 }}>
-      <div style={{ width: "35%", background: color, color: "#fff", padding: 30 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>{parsed.name}</h1>
-        {parsed.contact && <p style={{ fontSize: 11, opacity: 0.85, marginBottom: 20 }}>{parsed.contact}</p>}
-        {parsed.sections.filter((_, i) => i % 2 === 1).map((s, i) => (
-          <div key={i} style={{ marginBottom: 16 }}>
-            <h3 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, opacity: 0.8, marginBottom: 6 }}>{s.title}</h3>
-            {s.items.map((item, j) => <p key={j} style={{ fontSize: 12, lineHeight: 1.5 }}>{item.replace(/^[•\-–]\s*/, "")}</p>)}
-          </div>
-        ))}
-      </div>
-      <div style={{ flex: 1, padding: 30 }}>
-        {parsed.sections.filter((_, i) => i % 2 === 0).map((s, i) => (
-          <div key={i} style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color, marginBottom: 8 }}>{s.title}</h2>
-            {s.items.map(renderItem)}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   const renderExecutive = () => (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       <div style={{ background: "#1a1a2e", color: "#fff", padding: "40px 40px 30px", textAlign: "center" }}>
@@ -204,7 +216,8 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
 
   const renderers: Record<TemplateId, () => JSX.Element> = {
     classic: renderClassic, modern: renderModern, minimal: renderMinimal,
-    timeline: renderTimeline, twocol: renderTwoCol, executive: renderExecutive,
+    chrono: renderChrono, functional: renderFunctional,
+    timeline: renderTimeline, executive: renderExecutive,
   };
 
   return (
@@ -224,7 +237,12 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
               >
                 <span className="font-bold text-foreground block">{t.name}</span>
                 <span className="text-muted-foreground">{t.desc}</span>
-                {!t.ats && (
+                {"atsLabel" in t && t.atsLabel && (
+                  <Badge variant="outline" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0 border-emerald-400 text-emerald-600 gap-0.5">
+                    {t.atsLabel}
+                  </Badge>
+                )}
+                {!t.ats && !("atsLabel" in t) && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Badge variant="outline" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0 border-amber-400 text-amber-600 gap-0.5 cursor-help">

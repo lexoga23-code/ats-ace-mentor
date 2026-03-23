@@ -38,7 +38,19 @@ const CVAnalyzer = () => {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // On mount: restore from DB if user is logged in, or from localStorage
+  /** Check server-side if user has any paid analysis */
+  const checkServerPaidStatus = async (userId: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from("user_analyses")
+      .select("is_paid")
+      .eq("user_id", userId)
+      .eq("is_paid", true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    return !!(data && data.length > 0);
+  };
+
+  // On mount: restore from DB if user is logged in
   useEffect(() => {
     if (!user) return;
     const restoreFromDb = async () => {
@@ -56,29 +68,34 @@ const CVAnalyzer = () => {
         setJobDescription(latest.job_description || "");
         setIndustry(latest.industry || "");
         setResults(latest.results as unknown as AnalysisResult);
-        setIsPaid(latest.is_paid);
+        // Always verify payment status from DB, never trust local state
+        const serverPaid = await checkServerPaidStatus(user.id);
+        setIsPaid(serverPaid);
         setCurrentAnalysisId(latest.id);
-        if (latest.rewritten_cv) setRewrittenCV(latest.rewritten_cv);
+        if (latest.rewritten_cv && serverPaid) setRewrittenCV(latest.rewritten_cv);
       }
 
       // Also check localStorage flag (in case DB update was delayed)
       if (localStorage.getItem("scorecv_paid") === "true") {
-        setIsPaid(true);
+        const serverPaid = await checkServerPaidStatus(user.id);
+        if (serverPaid) setIsPaid(true);
         localStorage.removeItem("scorecv_paid");
       }
     };
     restoreFromDb();
   }, [user]);
 
-  // Listen for cross-tab storage events (more reliable than polling)
+  // Listen for cross-tab storage events
   useEffect(() => {
     const handleStorage = async (e: StorageEvent) => {
       if (e.key === "scorecv_paid" && e.newValue === "true") {
         localStorage.removeItem("scorecv_paid");
-        setIsPaid(true);
 
-        // Refresh data from DB
         if (user) {
+          const serverPaid = await checkServerPaidStatus(user.id);
+          if (!serverPaid) return; // Don't unlock if DB says not paid
+          setIsPaid(true);
+
           const { data } = await supabase
             .from("user_analyses")
             .select("*")
@@ -139,7 +156,13 @@ const CVAnalyzer = () => {
           body: { sessionId },
         });
         if (data?.paid) {
-          setIsPaid(true);
+          // Double-check server-side
+          if (user) {
+            const serverPaid = await checkServerPaidStatus(user.id);
+            if (serverPaid) setIsPaid(true);
+          } else {
+            setIsPaid(true);
+          }
           localStorage.removeItem("scorecv_checkout_session");
           window.history.replaceState({}, "", window.location.pathname + "#optimiser");
           toast.success("✓ Paiement confirmé — votre rapport complet est prêt !");
@@ -177,17 +200,19 @@ const CVAnalyzer = () => {
     }
   }, [results, isPaid]);
 
-  // Poll localStorage for same-tab payment signal (fallback for when storage event doesn't fire)
+  // Poll localStorage for same-tab payment signal
   useEffect(() => {
     const interval = setInterval(async () => {
       const paid = localStorage.getItem("scorecv_paid");
       if (paid === "true") {
         clearInterval(interval);
         localStorage.removeItem("scorecv_paid");
-        setIsPaid(true);
 
-        // Refresh data from DB if user is logged in
         if (user) {
+          const serverPaid = await checkServerPaidStatus(user.id);
+          if (!serverPaid) return;
+          setIsPaid(true);
+
           const { data } = await supabase
             .from("user_analyses")
             .select("*")
@@ -211,7 +236,6 @@ const CVAnalyzer = () => {
             }
           }
         } else {
-          // Fallback: restore from localStorage
           const saved = localStorage.getItem("scorecv_data");
           if (saved) {
             try {
@@ -247,6 +271,7 @@ const CVAnalyzer = () => {
 
     setLoading(true);
     setResults(null);
+    setRewrittenCV("");
 
     try {
       const result = await analyzeCV(cvText, targetJob, region, industry || "Non précisé", jobDescription);
@@ -271,8 +296,12 @@ const CVAnalyzer = () => {
         industry,
       });
 
-      // Save to DB if user is logged in
+      // Verify paid status server-side before allowing premium content
+      let currentPaid = false;
       if (user) {
+        currentPaid = await checkServerPaidStatus(user.id);
+        setIsPaid(currentPaid);
+
         const { data: inserted } = await supabase.from("user_analyses").insert({
           user_id: user.id,
           cv_text: cvText,
@@ -282,13 +311,14 @@ const CVAnalyzer = () => {
           results: result as any,
           score: result.score,
           match_score: result.matchScore || null,
-          is_paid: isPaid,
+          is_paid: currentPaid,
         }).select("id").single();
 
         if (inserted) setCurrentAnalysisId(inserted.id);
       }
 
-      if (isPaid) {
+      // Only generate rewritten CV if server confirms paid
+      if (currentPaid) {
         const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
         setRewrittenCV(rewritten);
       }
