@@ -4,7 +4,7 @@ import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analy
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
-import KeywordTable from "./KeywordTable";
+
 import { useRegion } from "@/contexts/RegionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
