@@ -39,29 +39,89 @@ Deno.serve(async (req) => {
 
   console.log("Webhook event received:", event.type);
 
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+    const email = session.customer_details?.email || session.customer_email || null;
+    const userId = session.metadata?.user_id;
+    const productType = session.metadata?.product_type || "report";
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    const { error } = await supabase.from("payments").upsert({
+    // Record payment
+    await supabase.from("payments").upsert({
       session_id: session.id,
-      email: session.customer_details?.email || session.customer_email || null,
+      email,
       amount: session.amount_total || 0,
       currency: session.currency || "eur",
       status: "completed",
       completed_at: new Date().toISOString(),
     }, { onConflict: "session_id" });
 
-    if (error) {
-      console.error("DB insert error:", error);
-      return new Response("DB error", { status: 500 });
+    if (userId) {
+      if (productType === "report") {
+        // Mark latest unpaid analysis as paid
+        const { data: analyses } = await supabase
+          .from("user_analyses")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("is_paid", false)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (analyses && analyses.length > 0) {
+          await supabase
+            .from("user_analyses")
+            .update({ is_paid: true })
+            .eq("id", analyses[0].id);
+        }
+      } else if (productType === "pro") {
+        // Mark user as pro subscriber
+        await supabase.from("user_subscriptions").upsert({
+          user_id: userId,
+          is_pro: true,
+          stripe_customer_id: session.customer as string || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+      } else if (productType === "review") {
+        // Mark review requested
+        await supabase.from("user_subscriptions").upsert({
+          user_id: userId,
+          review_requested: true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+      }
     }
 
-    console.log("Payment recorded for session:", session.id);
+    console.log(`Payment recorded: ${productType} for user ${userId}, session ${session.id}`);
+  }
+
+  // Handle subscription cancellation
+  if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId = subscription.customer as string;
+
+    if (subscription.status === "canceled" || subscription.status === "unpaid" || event.type === "customer.subscription.deleted") {
+      // Find user by stripe customer ID in user_subscriptions
+      const { data: subRows } = await supabase
+        .from("user_subscriptions")
+        .select("user_id")
+        .eq("stripe_customer_id", customerId)
+        .limit(1);
+
+      if (subRows && subRows.length > 0) {
+        await supabase.from("user_subscriptions").update({
+          is_pro: false,
+          stripe_subscription_id: null,
+          subscription_end: null,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", subRows[0].user_id);
+
+        console.log(`Pro subscription canceled for user ${subRows[0].user_id}`);
+      }
+    }
   }
 
   return new Response(JSON.stringify({ received: true }), {
