@@ -157,6 +157,10 @@ Règles absolues :
 ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
 - Profil professionnel en début de CV : 3-4 lignes percutantes qui répondent directement à l'offre
 - Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
+- Ne jamais inventer de compétences, formations, expériences ou cours qui ne sont pas présents dans le CV original
+- Si le poste visé est différent du profil du candidat, adapter et reformuler uniquement les expériences existantes pour mettre en valeur les compétences transférables
+- Exemple : un professeur d'économie qui postule en joaillerie — ne pas inventer de cours de joaillerie. Mettre en avant la pédagogie, la transmission de savoir-faire, l'encadrement, la rigueur, la précision
+- Reformuler les expériences existantes avec le vocabulaire du secteur visé sans rien inventer
 
 IMPORTANT : Structure le CV avec des sections clairement séparées :
 - Commence par le NOM COMPLET en majuscules sur la première ligne
@@ -191,36 +195,47 @@ export const generateCoverLetter = async (
 ): Promise<string> => {
   const country = region === "CH" ? "Suisse romande" : "France";
 
-  const prompt = `Tu es un expert en recrutement ${country}. Rédige une lettre de motivation professionnelle pour le poste de ${job}.
+  const prompt = `Tu es un expert en recrutement ${country}. Rédige une lettre de motivation professionnelle tenant sur UNE SEULE PAGE, maximum 350 mots, respectant strictement les normes françaises et suisses, pour le poste de ${job}.
 
-Règles :
-${region === "CH" ? `- Ne jamais écrire "j'ai décidé de m'installer en Suisse" — trop hésitant. Écrire plutôt "Installé en Suisse depuis [date], je souhaite contribuer au système éducatif vaudois"
-- Mentionner la connaissance ou la volonté d'apprendre le système éducatif local (DGEP, secondaire II, formation duale)` : ""}
-- Lettre tenant sur UNE SEULE PAGE, maximum 350 mots
-- Structure : accroche personnalisée basée sur un élément concret du CV + paragraphe avec 2-3 réalisations chiffrées tirées du CV + paragraphe motivation spécifique au poste + formule de politesse
-- Utiliser uniquement des éléments réels du CV — jamais de contenu inventé
-- Personnalisée selon l'offre fournie, pas générique
+Règles absolues :
+- Ne jamais inventer d'éléments non présents dans le CV
+- Adapter le vocabulaire au secteur visé sans créer de fausses expériences
 - Ton professionnel mais humain
 - Jamais de formule creuse comme "je suis une personne motivée et dynamique"
+${region === "CH" ? `- Ne jamais écrire "j'ai décidé de m'installer en Suisse" — trop hésitant. Écrire plutôt "Installé en Suisse depuis [date], je souhaite contribuer au système éducatif vaudois"
+- Mentionner la connaissance ou la volonté d'apprendre le système local (DGEP, secondaire II, formation duale)` : ""}
 
-IMPORTANT — STRUCTURE OBLIGATOIRE de la lettre :
-- Ligne 1 : [NOM COMPLET EN MAJUSCULES]
-- Ligne 2 : [Adresse ou Ville]
-- Ligne 3 : [Téléphone]
-- Ligne 4 : [Email]
-- Ligne 5 : (vide)
-- Ligne 6 : [Nom de l'entreprise/établissement si connu, sinon "Entreprise"]
-- Ligne 7 : [Ville, le DATE DU JOUR]
-- Ligne 8 : (vide)
-- Ligne 9 : Objet : Candidature au poste de ${job}
-- Ligne 10 : (vide)
-- Ligne 11 : Madame, Monsieur,
-- Ligne 12 : (vide)
-- Puis les 3 paragraphes séparés par des lignes vides
-- Puis ligne vide
-- Puis formule de politesse complète
-- Puis ligne vide
-- Puis [Prénom NOM]
+STRUCTURE OBLIGATOIRE :
+
+En-tête expéditeur (haut gauche) :
+- [NOM COMPLET EN MAJUSCULES]
+- [Adresse ou Ville]
+- [Téléphone]
+- [Email]
+
+(ligne vide)
+
+Destinataire :
+- [Nom de l'entreprise/établissement si connu, sinon "Entreprise"]
+- [Ville, le DATE DU JOUR]
+
+(ligne vide)
+
+Objet : Candidature au poste de ${job}
+
+(ligne vide)
+
+Madame, Monsieur,
+
+Paragraphe 1 — Accroche : expliquer pourquoi CE poste dans CETTE structure intéresse le candidat — basé sur des éléments réels de l'offre d'emploi fournie. Ne jamais commencer par "Je me permets de..." ou "Suite à votre annonce..." — trop bateau.
+
+Paragraphe 2 — Valeur ajoutée : 2-3 réalisations concrètes et chiffrées tirées du CV original qui démontrent les compétences pour CE poste. Ne jamais inventer.
+
+Paragraphe 3 — Motivation : lien entre le parcours du candidat et le projet de l'entreprise/établissement.${region === "CH" ? " Mentionner la connaissance ou la volonté d'apprendre le système local." : ""}
+
+Dans l'attente de vous rencontrer, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+[Prénom NOM]
 
 CV : ${cvText.substring(0, 1500)}
 Offre : ${offerDetails || "Non précisée"}

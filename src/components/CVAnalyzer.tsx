@@ -21,6 +21,7 @@ const INDUSTRIES = [
   "Services",
   "Éducation / Formation",
   "Commerce / Distribution",
+  "Autre",
 ];
 
 const CVAnalyzer = () => {
@@ -30,6 +31,7 @@ const CVAnalyzer = () => {
   const [targetJob, setTargetJob] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [industry, setIndustry] = useState("");
+  const [customIndustry, setCustomIndustry] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [rewrittenCV, setRewrittenCV] = useState("");
@@ -274,7 +276,8 @@ const CVAnalyzer = () => {
     setRewrittenCV("");
 
     try {
-      const result = await analyzeCV(cvText, targetJob, region, industry || "Non précisé", jobDescription);
+      const effectiveIndustry = industry === "Autre" ? (customIndustry || "Non précisé") : (industry || "Non précisé");
+      const result = await analyzeCV(cvText, targetJob, region, effectiveIndustry, jobDescription);
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);
@@ -307,7 +310,7 @@ const CVAnalyzer = () => {
           cv_text: cvText,
           target_job: targetJob,
           job_description: jobDescription,
-          industry: industry,
+          industry: effectiveIndustry,
           results: result as any,
           score: result.score,
           match_score: result.matchScore || null,
@@ -374,7 +377,10 @@ const CVAnalyzer = () => {
               <label className="label-ui block mb-2">{"Secteur d'activité (optionnel)"}</label>
               <select
                 value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+                onChange={(e) => {
+                  setIndustry(e.target.value);
+                  if (e.target.value !== "Autre") setCustomIndustry("");
+                }}
                 className="w-full p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
               >
                 <option value="">— Sélectionner —</option>
@@ -382,6 +388,15 @@ const CVAnalyzer = () => {
                   <option key={ind}>{ind}</option>
                 ))}
               </select>
+              {industry === "Autre" && (
+                <input
+                  type="text"
+                  value={customIndustry}
+                  onChange={(e) => setCustomIndustry(e.target.value)}
+                  placeholder="Précisez votre secteur d'activité..."
+                  className="w-full mt-2 p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground"
+                />
+              )}
             </div>
             <button
               onClick={startAnalysis}
