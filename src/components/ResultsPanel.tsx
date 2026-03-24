@@ -292,7 +292,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
               className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground"
               style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px" }}
             >
-              🔓 Débloquer le rapport complet
+              🔓 Générer votre CV et débloquer le rapport complet — {prices.single}{currency}
             </button>
           ) : (
             <div className="p-6 rounded-3xl border-2 border-primary/30 bg-card">
