@@ -40,7 +40,7 @@ const CVAnalyzer = () => {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  /** Check server-side if user has any paid analysis */
+  /** Check server-side if user has any paid analysis OR active pro subscription */
   const checkServerPaidStatus = async (userId: string): Promise<boolean> => {
     const { data } = await supabase
       .from("user_analyses")
@@ -49,7 +49,15 @@ const CVAnalyzer = () => {
       .eq("is_paid", true)
       .order("created_at", { ascending: false })
       .limit(1);
-    return !!(data && data.length > 0);
+    if (data && data.length > 0) return true;
+
+    // Also check pro subscription
+    try {
+      const { data: subData } = await supabase.functions.invoke("check-subscription");
+      if (subData?.isPro) return true;
+    } catch { /* ignore */ }
+
+    return false;
   };
 
   // On mount: restore from DB if user is logged in
