@@ -109,7 +109,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   const renderClassic = () => (
     <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color, textAlign: "center", marginBottom: 2 }}>{parsed.name}</h1>
-      {parsed.contact && <p style={{ textAlign: "center", fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
+      {parsed.contact && <p style={{ textAlign: "center", fontSize: 10, color: "#666", marginBottom: 16 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
         <div key={i} style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, borderBottom: `2px solid ${color}`, paddingBottom: 4, marginBottom: 8 }}>{s.title}</h2>
