@@ -157,6 +157,10 @@ Règles absolues :
 ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
 - Profil professionnel en début de CV : 3-4 lignes percutantes qui répondent directement à l'offre
 - Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
+- Ne jamais inventer de compétences, formations, expériences ou cours qui ne sont pas présents dans le CV original
+- Si le poste visé est différent du profil du candidat, adapter et reformuler uniquement les expériences existantes pour mettre en valeur les compétences transférables
+- Exemple : un professeur d'économie qui postule en joaillerie — ne pas inventer de cours de joaillerie. Mettre en avant la pédagogie, la transmission de savoir-faire, l'encadrement, la rigueur, la précision
+- Reformuler les expériences existantes avec le vocabulaire du secteur visé sans rien inventer
 
 IMPORTANT : Structure le CV avec des sections clairement séparées :
 - Commence par le NOM COMPLET en majuscules sur la première ligne
