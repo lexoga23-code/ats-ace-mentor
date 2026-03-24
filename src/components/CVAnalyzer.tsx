@@ -40,16 +40,18 @@ const CVAnalyzer = () => {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  /** Check server-side if user has any paid analysis OR active pro subscription */
-  const checkServerPaidStatus = async (userId: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from("user_analyses")
-      .select("is_paid")
-      .eq("user_id", userId)
-      .eq("is_paid", true)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (data && data.length > 0) return true;
+  /** Check server-side if user has paid for a specific analysis OR has active pro subscription */
+  const checkServerPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
+    // If we have a specific analysis ID, check that one
+    if (analysisId) {
+      const { data } = await supabase
+        .from("user_analyses")
+        .select("is_paid")
+        .eq("id", analysisId)
+        .eq("user_id", userId)
+        .single();
+      if (data?.is_paid) return true;
+    }
 
     // Also check pro subscription
     try {
