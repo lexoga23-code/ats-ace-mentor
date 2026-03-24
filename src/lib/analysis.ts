@@ -162,6 +162,8 @@ Règles absolues :
 - Ordre chronologique inverse obligatoire
 - Le CV doit tenir sur UNE SEULE PAGE sauf si le CV original contient plus de 15 ans d'expérience
 - Pour tenir sur une page : maximum 3-4 puces par poste, supprimer les informations redondantes, garder uniquement les 10 dernières années d'expérience, synthétiser la formation en 2-3 lignes
+- INTERDICTION ABSOLUE d'écrire les titres de sections avec des lettres espacées comme "P R O F I L" ou "E X P É R I E N C E". Les ATS lisent chaque lettre comme un mot séparé. Écrire les titres normalement en majuscules : "PROFIL", "EXPÉRIENCE PROFESSIONNELLE", "FORMATION", "COMPÉTENCES"
+- Police Calibri ou Arial, taille 10-11 pour le corps, 13-14 pour les titres
 - N'ajoute PAS de chiffres à chaque ligne — cela paraît artificiel et inventé. Garde UNIQUEMENT les 3 à 4 chiffres les plus impactants et crédibles qui existent déjà dans le CV original. Priorité : taux de réussite, nombre d'élèves/clients encadrés, années d'expérience. N'invente JAMAIS de statistiques. Si un chiffre n'est pas dans le CV original, ne l'ajoute pas.
 ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
 - Profil professionnel en début de CV : 3-4 lignes percutantes qui répondent directement à l'offre
