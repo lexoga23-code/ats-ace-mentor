@@ -76,18 +76,20 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     const win = window.open("", "_blank");
     if (!win) return;
     
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title></title><style>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title> </title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+      h1 { font-size: 14pt; }
+      h2 { font-size: 12pt; }
       @media print {
-        @page { margin: 1.5cm; }
+        @page { margin: 1.5cm; size: A4; }
         header, footer { display: none !important; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       }
     </style></head><body>${content.innerHTML}</body></html>`);
     win.document.close();
-    win.document.title = "";
+    win.document.title = " ";
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 

@@ -330,9 +330,9 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
                     {prices.pro}<span className="text-lg">{currency}</span>
                     <span className="text-sm text-muted-foreground font-normal">/mois</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Analyses illimitées · Tout débloqué · Designs premium
-                  </p>
+                   <p className="text-sm text-muted-foreground">
+                     CV réécrit et analyses illimitées · Tout débloqué
+                   </p>
                   <button
                     onClick={() => handleCheckout("pro")}
                     disabled={checkoutLoading === "pro"}
