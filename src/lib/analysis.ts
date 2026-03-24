@@ -23,7 +23,7 @@ export interface AnalysisResult {
   keywordsFound: string[];
   keywordsMissing: string[];
   keywordsSuggested: string[];
-  suggestions: Array<{ title: string; text: string; priority: "high" | "medium" | "low"; impact?: string }>;
+  suggestions: Array<{ title: string; text: string; priority: "high" | "medium" | "low"; impact?: string; category?: "ats" | "human" }>;
 }
 
 const callAnthropic = async (prompt: string, maxTokens = 1500, temperature = 0.3): Promise<string> => {
@@ -85,18 +85,33 @@ ${region === "CH" ? `RÈGLES POUR LA SUISSE :
 - Toujours inclure dans les suggestions : "Adaptez votre vocabulaire au système suisse romand — les recruteurs suisses valorisent fortement la connaissance des termes locaux (DGEP, secondaire II, école professionnelle)"
 - Dans le CV réécrit, ne jamais laisser "lycée professionnel" ou "Professeur" si contexte suisse` : ""}
 
-RÈGLES POUR LES SUGGESTIONS :
+RÈGLES POUR LES SUGGESTIONS — DEUX CATÉGORIES DISTINCTES :
+Les suggestions doivent être séparées en deux catégories avec le champ "category" :
+
+1. category: "ats" — Problèmes TECHNIQUES ATS uniquement :
+   - Format du fichier, colonnes, tableaux, images
+   - Mots-clés manquants pour les filtres automatiques
+   - Structure des sections (titres standards, ordre)
+   - Email non professionnel
+   - Ce sont les problèmes qui empêchent le CV d'être LU par un LOGICIEL
+
+2. category: "human" — Conseils pour convaincre un RECRUTEUR HUMAIN :
+   - Contenu des expériences (impact, résultats chiffrés)
+   - Pertinence par rapport au poste
+   - Profil professionnel percutant
+   - Valorisation des compétences transférables
+   - Ce sont les conseils qui empêchent de CONVAINCRE un HUMAIN
+
+Générer au minimum 3 suggestions "ats" ET 3 suggestions "human".
 - Chaque suggestion doit être CONCRÈTE et ACTIONNABLE — jamais vague
-- Les 3 problèmes doivent citer des éléments concrets du CV. Exemple correct : "Votre email laposte.net coûte −8 pts : les recruteurs suisses associent cette adresse à un profil peu digital." Exemple à éviter : "Enrichissez votre vocabulaire" — trop vague.
-- Mauvais exemple à éviter : "Améliorez votre CV"
-- Bon exemple : "Ajoutez votre taux de réussite aux examens et le nombre d'élèves encadrés. Ex : 95% de réussite sur 3 ans, 28 élèves en classe principale"
+- Chaque suggestion doit citer des éléments concrets du CV
 - Chaque suggestion doit indiquer l'impact estimé en points
-- Maximum 5 suggestions, classées par impact décroissant
+- Maximum 8 suggestions au total, classées par impact décroissant dans chaque catégorie
 
 CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/warn et des champs detail, correction, impact :
 - "detail" = une phrase décrivant ce qui est détecté dans le CV (factuel), citant un élément RÉEL et CONCRET du CV
-- "correction" = si warn ou fail : une correction CONCRÈTE avec un EXEMPLE SPÉCIFIQUE basé sur le contenu réel du CV. Exemple correct : "Votre email laposte.net pénalise votre candidature en Suisse — remplacez par une adresse Gmail prénom.nom (+3 pts)". Exemple à éviter : "Utilisez un email professionnel". Ne jamais donner un conseil générique. Si ok : chaîne vide.
-- "impact" = estimation de l'impact sur le score si corrigé (ex: "+3 pts format", "+5 pts keywords"). Si ok : chaîne vide.
+- "correction" = si warn ou fail : une correction CONCRÈTE avec un EXEMPLE SPÉCIFIQUE basé sur le contenu réel du CV. Ne jamais donner un conseil générique. Si ok : chaîne vide.
+- "impact" = estimation de l'impact sur le score si corrigé. Si ok : chaîne vide.
 
 Critères dans cet ordre :
 1. Lisibilité ATS — le CV est-il en texte pur sans colonnes, tableaux, images ?
@@ -112,12 +127,6 @@ Critères dans cet ordre :
 
 VERDICT — CRUCIAL : les 3 lignes doivent être ULTRA-SPÉCIFIQUES au CV analysé, jamais génériques.
 Chaque ligne doit citer des éléments concrets du CV (nom de poste, compétence, entreprise, chiffre).
-PHRASES INTERDITES (ne jamais utiliser) : "Profil cohérent", "Bonne expérience", "CV bien structuré", "Manque de résultats chiffrés", "Profil intéressant", "Bon potentiel", "Expérience significative", "CV à améliorer", "Profil solide"
-OBLIGATOIRE : citer des faits PRÉCIS et UNIQUES au CV. Exemples :
-- ✅ "4 ans comme professeur au Lycée Jean Favard avec responsabilité de classe principale — un parcours solide pour un poste en enseignement professionnel"
-- ⚠️ "Email @laposte.net pénalisant en Suisse et aucun chiffre d'impact : ajoutez votre taux de réussite aux examens (ex: 92% sur 3 ans)"
-- 💡 "Pour ce poste d'enseignant en Suisse, remplacez 'lycée professionnel' par 'école professionnelle' et ajoutez vos connaissances du système vaudois (DGEP, CFC)"
-
 Format : 3 lignes séparées par \\n, commençant par ✅, ⚠️ et 💡.
 
 SCORES PAR SECTION — note chaque section du CV sur 10 avec un statut ok/warn/fail et un feedback court :
@@ -131,7 +140,7 @@ Si une section est absente, score = 0 et status = "fail".
 ${jobDescription ? `MATCH SCORE — calcule un pourcentage de correspondance (0-100) entre le CV et l'offre d'emploi fournie. Analyse point par point les exigences de l'offre et vérifie lesquelles sont couvertes par le CV. Ajoute le champ "matchScore" au JSON.` : ""}
 
 JSON À RETOURNER :
-{"score":0,"${jobDescription ? '"matchScore":0,' : ''}scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"sectionScores":[{"name":"Coordonnées","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Profil professionnel","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Expérience","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Formation","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Compétences","score":0,"maxScore":10,"status":"ok","feedback":""}],"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts"}]}`;
+{"score":0,${jobDescription ? '"matchScore":0,' : ''}"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"sectionScores":[{"name":"Coordonnées","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Profil professionnel","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Expérience","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Formation","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Compétences","score":0,"maxScore":10,"status":"ok","feedback":""}],"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts","category":"ats"},{"title":"","text":"","priority":"high","impact":"+X pts","category":"human"}]}`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
   const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
@@ -215,8 +224,8 @@ En-tête expéditeur (haut gauche) :
 
 (ligne vide)
 
-Destinataire :
-- [Nom de l'entreprise/établissement si connu, sinon "Entreprise"]
+Destinataire (aligné à droite) :
+${offerDetails ? `- Extraire le nom de l'entreprise/établissement et l'adresse depuis l'offre d'emploi ci-dessous. Si l'adresse n'est pas trouvée dans l'offre, écrire "[Nom de l'entreprise], [Adresse]".` : `- [Nom de l'entreprise], [Adresse]`}
 - [Ville, le DATE DU JOUR]
 
 (ligne vide)
@@ -227,7 +236,7 @@ Objet : Candidature au poste de ${job}
 
 Madame, Monsieur,
 
-Paragraphe 1 — Accroche : expliquer pourquoi CE poste dans CETTE structure intéresse le candidat — basé sur des éléments réels de l'offre d'emploi fournie. Ne jamais commencer par "Je me permets de..." ou "Suite à votre annonce..." — trop bateau.
+Paragraphe 1 — Accroche OBLIGATOIRE : Le premier paragraphe doit obligatoirement commencer par une phrase qui exprime l'enthousiasme et cite explicitement le nom exact du poste et le nom exact de l'entreprise/établissement tirés de l'offre d'emploi. Format : "C'est avec enthousiasme que je vous présente ma candidature pour le poste de [titre exact du poste] au sein de [nom exact de l'entreprise]." Si l'offre d'emploi n'est pas fournie, utiliser le titre du poste saisi par l'utilisateur. Ne jamais commencer par "Je me permets de..." ou "Suite à votre annonce..." — trop bateau. Puis expliquer pourquoi CE poste dans CETTE structure intéresse le candidat — basé sur des éléments réels de l'offre.
 
 Paragraphe 2 — Valeur ajoutée : 2-3 réalisations concrètes et chiffrées tirées du CV original qui démontrent les compétences pour CE poste. Ne jamais inventer.
 

@@ -8,8 +8,8 @@ const TEMPLATES = [
   { id: "classic", name: "Classique", desc: "Une colonne, sobre", ats: true },
   { id: "modern", name: "Moderne", desc: "Bandeau couleur en en-tête", ats: true },
   { id: "minimal", name: "Minimaliste", desc: "Typographie pure, épuré", ats: true },
-  { id: "chrono", name: "Chronologique moderne", desc: "Bandeau fin, sections espacées, 100% texte pur", ats: true, atsLabel: "✅ ATS optimal" },
-  { id: "functional", name: "Fonctionnel épuré", desc: "Compétences en premier, idéal reconversions", ats: true, atsLabel: "✅ ATS optimal" },
+  { id: "chrono", name: "Chronologique moderne", desc: "Bandeau fin, sections espacées, 100% texte pur", ats: true },
+  { id: "functional", name: "Fonctionnel épuré", desc: "Compétences en premier, idéal reconversions", ats: true },
   { id: "timeline", name: "Timeline", desc: "Ligne chronologique gauche", ats: false },
   { id: "executive", name: "Exécutif", desc: "Fond sombre premium", ats: false },
 ] as const;
@@ -75,22 +75,31 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     if (!content) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><title>CV</title><style>
+    
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title></title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; }
-      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+      body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+      @media print {
+        @page { margin: 1.5cm; }
+        header, footer { display: none !important; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      }
     </style></head><body>${content.innerHTML}</body></html>`);
     win.document.close();
+    win.document.title = "";
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
+
+  const itemStyle = { fontSize: 13, lineHeight: 1.6, textAlign: "justify" as const, hyphens: "auto" as const, WebkitHyphens: "auto" as const };
 
   const renderItem = (item: string, i: number) => {
     const isBullet = item.startsWith("•") || item.startsWith("-") || item.startsWith("–");
     const text = isBullet ? item.replace(/^[•\-–]\s*/, "") : item;
     const isJobTitle = /\|/.test(item) || (/\d{4}/.test(item) && item.length < 80 && !isBullet);
     if (isJobTitle && !isBullet) return <p key={i} style={{ fontWeight: 600, marginTop: 8, fontSize: 14 }}>{item}</p>;
-    if (isBullet) return <p key={i} style={{ paddingLeft: 16, fontSize: 13, lineHeight: 1.6 }}>• {text}</p>;
-    return <p key={i} style={{ fontSize: 13, lineHeight: 1.6 }}>{item}</p>;
+    if (isBullet) return <p key={i} style={{ paddingLeft: 16, ...itemStyle }}>• {text}</p>;
+    return <p key={i} style={itemStyle}>{item}</p>;
   };
 
   const renderClassic = () => (
@@ -223,7 +232,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Template selector */}
+        {/* Template selector — no ATS badges */}
         <div>
           <p className="text-sm font-bold text-foreground mb-3">Template</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -237,12 +246,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
               >
                 <span className="font-bold text-foreground block">{t.name}</span>
                 <span className="text-muted-foreground">{t.desc}</span>
-                {"atsLabel" in t && t.atsLabel && (
-                  <Badge variant="outline" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0 border-emerald-400 text-emerald-600 gap-0.5">
-                    {t.atsLabel}
-                  </Badge>
-                )}
-                {!t.ats && !("atsLabel" in t) && (
+                {!t.ats && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Badge variant="outline" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0 border-amber-400 text-amber-600 gap-0.5 cursor-help">
