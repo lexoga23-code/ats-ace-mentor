@@ -146,8 +146,9 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
-          email: user.email,
-          successUrl: `${window.location.origin}/payment-success`,
+          productType: "report",
+          region: region,
+          successUrl: `${window.location.origin}/payment-success?product=report`,
           cancelUrl: `${window.location.origin}/#optimiser`,
         },
       });
