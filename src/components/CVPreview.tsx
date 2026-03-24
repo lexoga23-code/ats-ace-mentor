@@ -150,7 +150,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderChrono = () => (
-    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "Calibri, Arial, sans-serif" }}>
       <div style={{ height: 6, background: color, width: "100%" }} />
       <div style={{ padding: "30px 40px 40px" }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color, textAlign: "center", marginBottom: 4 }}>{parsed.name}</h1>
