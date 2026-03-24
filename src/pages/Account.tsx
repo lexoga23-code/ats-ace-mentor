@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { RegionProvider, useRegion } from "@/contexts/RegionContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye, Loader2, CreditCard } from "lucide-react";
+import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye, Loader2, CreditCard, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface AnalysisEntry {
@@ -14,8 +15,9 @@ interface AnalysisEntry {
   created_at: string;
 }
 
-const Account = () => {
+const AccountInner = () => {
   const { user, signOut, loading: authLoading } = useAuth();
+  const { region, currency, prices } = useRegion();
   const navigate = useNavigate();
   const [analyses, setAnalyses] = useState<AnalysisEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,7 @@ const Account = () => {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [subLoading, setSubLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -34,7 +37,6 @@ const Account = () => {
     if (!user) return;
 
     const fetchData = async () => {
-      // Fetch analyses
       const { data } = await supabase
         .from("user_analyses")
         .select("id, target_job, score, match_score, is_paid, created_at")
@@ -81,14 +83,97 @@ const Account = () => {
     }
   };
 
-  const handleViewLastReport = () => {
-    localStorage.setItem("scorecv_restore_report", "true");
+  const handleSubscribePro = async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          productType: "pro",
+          region,
+          successUrl: `${window.location.origin}/payment-success?product=pro`,
+          cancelUrl: `${window.location.origin}/compte`,
+        },
+      });
+      if (error || !data?.url) throw new Error("Erreur");
+      window.open(data.url, "_blank");
+    } catch (err) {
+      toast.error("Impossible de lancer le paiement.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleNewAnalysis = () => {
+    // Set flag to reset CVAnalyzer state on mount
+    localStorage.setItem("scorecv_reset", "true");
+    navigate("/");
+  };
+
+  const handleViewLastReport = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("user_analyses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (!data || data.length === 0) {
+      toast.info("Vous n'avez pas encore effectué d'analyse — lancez votre première analyse.");
+      return;
+    }
+
+    localStorage.setItem("scorecv_restore_analysis", JSON.stringify({
+      id: data[0].id,
+      cvText: data[0].cv_text,
+      targetJob: data[0].target_job,
+      jobDescription: data[0].job_description || "",
+      industry: data[0].industry || "",
+      results: data[0].results,
+      isPaid: data[0].is_paid,
+      rewrittenCV: data[0].rewritten_cv || "",
+      score: data[0].score,
+    }));
+    navigate("/");
+  };
+
+  const handleViewAnalysis = async (analysisId: string) => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("user_analyses")
+      .select("*")
+      .eq("id", analysisId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!data) {
+      toast.error("Impossible de charger cette analyse.");
+      return;
+    }
+
+    localStorage.setItem("scorecv_restore_analysis", JSON.stringify({
+      id: data.id,
+      cvText: data.cv_text,
+      targetJob: data.target_job,
+      jobDescription: data.job_description || "",
+      industry: data.industry || "",
+      results: data.results,
+      isPaid: data.is_paid,
+      rewrittenCV: data.rewritten_cv || "",
+      score: data.score,
+    }));
     navigate("/");
   };
 
   if (authLoading || !user) return null;
 
   const hasPaidReport = analyses.some((a) => a.is_paid);
+
+  const getScoreColor = (score: number) => {
+    if (score >= 75) return "text-emerald-600";
+    if (score >= 50) return "text-amber-600";
+    return "text-destructive";
+  };
 
   return (
     <div className="min-h-screen bg-background px-6 py-12">
@@ -154,10 +239,12 @@ const Account = () => {
                   Vous n'avez pas d'abonnement Pro actif.
                 </p>
                 <button
-                  onClick={() => navigate("/#tarifs")}
-                  className="py-3 px-6 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all"
+                  onClick={handleSubscribePro}
+                  disabled={checkoutLoading}
+                  className="py-3 px-6 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Voir les offres Pro
+                  {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Abonnement Pro — {prices.pro}{currency}/mois
                 </button>
               </div>
             )}
@@ -173,7 +260,7 @@ const Account = () => {
             <Eye className="w-4 h-4 text-primary" /> Revoir mon rapport
           </button>
           <button
-            onClick={() => navigate("/")}
+            onClick={handleNewAnalysis}
             className="flex items-center justify-center gap-2 p-4 bg-primary text-primary-foreground rounded-2xl text-sm font-bold hover:opacity-90 transition-all"
           >
             <Plus className="w-4 h-4" /> Nouvelle analyse
@@ -192,23 +279,36 @@ const Account = () => {
           ) : (
             <div className="space-y-3">
               {analyses.map((a) => (
-                <div key={a.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">{a.target_job}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <button
+                  key={a.id}
+                  onClick={() => handleViewAnalysis(a.id)}
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-left group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground text-sm truncate">{a.target_job}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <Clock className="w-3 h-3" />
-                      {new Date(a.created_at).toLocaleDateString("fr-FR")}
+                      {new Date(a.created_at).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-foreground">{a.score}/100</span>
+                    <span className={`text-lg font-bold ${getScoreColor(a.score)}`}>{a.score}/100</span>
                     {a.is_paid && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
                         Complet
                       </span>
                     )}
+                    <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                      Revoir <ChevronRight className="w-3 h-3" />
+                    </span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -225,5 +325,11 @@ const Account = () => {
     </div>
   );
 };
+
+const Account = () => (
+  <RegionProvider>
+    <AccountInner />
+  </RegionProvider>
+);
 
 export default Account;
