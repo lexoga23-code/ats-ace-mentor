@@ -75,7 +75,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     if (!content) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    const savedTitle = document.title;
+    
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title></title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

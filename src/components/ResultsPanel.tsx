@@ -78,7 +78,7 @@ const verifyPaidStatus = async (userId: string): Promise<boolean> => {
   return false;
 };
 
-const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId, jobDescription }: ResultsPanelProps) => {
+const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId: _analysisId, jobDescription }: ResultsPanelProps) => {
   const { currency, prices } = useRegion();
   const { user } = useAuth();
   const navigate = useNavigate();

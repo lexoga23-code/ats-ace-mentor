@@ -428,6 +428,7 @@ const CVAnalyzer = () => {
               targetJob={targetJob}
               region={region}
               analysisId={currentAnalysisId}
+              jobDescription={jobDescription}
             />
           )}
         </div>
