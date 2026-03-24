@@ -60,8 +60,44 @@ const CVAnalyzer = () => {
     return false;
   };
 
-  // On mount: restore from DB if user is logged in
+  // On mount: handle reset flag, restore from localStorage, or restore from DB
   useEffect(() => {
+    // Handle reset flag from "Nouvelle analyse" button
+    if (localStorage.getItem("scorecv_reset") === "true") {
+      localStorage.removeItem("scorecv_reset");
+      setCvText("");
+      setTargetJob("");
+      setJobDescription("");
+      setIndustry("");
+      setCustomIndustry("");
+      setResults(null);
+      setRewrittenCV("");
+      setIsPaid(false);
+      setCurrentAnalysisId(null);
+      return;
+    }
+
+    // Handle restore from Account page (specific analysis)
+    const restoreData = localStorage.getItem("scorecv_restore_analysis");
+    if (restoreData) {
+      localStorage.removeItem("scorecv_restore_analysis");
+      try {
+        const d = JSON.parse(restoreData);
+        setCvText(d.cvText || "");
+        setTargetJob(d.targetJob || "");
+        setJobDescription(d.jobDescription || "");
+        setIndustry(d.industry || "");
+        setResults(d.results as AnalysisResult);
+        setIsPaid(d.isPaid || false);
+        setCurrentAnalysisId(d.id || null);
+        if (d.rewrittenCV && d.isPaid) setRewrittenCV(d.rewrittenCV);
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 300);
+      } catch { /* ignore */ }
+      return;
+    }
+
     if (!user) return;
     const restoreFromDb = async () => {
       const { data } = await supabase
@@ -78,14 +114,12 @@ const CVAnalyzer = () => {
         setJobDescription(latest.job_description || "");
         setIndustry(latest.industry || "");
         setResults(latest.results as unknown as AnalysisResult);
-        // Always verify payment status from DB, never trust local state
         const serverPaid = await checkServerPaidStatus(user.id);
         setIsPaid(serverPaid);
         setCurrentAnalysisId(latest.id);
         if (latest.rewritten_cv && serverPaid) setRewrittenCV(latest.rewritten_cv);
       }
 
-      // Also check localStorage flag (in case DB update was delayed)
       if (localStorage.getItem("scorecv_paid") === "true") {
         const serverPaid = await checkServerPaidStatus(user.id);
         if (serverPaid) setIsPaid(true);
