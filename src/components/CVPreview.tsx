@@ -184,7 +184,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   };
 
   const renderTimeline = () => (
-    <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
       <h1 style={{ fontSize: 26, fontWeight: 700, color, marginBottom: 4 }}>{parsed.name}</h1>
       {parsed.contact && <p style={{ fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
