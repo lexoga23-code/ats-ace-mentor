@@ -1,10 +1,44 @@
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useRegion } from "@/contexts/RegionContext";
-
-const STRIPE_URL = "https://buy.stripe.com/test_aFa5kD1yPgp2ayKeqS4AU00";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const Pricing = () => {
-  const { currency, prices } = useRegion();
+  const { currency, prices, region } = useRegion();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [loadingProduct, setLoadingProduct] = useState<string | null>(null);
+
+  const handleCheckout = async (productType: "report" | "pro" | "review") => {
+    if (!user) {
+      toast.info("Créez un compte pour continuer");
+      navigate("/auth");
+      return;
+    }
+
+    setLoadingProduct(productType);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          productType,
+          region,
+          successUrl: `${window.location.origin}/payment-success?product=${productType}`,
+          cancelUrl: `${window.location.origin}/#tarifs`,
+        },
+      });
+
+      if (error || !data?.url) throw new Error("Impossible de créer la session");
+      window.open(data.url, "_blank");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de la redirection vers le paiement.");
+    } finally {
+      setLoadingProduct(null);
+    }
+  };
 
   const plans = [
     {
@@ -13,7 +47,7 @@ const Pricing = () => {
       period: "",
       features: ["Score ATS Global", "3 problèmes prioritaires", "5 mots-clés manquants"],
       cta: "Actif",
-      action: undefined,
+      productType: null as null,
       featured: false,
       style: "bg-card",
     },
@@ -22,8 +56,8 @@ const Pricing = () => {
       price: String(prices.single),
       period: "",
       features: ["Réécriture IA complète", "Checklist 10 critères", "Lettre de motivation", "Export PDF & DOCX"],
-      cta: "Choisir",
-      action: STRIPE_URL,
+      cta: "Obtenir le rapport complet",
+      productType: "report" as const,
       featured: true,
       style: "bg-card border-2 border-primary",
     },
@@ -32,8 +66,8 @@ const Pricing = () => {
       price: String(prices.pro),
       period: "/mois",
       features: ["Analyses illimitées", "Tous les designs", "Support prioritaire"],
-      cta: "S'abonner",
-      action: STRIPE_URL,
+      cta: "S'abonner au Pro",
+      productType: "pro" as const,
       featured: false,
       style: "bg-card",
     },
@@ -42,8 +76,8 @@ const Pricing = () => {
       price: String(prices.human),
       period: "",
       features: ["Relecture CV + Lettre", "Rapport personnalisé", "Retour sous 24h"],
-      cta: "Commander",
-      action: STRIPE_URL,
+      cta: "Demander une relecture",
+      productType: "review" as const,
       featured: false,
       style: "bg-secondary",
     },
@@ -74,17 +108,22 @@ const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              {plan.action ? (
-                <a
-                  href={plan.action}
-                  className={`w-full py-3 rounded-xl font-bold text-center block transition-all ${
+              {plan.productType ? (
+                <button
+                  onClick={() => handleCheckout(plan.productType!)}
+                  disabled={loadingProduct === plan.productType}
+                  className={`w-full py-3 rounded-xl font-bold text-center transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${
                     plan.featured
                       ? "bg-primary text-primary-foreground hover:opacity-90"
                       : "bg-foreground text-background hover:opacity-90"
                   }`}
                 >
-                  {plan.cta}
-                </a>
+                  {loadingProduct === plan.productType ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                  ) : (
+                    plan.cta
+                  )}
+                </button>
               ) : (
                 <button className="w-full py-3 rounded-xl font-bold border border-border text-foreground" disabled>
                   {plan.cta}

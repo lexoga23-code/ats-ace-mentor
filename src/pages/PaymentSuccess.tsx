@@ -1,52 +1,59 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { sendPaymentConfirmEmail } from "@/lib/emailService";
+import { sendPaymentConfirmEmail, sendReviewRequestEmail, sendProWelcomeEmail } from "@/lib/emailService";
 
 const PaymentSuccess = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<"loading" | "done">("loading");
   const hasRun = useRef(false);
 
+  const productType = searchParams.get("product") || "report";
+
   useEffect(() => {
-    // Wait for auth to finish loading before doing anything
     if (authLoading) return;
-    // Only run once
     if (hasRun.current) return;
     hasRun.current = true;
 
     const markPaid = async () => {
       if (user) {
-        // Mark user's latest unpaid analysis as paid
-        const { data: analyses } = await supabase
-          .from("user_analyses")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("is_paid", false)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (analyses && analyses.length > 0) {
-          await supabase
+        if (productType === "report") {
+          // Mark user's latest unpaid analysis as paid
+          const { data: analyses } = await supabase
             .from("user_analyses")
-            .update({ is_paid: true })
-            .eq("id", analyses[0].id);
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("is_paid", false)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (analyses && analyses.length > 0) {
+            await supabase
+              .from("user_analyses")
+              .update({ is_paid: true })
+              .eq("id", analyses[0].id);
+          }
+        }
+
+        // Send appropriate email
+        if (user.email) {
+          const name = user.user_metadata?.full_name || user.email.split("@")[0];
+          if (productType === "report") {
+            sendPaymentConfirmEmail(name, user.email);
+          } else if (productType === "pro") {
+            sendProWelcomeEmail(name, user.email);
+          } else if (productType === "review") {
+            sendReviewRequestEmail(name, user.email);
+          }
         }
       }
 
-      // Send payment confirmation email
-      if (user?.email) {
-        const name = user.user_metadata?.full_name || user.email.split("@")[0];
-        sendPaymentConfirmEmail(name, user.email);
-      }
-
-      // Set localStorage flag AFTER DB is updated so the other tab reads correct data
       localStorage.setItem("scorecv_paid", "true");
       setStatus("done");
 
-      // Auto-redirect after 2 seconds
       setTimeout(() => {
         if (window.opener) {
           window.close();
@@ -57,17 +64,32 @@ const PaymentSuccess = () => {
     };
 
     markPaid();
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, productType]);
+
+  const messages: Record<string, { title: string; subtitle: string }> = {
+    report: {
+      title: "Paiement confirmé !",
+      subtitle: "Retournez sur l'onglet ScoreCV pour voir votre rapport complet.",
+    },
+    pro: {
+      title: "Abonnement Pro activé !",
+      subtitle: "Vous avez maintenant accès à toutes les fonctionnalités illimitées.",
+    },
+    review: {
+      title: "Demande de relecture envoyée !",
+      subtitle: "Un expert vous enverra votre rapport personnalisé sous 24h ouvrées.",
+    },
+  };
+
+  const msg = messages[productType] || messages.report;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="max-w-md w-full bg-card p-10 rounded-3xl shadow-soft text-center space-y-6">
         <div className="text-5xl">✅</div>
-        <h1 className="text-2xl font-bold text-foreground">Paiement confirmé !</h1>
+        <h1 className="text-2xl font-bold text-foreground">{msg.title}</h1>
         <p className="text-muted-foreground">
-          {status === "loading"
-            ? "Vérification en cours..."
-            : "Retournez sur l'onglet ScoreCV pour voir votre rapport complet."}
+          {status === "loading" ? "Vérification en cours..." : msg.subtitle}
         </p>
         <button
           onClick={() => {

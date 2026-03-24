@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye } from "lucide-react";
+import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye, Loader2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 interface AnalysisEntry {
@@ -19,6 +19,10 @@ const Account = () => {
   const navigate = useNavigate();
   const [analyses, setAnalyses] = useState<AnalysisEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPro, setIsPro] = useState(false);
+  const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [subLoading, setSubLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -28,7 +32,9 @@ const Account = () => {
 
   useEffect(() => {
     if (!user) return;
-    const fetchAnalyses = async () => {
+
+    const fetchData = async () => {
+      // Fetch analyses
       const { data } = await supabase
         .from("user_analyses")
         .select("id, target_job, score, match_score, is_paid, created_at")
@@ -37,7 +43,23 @@ const Account = () => {
       setAnalyses((data as AnalysisEntry[]) || []);
       setLoading(false);
     };
-    fetchAnalyses();
+
+    const checkSubscription = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("check-subscription");
+        if (data) {
+          setIsPro(data.isPro || false);
+          setSubscriptionEnd(data.subscriptionEnd || null);
+        }
+      } catch (err) {
+        console.error("Failed to check subscription:", err);
+      } finally {
+        setSubLoading(false);
+      }
+    };
+
+    fetchData();
+    checkSubscription();
   }, [user]);
 
   const handleSignOut = async () => {
@@ -46,15 +68,27 @@ const Account = () => {
     navigate("/");
   };
 
-  const hasPaidReport = analyses.some((a) => a.is_paid);
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error || !data?.url) throw new Error("Erreur");
+      window.open(data.url, "_blank");
+    } catch (err) {
+      toast.error("Impossible d'ouvrir le portail de gestion.");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   const handleViewLastReport = () => {
-    // Set flag to restore last report on homepage
     localStorage.setItem("scorecv_restore_report", "true");
     navigate("/");
   };
 
   if (authLoading || !user) return null;
+
+  const hasPaidReport = analyses.some((a) => a.is_paid);
 
   return (
     <div className="min-h-screen bg-background px-6 py-12">
@@ -70,12 +104,65 @@ const Account = () => {
         <div className="bg-card p-8 rounded-3xl shadow-soft">
           <h1 className="text-2xl font-bold text-foreground mb-2">Mon compte</h1>
           <p className="text-muted-foreground text-sm">{user.email}</p>
-          <div className="mt-4 flex gap-3">
-            <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
-              {hasPaidReport ? "✓ Rapport acheté" : "Gratuit"}
-            </span>
+          <div className="mt-4 flex gap-3 flex-wrap">
+            {isPro && (
+              <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
+                ⭐ Abonnement Pro actif
+              </span>
+            )}
+            {hasPaidReport && !isPro && (
+              <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
+                ✓ Rapport acheté
+              </span>
+            )}
+            {!hasPaidReport && !isPro && (
+              <span className="inline-flex items-center px-3 py-1 bg-secondary rounded-full text-sm font-medium text-muted-foreground">
+                Gratuit
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Subscription Management */}
+        {!subLoading && (
+          <div className="bg-card p-8 rounded-3xl shadow-soft">
+            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" /> Abonnement
+            </h2>
+            {isPro ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                  <p className="font-bold text-foreground">Plan Pro — actif</p>
+                  {subscriptionEnd && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-FR")}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Gérer mon abonnement
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Vous n'avez pas d'abonnement Pro actif.
+                </p>
+                <button
+                  onClick={() => navigate("/#tarifs")}
+                  className="py-3 px-6 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all"
+                >
+                  Voir les offres Pro
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">
@@ -105,10 +192,7 @@ const Account = () => {
           ) : (
             <div className="space-y-3">
               {analyses.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between p-4 rounded-xl bg-secondary"
-                >
+                <div key={a.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary">
                   <div>
                     <p className="font-medium text-foreground text-sm">{a.target_job}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
