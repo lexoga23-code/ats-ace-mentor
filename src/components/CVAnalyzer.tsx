@@ -31,6 +31,7 @@ const CVAnalyzer = () => {
   const [targetJob, setTargetJob] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [industry, setIndustry] = useState("");
+  const [customIndustry, setCustomIndustry] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [rewrittenCV, setRewrittenCV] = useState("");
