@@ -310,7 +310,7 @@ const CVAnalyzer = () => {
           cv_text: cvText,
           target_job: targetJob,
           job_description: jobDescription,
-          industry: industry,
+          industry: effectiveIndustry,
           results: result as any,
           score: result.score,
           match_score: result.matchScore || null,
