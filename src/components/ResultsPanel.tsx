@@ -59,8 +59,9 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
 
 const STORAGE_KEY = "scorecv_analysis";
 
-/** Verify payment status server-side before generating premium content */
+/** Verify payment status server-side — checks both isPaid and Pro subscription */
 const verifyPaidStatus = async (userId: string): Promise<boolean> => {
+  // Check single report payment
   const { data } = await supabase
     .from("user_analyses")
     .select("is_paid")
@@ -68,7 +69,15 @@ const verifyPaidStatus = async (userId: string): Promise<boolean> => {
     .eq("is_paid", true)
     .order("created_at", { ascending: false })
     .limit(1);
-  return !!(data && data.length > 0);
+  if (data && data.length > 0) return true;
+
+  // Check pro subscription via edge function
+  try {
+    const { data: subData } = await supabase.functions.invoke("check-subscription");
+    if (subData?.isPro) return true;
+  } catch { /* ignore */ }
+
+  return false;
 };
 
 const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId }: ResultsPanelProps) => {
@@ -137,8 +146,9 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
-          email: user.email,
-          successUrl: `${window.location.origin}/payment-success`,
+          productType: "report",
+          region: region,
+          successUrl: `${window.location.origin}/payment-success?product=report`,
           cancelUrl: `${window.location.origin}/#optimiser`,
         },
       });
