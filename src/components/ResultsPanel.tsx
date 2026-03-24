@@ -299,13 +299,13 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Option 1 — Single report */}
                 <div className="p-6 rounded-2xl border border-border bg-background space-y-3">
-                  <h4 className="font-bold text-lg text-foreground">Accès unique</h4>
-                  <div className="text-3xl font-bold text-foreground">
-                    {prices.single}<span className="text-lg">{currency}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    CV réécrit · Checklist · Lettre · Export PDF & Word
-                  </p>
+                   <h4 className="font-bold text-lg text-foreground">1 CV + rapport complet</h4>
+                   <div className="text-3xl font-bold text-foreground">
+                     {prices.single}<span className="text-lg">{currency}</span>
+                   </div>
+                   <p className="text-sm text-muted-foreground">
+                     CV réécrit · Checklist · Lettre de motivation · Export PDF & Word
+                   </p>
                   <button
                     onClick={() => handleCheckout("report")}
                     disabled={checkoutLoading === "report"}
