@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Target, Share2, Mail, Loader2 } from "lucide-react";
+import { Target, Share2, Mail, Loader2, Sparkles } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
@@ -10,7 +10,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { sendReviewRequestEmail } from "@/lib/emailService";
 
 interface ResultsPanelProps {
   results: AnalysisResult;
@@ -20,6 +19,7 @@ interface ResultsPanelProps {
   targetJob: string;
   region: string;
   analysisId?: string | null;
+  jobDescription?: string;
 }
 
 const ScoreCircle = ({ score }: { score: number }) => {
@@ -61,7 +61,6 @@ const STORAGE_KEY = "scorecv_analysis";
 
 /** Verify payment status server-side — checks both isPaid and Pro subscription */
 const verifyPaidStatus = async (userId: string): Promise<boolean> => {
-  // Check single report payment
   const { data } = await supabase
     .from("user_analyses")
     .select("is_paid")
@@ -71,7 +70,6 @@ const verifyPaidStatus = async (userId: string): Promise<boolean> => {
     .limit(1);
   if (data && data.length > 0) return true;
 
-  // Check pro subscription via edge function
   try {
     const { data: subData } = await supabase.functions.invoke("check-subscription");
     if (subData?.isPro) return true;
@@ -80,7 +78,7 @@ const verifyPaidStatus = async (userId: string): Promise<boolean> => {
   return false;
 };
 
-const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId }: ResultsPanelProps) => {
+const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId, jobDescription }: ResultsPanelProps) => {
   const { currency, prices } = useRegion();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -88,17 +86,37 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const [coverLetter, setCoverLetter] = useState("");
   const [loadingRewrite, setLoadingRewrite] = useState(false);
   const [loadingLetter, setLoadingLetter] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [shareEmail, setShareEmail] = useState("");
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewDone, setReviewDone] = useState(false);
 
   useEffect(() => {
     setRewrittenCV(initialRewrite);
   }, [initialRewrite]);
 
+  // Auto-generate CV when paid and no rewritten CV yet
+  useEffect(() => {
+    if (isPaid && !rewrittenCV && !loadingRewrite && cvText && targetJob) {
+      const autoGenerate = async () => {
+        if (!user) return;
+        const serverPaid = await verifyPaidStatus(user.id);
+        if (!serverPaid) return;
+        setLoadingRewrite(true);
+        try {
+          const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
+          setRewrittenCV(text);
+        } catch { /* ignore */ }
+        setLoadingRewrite(false);
+      };
+      autoGenerate();
+    }
+  }, [isPaid]);
+
   const handleGenerateCV = async () => {
-    // Server-side payment check
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id);
     if (!serverPaid) {
@@ -114,7 +132,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   };
 
   const handleGenerateLetter = async () => {
-    // Server-side payment check
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id);
     if (!serverPaid) {
@@ -123,13 +140,13 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     }
     setLoadingLetter(true);
     try {
-      const text = await generateCoverLetter(cvText, targetJob, region);
+      const text = await generateCoverLetter(cvText, targetJob, region, jobDescription);
       setCoverLetter(text);
     } catch { alert("Erreur. Réessayez."); }
     setLoadingLetter(false);
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (productType: "report" | "pro") => {
     if (!user) {
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
@@ -139,16 +156,16 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       return;
     }
 
-    setCheckoutLoading(true);
+    setCheckoutLoading(productType);
     try {
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
 
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
-          productType: "report",
+          productType,
           region: region,
-          successUrl: `${window.location.origin}/payment-success?product=report`,
+          successUrl: `${window.location.origin}/payment-success?product=${productType}`,
           cancelUrl: `${window.location.origin}/#optimiser`,
         },
       });
@@ -158,11 +175,39 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       }
 
       window.open(data.url, '_blank');
-      setCheckoutLoading(false);
+      setCheckoutLoading(null);
     } catch (err) {
       console.error("[Checkout] Error:", err);
       alert("Erreur lors de la redirection vers le paiement.");
-      setCheckoutLoading(false);
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleReviewCheckout = async () => {
+    if (!user) {
+      toast.info("Créez un compte pour commander une relecture");
+      navigate("/auth");
+      return;
+    }
+
+    setReviewLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          productType: "review",
+          region: region,
+          successUrl: `${window.location.origin}/payment-success?product=review`,
+          cancelUrl: `${window.location.origin}/#optimiser`,
+        },
+      });
+
+      if (error || !data?.url) throw new Error("Impossible de créer la session");
+      window.open(data.url, '_blank');
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de la redirection vers le paiement.");
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -173,9 +218,14 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   };
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
-  // Compute personalized AI summary for free report
   const totalPossibleGain = 100 - results.score;
   const matchPct = results.matchScore ?? Math.round(results.score * 0.85);
+
+  // Split suggestions into ATS technical vs human recruiter tips
+  const atsProblems = results.suggestions.filter((_, i) => i < 3);
+  const humanTips = results.suggestions.filter((_, i) => i >= 3).slice(0, 3);
+  // If not enough suggestions for human tips, use the same but with different framing
+  const displayHumanTips = humanTips.length > 0 ? humanTips : atsProblems.slice(0, 3);
 
   return (
     <div className="mt-12 space-y-8">
@@ -204,7 +254,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
         </div>
       )}
 
-      {/* Free: Score + Problems side by side + Paywall */}
+      {/* Free: Score + Paywall between score and keywords */}
       {!isPaid && (
         <div className="space-y-6">
           {/* Personalized AI summary */}
@@ -212,48 +262,93 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
           </p>
 
-          {/* Top row: 2 columns */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Left: Score circle + bars */}
-            <div className="bg-card p-8 rounded-3xl shadow-soft space-y-4">
-              <ScoreCircle score={results.score} />
-              {results.matchScore !== undefined && results.matchScore > 0 && (
-                <div className="text-center">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
-                    <Target className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-bold text-primary">Match Offre : {results.matchScore}%</span>
+          {/* Score circle + bars */}
+          <div className="bg-card p-8 rounded-3xl shadow-soft space-y-4">
+            <div className="grid md:grid-cols-3 gap-8 items-center">
+              <div className="space-y-4">
+                <ScoreCircle score={results.score} />
+                {results.matchScore !== undefined && results.matchScore > 0 && (
+                  <div className="text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
+                      <Target className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-bold text-primary">Match Offre : {results.matchScore}%</span>
+                    </div>
                   </div>
-                </div>
-              )}
-              <div className="space-y-3 pt-2">
+                )}
+              </div>
+              <div className="md:col-span-2 space-y-3">
                 <ScoreBar label="FORMAT" value={results.scoreDetails.format} max={20} />
                 <ScoreBar label="MOTS-CLÉS" value={results.scoreDetails.keywords} max={35} />
                 <ScoreBar label="CONTENU" value={results.scoreDetails.experience} max={25} />
                 <ScoreBar label="LISIBILITÉ" value={results.scoreDetails.readability} max={20} />
               </div>
             </div>
+          </div>
 
-            {/* Right: 3 problems */}
-            <div className="bg-card p-8 rounded-3xl shadow-soft">
-              <h3 className="text-lg font-bold mb-4 text-destructive flex items-center gap-2">
-                ⚠️ Votre CV perd des points sur ces {Math.min(results.suggestions.length, 3)} problèmes
-              </h3>
-              <div className="space-y-3">
-                {results.suggestions.slice(0, 3).map((s, i) => {
-                  const impactNum = s.impact?.match(/\d+/)?.[0] || "5";
-                  return (
-                    <div key={i} className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20">
-                      <div className="flex items-start justify-between gap-3 mb-1">
-                        <h4 className="font-bold text-destructive text-sm">🔴 {s.title}</h4>
-                        <span className="text-destructive font-bold text-sm whitespace-nowrap">−{impactNum} pts</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{s.text}</p>
-                    </div>
-                  );
-                })}
+          {/* CTA — Unlock button (between score and keywords) */}
+          {!showPaymentOptions ? (
+            <button
+              onClick={() => setShowPaymentOptions(true)}
+              className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground"
+              style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px" }}
+            >
+              🔓 Débloquer le rapport complet
+            </button>
+          ) : (
+            <div className="p-6 rounded-3xl border-2 border-primary/30 bg-card">
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Option 1 — Single report */}
+                <div className="p-6 rounded-2xl border border-border bg-background space-y-3">
+                  <h4 className="font-bold text-lg text-foreground">Accès unique</h4>
+                  <div className="text-3xl font-bold text-foreground">
+                    {prices.single}<span className="text-lg">{currency}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    CV réécrit · Checklist · Lettre · Export PDF & Word
+                  </p>
+                  <button
+                    onClick={() => handleCheckout("report")}
+                    disabled={checkoutLoading === "report"}
+                    className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: "#1a365d", color: "#fff" }}
+                  >
+                    {checkoutLoading === "report" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                    ) : (
+                      `Choisir — ${prices.single}${currency}`
+                    )}
+                  </button>
+                </div>
+
+                {/* Option 2 — Pro subscription */}
+                <div className="relative p-6 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
+                    Meilleur choix
+                  </span>
+                  <h4 className="font-bold text-lg text-foreground">Abonnement Pro</h4>
+                  <div className="text-3xl font-bold text-foreground">
+                    {prices.pro}<span className="text-lg">{currency}</span>
+                    <span className="text-sm text-muted-foreground font-normal">/mois</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Analyses illimitées · Tout débloqué · Designs premium
+                  </p>
+                  <button
+                    onClick={() => handleCheckout("pro")}
+                    disabled={checkoutLoading === "pro"}
+                    className="w-full py-4 rounded-xl font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: "#1a365d", color: "#fff", fontSize: "1rem" }}
+                  >
+                    {checkoutLoading === "pro" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                    ) : (
+                      `S'abonner — ${prices.pro}${currency}/mois`
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Missing keywords compact box */}
           {results.keywordsMissing.length > 0 && (
@@ -276,38 +371,45 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           )}
 
-          {/* Quick AI suggestions box */}
-          {results.suggestions.length > 0 && (
-            <div className="p-6 rounded-3xl" style={{ background: "#F0F7FF", border: "1px solid #2d6a8f" }}>
-              <h3 className="text-base font-bold mb-3 text-foreground flex items-center gap-2">
-                💡 Suggestions d'amélioration rapides
+          {/* Two columns: ATS problems vs Human tips */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Left: ATS technical problems */}
+            <div className="bg-card p-8 rounded-3xl shadow-soft">
+              <h3 className="text-lg font-bold mb-4 text-destructive flex items-center gap-2">
+                ⚠️ Problèmes techniques ATS
               </h3>
-              <div className="space-y-2">
-                {results.suggestions.slice(0, 3).map((s, i) => (
-                  <p key={i} className="text-sm text-foreground">
-                    ➤ {s.text}
-                  </p>
+              <p className="text-xs text-muted-foreground mb-3">Ce qui empêche votre CV d'être lu par les logiciels de recrutement</p>
+              <div className="space-y-3">
+                {atsProblems.map((s, i) => {
+                  const impactNum = s.impact?.match(/\d+/)?.[0] || "5";
+                  return (
+                    <div key={i} className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20">
+                      <div className="flex items-start justify-between gap-3 mb-1">
+                        <h4 className="font-bold text-destructive text-sm">🔴 {s.title}</h4>
+                        <span className="text-destructive font-bold text-sm whitespace-nowrap">−{impactNum} pts</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{s.text}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right: Human recruiter tips */}
+            <div className="p-8 rounded-3xl" style={{ background: "#F0F7FF", border: "1px solid #2d6a8f" }}>
+              <h3 className="text-lg font-bold mb-4 text-foreground flex items-center gap-2">
+                💡 Conseils pour convaincre le recruteur
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">Ce qui empêche votre CV de convaincre un humain</p>
+              <div className="space-y-3">
+                {displayHumanTips.map((s, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-white/60">
+                    <h4 className="font-bold text-sm text-foreground mb-1">💡 {s.title}</h4>
+                    <p className="text-xs text-muted-foreground">{s.text}</p>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
-
-          {/* CTA block — bigger button */}
-          <div className="p-8 rounded-3xl border-2 border-primary/30 bg-primary/5">
-            <p className="text-center text-foreground font-bold text-lg mb-1">
-              Réécrivez votre CV et obtenez le rapport complet
-            </p>
-            <p className="text-center text-muted-foreground text-sm mb-6">
-              CV réécrit par l'IA · Checklist détaillée · Lettre de motivation · Export PDF & Word
-            </p>
-            <button
-              onClick={handleCheckout}
-              disabled={checkoutLoading}
-              className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-primary text-primary-foreground"
-              style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px" }}
-            >
-              {checkoutLoading ? "Ouverture..." : `🔓 Débloquer le rapport complet — ${prices.single}${currency}`}
-            </button>
           </div>
 
           {/* CV vs Job observations */}
@@ -407,25 +509,29 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
                 );
               })}
             </div>
-            {!rewrittenCV && (
+          </div>
+
+          {/* Rewritten CV — auto-generated */}
+          <div className="bg-card p-8 rounded-3xl shadow-soft">
+            <h3 className="text-xl font-bold mb-6 text-foreground">Optimisation IA</h3>
+            {loadingRewrite ? (
+              <div className="flex items-center justify-center gap-3 py-12 text-primary">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+                <span className="font-bold">✨ Génération de votre CV optimisé en cours…</span>
+              </div>
+            ) : rewrittenCV ? (
+              <CVPreview cvText={rewrittenCV} onChange={setRewrittenCV} />
+            ) : (
               <button
                 onClick={handleGenerateCV}
                 disabled={loadingRewrite}
-                className="mt-6 w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+                className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
                 style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}
               >
-                {loadingRewrite ? "Génération en cours..." : "✨ Générer mon CV optimisé"}
+                ✨ Générer mon CV optimisé
               </button>
             )}
           </div>
-
-          {/* Rewritten CV */}
-          {rewrittenCV && (
-            <div className="bg-card p-8 rounded-3xl shadow-soft">
-              <h3 className="text-xl font-bold mb-6 text-foreground">Optimisation IA</h3>
-              <CVPreview cvText={rewrittenCV} onChange={setRewrittenCV} />
-            </div>
-          )}
 
           {/* Cover Letter */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
@@ -521,28 +627,29 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             )}
           </div>
 
-          {/* Human Review Upsell */}
-          <div className="bg-surface-warm p-8 rounded-3xl shadow-soft">
+          {/* Human Review — Stripe checkout */}
+          <div className="bg-secondary p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-2 text-foreground">Relecture par un expert humain</h3>
             <p className="text-muted-foreground text-sm mb-6">
               CV + lettre relus par un expert. Rapport PDF personnalisé sous 24h ouvrées. {prices.human}{currency}.
             </p>
-            <form className="space-y-4" onSubmit={(e) => {
-              e.preventDefault();
-              const form = e.target as HTMLFormElement;
-              const nameInput = form.elements[0] as HTMLInputElement;
-              const emailInput = form.elements[1] as HTMLInputElement;
-              sendReviewRequestEmail(nameInput.value, emailInput.value);
-              toast.success("Demande envoyée ! Vous recevrez un email de confirmation.");
-              form.reset();
-            }}>
-              <input placeholder="Prénom" className="w-full p-3 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground" required />
-              <input type="email" placeholder="Email" className="w-full p-3 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground" required />
-              <textarea placeholder="Message (optionnel)" className="w-full h-24 p-3 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground resize-none" />
-              <button type="submit" className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all">
-                Commander — {prices.human}{currency}
+            {reviewDone ? (
+              <div className="p-4 bg-emerald-50 rounded-xl text-emerald-800 font-bold text-sm text-center">
+                ✓ Demande de relecture confirmée — vous recevrez votre rapport sous 24h ouvrées.
+              </div>
+            ) : (
+              <button
+                onClick={handleReviewCheckout}
+                disabled={reviewLoading}
+                className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {reviewLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                ) : (
+                  `Commander — ${prices.human}${currency}`
+                )}
               </button>
-            </form>
+            )}
           </div>
         </div>
       )}
