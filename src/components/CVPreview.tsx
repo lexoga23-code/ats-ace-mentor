@@ -91,7 +91,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
-  const itemStyle = { fontSize: 13, lineHeight: 1.6, textAlign: "justify" as const, hyphens: "auto" as const, WebkitHyphens: "auto" as const };
+  const itemStyle = { fontSize: 11, lineHeight: 1.5, textAlign: "justify" as const, hyphens: "auto" as const, WebkitHyphens: "auto" as const, fontFamily: "Calibri, Arial, sans-serif" };
 
   const renderItem = (item: string, i: number) => {
     const isBullet = item.startsWith("•") || item.startsWith("-") || item.startsWith("–");
