@@ -376,7 +376,10 @@ const CVAnalyzer = () => {
               <label className="label-ui block mb-2">{"Secteur d'activité (optionnel)"}</label>
               <select
                 value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+                onChange={(e) => {
+                  setIndustry(e.target.value);
+                  if (e.target.value !== "Autre") setCustomIndustry("");
+                }}
                 className="w-full p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
               >
                 <option value="">— Sélectionner —</option>
@@ -384,6 +387,15 @@ const CVAnalyzer = () => {
                   <option key={ind}>{ind}</option>
                 ))}
               </select>
+              {industry === "Autre" && (
+                <input
+                  type="text"
+                  value={customIndustry}
+                  onChange={(e) => setCustomIndustry(e.target.value)}
+                  placeholder="Précisez votre secteur d'activité..."
+                  className="w-full mt-2 p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground"
+                />
+              )}
             </div>
             <button
               onClick={startAnalysis}
