@@ -120,7 +120,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderModern = () => (
-    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "Calibri, Arial, sans-serif" }}>
       <div style={{ background: color, color: "#fff", padding: "30px 40px", marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{parsed.name}</h1>
         {parsed.contact && <p style={{ fontSize: 13, opacity: 0.9 }}>{parsed.contact}</p>}
