@@ -276,7 +276,8 @@ const CVAnalyzer = () => {
     setRewrittenCV("");
 
     try {
-      const result = await analyzeCV(cvText, targetJob, region, industry || "Non précisé", jobDescription);
+      const effectiveIndustry = industry === "Autre" ? (customIndustry || "Non précisé") : (industry || "Non précisé");
+      const result = await analyzeCV(cvText, targetJob, region, effectiveIndustry, jobDescription);
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);
