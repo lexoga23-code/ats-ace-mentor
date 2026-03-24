@@ -137,7 +137,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderMinimal = () => (
-    <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
       <h1 style={{ fontSize: 24, fontWeight: 300, letterSpacing: 3, textAlign: "center", marginBottom: 4, color: "#222" }}>{parsed.name}</h1>
       {parsed.contact && <p style={{ textAlign: "center", fontSize: 11, color: "#888", marginBottom: 30 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
