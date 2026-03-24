@@ -21,6 +21,7 @@ const INDUSTRIES = [
   "Services",
   "Éducation / Formation",
   "Commerce / Distribution",
+  "Autre",
 ];
 
 const CVAnalyzer = () => {
