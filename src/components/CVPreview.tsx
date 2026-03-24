@@ -98,10 +98,12 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   const renderItem = (item: string, i: number) => {
     const isBullet = item.startsWith("•") || item.startsWith("-") || item.startsWith("–");
     const text = isBullet ? item.replace(/^[•\-–]\s*/, "") : item;
+    // Remove spaced-out letters like "P R O F I L" → "PROFIL"
+    const cleanText = (t: string) => /^([A-ZÀ-Ü] ){2,}[A-ZÀ-Ü]$/.test(t.trim()) ? t.replace(/ /g, "") : t;
     const isJobTitle = /\|/.test(item) || (/\d{4}/.test(item) && item.length < 80 && !isBullet);
-    if (isJobTitle && !isBullet) return <p key={i} style={{ fontWeight: 600, marginTop: 8, fontSize: 14 }}>{item}</p>;
-    if (isBullet) return <p key={i} style={{ paddingLeft: 16, ...itemStyle }}>• {text}</p>;
-    return <p key={i} style={itemStyle}>{item}</p>;
+    if (isJobTitle && !isBullet) return <p key={i} style={{ fontWeight: 600, marginTop: 6, fontSize: 12 }}>{cleanText(item)}</p>;
+    if (isBullet) return <p key={i} style={{ paddingLeft: 16, ...itemStyle }}>• {cleanText(text)}</p>;
+    return <p key={i} style={itemStyle}>{cleanText(item)}</p>;
   };
 
   const renderClassic = () => (
