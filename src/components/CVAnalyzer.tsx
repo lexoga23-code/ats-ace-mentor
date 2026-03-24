@@ -116,7 +116,7 @@ const CVAnalyzer = () => {
         setJobDescription(latest.job_description || "");
         setIndustry(latest.industry || "");
         setResults(latest.results as unknown as AnalysisResult);
-        const serverPaid = await checkServerPaidStatus(user.id);
+        const serverPaid = await checkServerPaidStatus(user.id, latest.id);
         setIsPaid(serverPaid);
         setCurrentAnalysisId(latest.id);
         if (latest.rewritten_cv && serverPaid) setRewrittenCV(latest.rewritten_cv);
