@@ -292,20 +292,20 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
               className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground"
               style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px" }}
             >
-              🔓 Débloquer le rapport complet
+              🔓 Générer votre CV et débloquer le rapport complet — {prices.single}{currency}
             </button>
           ) : (
             <div className="p-6 rounded-3xl border-2 border-primary/30 bg-card">
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Option 1 — Single report */}
                 <div className="p-6 rounded-2xl border border-border bg-background space-y-3">
-                  <h4 className="font-bold text-lg text-foreground">Accès unique</h4>
-                  <div className="text-3xl font-bold text-foreground">
-                    {prices.single}<span className="text-lg">{currency}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    CV réécrit · Checklist · Lettre · Export PDF & Word
-                  </p>
+                   <h4 className="font-bold text-lg text-foreground">1 CV + rapport complet</h4>
+                   <div className="text-3xl font-bold text-foreground">
+                     {prices.single}<span className="text-lg">{currency}</span>
+                   </div>
+                   <p className="text-sm text-muted-foreground">
+                     CV réécrit · Checklist · Lettre de motivation · Export PDF & Word
+                   </p>
                   <button
                     onClick={() => handleCheckout("report")}
                     disabled={checkoutLoading === "report"}
@@ -330,9 +330,9 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
                     {prices.pro}<span className="text-lg">{currency}</span>
                     <span className="text-sm text-muted-foreground font-normal">/mois</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Analyses illimitées · Tout débloqué · Designs premium
-                  </p>
+                   <p className="text-sm text-muted-foreground">
+                     CV réécrit et analyses illimitées · Tout débloqué
+                   </p>
                   <button
                     onClick={() => handleCheckout("pro")}
                     disabled={checkoutLoading === "pro"}

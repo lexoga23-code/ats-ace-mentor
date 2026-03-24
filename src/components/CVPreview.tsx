@@ -76,39 +76,43 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     const win = window.open("", "_blank");
     if (!win) return;
     
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title></title><style>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title> </title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+      h1 { font-size: 14pt; }
+      h2 { font-size: 12pt; }
       @media print {
-        @page { margin: 1.5cm; }
+        @page { margin: 1.5cm; size: A4; }
         header, footer { display: none !important; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       }
     </style></head><body>${content.innerHTML}</body></html>`);
     win.document.close();
-    win.document.title = "";
+    win.document.title = " ";
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
-  const itemStyle = { fontSize: 13, lineHeight: 1.6, textAlign: "justify" as const, hyphens: "auto" as const, WebkitHyphens: "auto" as const };
+  const itemStyle = { fontSize: 11, lineHeight: 1.5, textAlign: "justify" as const, hyphens: "auto" as const, WebkitHyphens: "auto" as const, fontFamily: "Calibri, Arial, sans-serif" };
 
   const renderItem = (item: string, i: number) => {
     const isBullet = item.startsWith("•") || item.startsWith("-") || item.startsWith("–");
     const text = isBullet ? item.replace(/^[•\-–]\s*/, "") : item;
+    // Remove spaced-out letters like "P R O F I L" → "PROFIL"
+    const cleanText = (t: string) => /^([A-ZÀ-Ü] ){2,}[A-ZÀ-Ü]$/.test(t.trim()) ? t.replace(/ /g, "") : t;
     const isJobTitle = /\|/.test(item) || (/\d{4}/.test(item) && item.length < 80 && !isBullet);
-    if (isJobTitle && !isBullet) return <p key={i} style={{ fontWeight: 600, marginTop: 8, fontSize: 14 }}>{item}</p>;
-    if (isBullet) return <p key={i} style={{ paddingLeft: 16, ...itemStyle }}>• {text}</p>;
-    return <p key={i} style={itemStyle}>{item}</p>;
+    if (isJobTitle && !isBullet) return <p key={i} style={{ fontWeight: 600, marginTop: 6, fontSize: 12 }}>{cleanText(item)}</p>;
+    if (isBullet) return <p key={i} style={{ paddingLeft: 16, ...itemStyle }}>• {cleanText(text)}</p>;
+    return <p key={i} style={itemStyle}>{cleanText(item)}</p>;
   };
 
   const renderClassic = () => (
-    <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color, textAlign: "center", marginBottom: 4 }}>{parsed.name}</h1>
-      {parsed.contact && <p style={{ textAlign: "center", fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
+    <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color, textAlign: "center", marginBottom: 2 }}>{parsed.name}</h1>
+      {parsed.contact && <p style={{ textAlign: "center", fontSize: 10, color: "#666", marginBottom: 16 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
-        <div key={i} style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, borderBottom: `2px solid ${color}`, paddingBottom: 4, marginBottom: 8 }}>{s.title}</h2>
+        <div key={i} style={{ marginBottom: 14 }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color, borderBottom: `2px solid ${color}`, paddingBottom: 3, marginBottom: 6 }}>{s.title}</h2>
           {s.items.map(renderItem)}
         </div>
       ))}
@@ -116,7 +120,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderModern = () => (
-    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "Calibri, Arial, sans-serif" }}>
       <div style={{ background: color, color: "#fff", padding: "30px 40px", marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{parsed.name}</h1>
         {parsed.contact && <p style={{ fontSize: 13, opacity: 0.9 }}>{parsed.contact}</p>}
@@ -133,7 +137,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderMinimal = () => (
-    <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
       <h1 style={{ fontSize: 24, fontWeight: 300, letterSpacing: 3, textAlign: "center", marginBottom: 4, color: "#222" }}>{parsed.name}</h1>
       {parsed.contact && <p style={{ textAlign: "center", fontSize: 11, color: "#888", marginBottom: 30 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
@@ -146,7 +150,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderChrono = () => (
-    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "Calibri, Arial, sans-serif" }}>
       <div style={{ height: 6, background: color, width: "100%" }} />
       <div style={{ padding: "30px 40px 40px" }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color, textAlign: "center", marginBottom: 4 }}>{parsed.name}</h1>
@@ -166,7 +170,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     const others = parsed.sections.filter(s => !/compétence|skill|langue|outil/i.test(s.title));
     const ordered = [...competences, ...others];
     return (
-      <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color, marginBottom: 4 }}>{parsed.name}</h1>
         {parsed.contact && <p style={{ fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
         {ordered.map((s, i) => (
@@ -180,7 +184,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   };
 
   const renderTimeline = () => (
-    <div style={{ padding: 40, maxWidth: 700, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
       <h1 style={{ fontSize: 26, fontWeight: 700, color, marginBottom: 4 }}>{parsed.name}</h1>
       {parsed.contact && <p style={{ fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
@@ -206,7 +210,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderExecutive = () => (
-    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "Calibri, Arial, sans-serif" }}>
       <div style={{ background: "#1a1a2e", color: "#fff", padding: "40px 40px 30px", textAlign: "center" }}>
         <h1 style={{ fontSize: 30, fontWeight: 300, letterSpacing: 4, marginBottom: 6 }}>{parsed.name}</h1>
         {parsed.contact && <p style={{ fontSize: 12, opacity: 0.7 }}>{parsed.contact}</p>}
