@@ -76,16 +76,16 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     const win = window.open("", "_blank");
     if (!win) return;
     
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title> </title><style>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; }
-      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
-      h1 { font-size: 14pt; }
-      h2 { font-size: 12pt; }
+      body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; line-height: 1.3; }
+      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; word-break: normal; overflow-wrap: break-word; }
+      h1 { font-size: 22pt; font-weight: 700; }
+      h2 { font-size: 12pt; font-weight: 700; }
       @media print {
         @page { margin: 1.5cm; size: A4; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         header, footer { display: none !important; }
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       }
     </style></head><body>${content.innerHTML}</body></html>`);
     win.document.close();
@@ -93,26 +93,29 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
-  const itemStyle = { fontSize: 11, lineHeight: 1.5, textAlign: "justify" as const, hyphens: "auto" as const, WebkitHyphens: "auto" as const, fontFamily: "Calibri, Arial, sans-serif" };
+  const itemStyle: React.CSSProperties = { fontSize: 11, lineHeight: 1.3, textAlign: "justify", hyphens: "auto", WebkitHyphens: "auto" as any, fontFamily: "Calibri, Arial, sans-serif", wordBreak: "normal", overflowWrap: "break-word" };
+
+  const cleanText = (t: string) => /^([A-ZÀ-Ü] ){2,}[A-ZÀ-Ü]$/.test(t.trim()) ? t.replace(/ /g, "") : t;
 
   const renderItem = (item: string, i: number) => {
     const isBullet = item.startsWith("•") || item.startsWith("-") || item.startsWith("–");
     const text = isBullet ? item.replace(/^[•\-–]\s*/, "") : item;
-    // Remove spaced-out letters like "P R O F I L" → "PROFIL"
-    const cleanText = (t: string) => /^([A-ZÀ-Ü] ){2,}[A-ZÀ-Ü]$/.test(t.trim()) ? t.replace(/ /g, "") : t;
     const isJobTitle = /\|/.test(item) || (/\d{4}/.test(item) && item.length < 80 && !isBullet);
-    if (isJobTitle && !isBullet) return <p key={i} style={{ fontWeight: 600, marginTop: 6, fontSize: 12 }}>{cleanText(item)}</p>;
+    if (isJobTitle && !isBullet) return <p key={i} style={{ fontWeight: 700, marginTop: 8, fontSize: 11, color: "#1a1a1a" }}>{cleanText(item)}</p>;
     if (isBullet) return <p key={i} style={{ paddingLeft: 16, ...itemStyle }}>• {cleanText(text)}</p>;
     return <p key={i} style={itemStyle}>{cleanText(item)}</p>;
   };
 
+  const sectionStyle: React.CSSProperties = { marginBottom: 8 };
+  const sectionTitleStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color, borderBottom: `2px solid ${color}`, paddingBottom: 3, marginBottom: 6 };
+
   const renderClassic = () => (
-    <div style={{ padding: 32, maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color, textAlign: "center", marginBottom: 2 }}>{parsed.name}</h1>
-      {parsed.contact && <p style={{ textAlign: "center", fontSize: 10, color: "#666", marginBottom: 16 }}>{parsed.contact}</p>}
+    <div style={{ padding: "24px 40px", maxWidth: 700, margin: "0 auto", fontFamily: "Calibri, Arial, sans-serif", lineHeight: 1.3 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color, textAlign: "center", marginBottom: 2 }}>{parsed.name}</h1>
+      {parsed.contact && <p style={{ textAlign: "center", fontSize: 10, color: "#666", marginBottom: 14 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
-        <div key={i} style={{ marginBottom: 14 }}>
-          <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color, borderBottom: `2px solid ${color}`, paddingBottom: 3, marginBottom: 6 }}>{s.title}</h2>
+        <div key={i} style={sectionStyle}>
+          <h2 style={sectionTitleStyle}>{cleanText(s.title)}</h2>
           {s.items.map(renderItem)}
         </div>
       ))}
@@ -128,7 +131,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
       <div style={{ padding: "0 40px 40px" }}>
         {parsed.sections.map((s, i) => (
           <div key={i} style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color, marginBottom: 8 }}>{s.title}</h2>
+            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color, marginBottom: 8 }}>{cleanText(s.title)}</h2>
             {s.items.map(renderItem)}
           </div>
         ))}
@@ -142,7 +145,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
       {parsed.contact && <p style={{ textAlign: "center", fontSize: 11, color: "#888", marginBottom: 30 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
         <div key={i} style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 3, color: "#555", marginBottom: 6, paddingBottom: 4, borderBottom: "1px dashed #ccc" }}>{s.title}</h2>
+          <h2 style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 3, color: "#555", marginBottom: 6, paddingBottom: 4, borderBottom: "1px dashed #ccc" }}>{cleanText(s.title)}</h2>
           {s.items.map(renderItem)}
         </div>
       ))}
@@ -157,7 +160,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
         {parsed.contact && <p style={{ textAlign: "center", fontSize: 12, color: "#666", marginBottom: 28 }}>{parsed.contact}</p>}
         {parsed.sections.map((s, i) => (
           <div key={i} style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${color}33` }}>{s.title}</h2>
+            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${color}33` }}>{cleanText(s.title)}</h2>
             {s.items.map(renderItem)}
           </div>
         ))}
@@ -175,7 +178,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
         {parsed.contact && <p style={{ fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
         {ordered.map((s, i) => (
           <div key={i} style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, borderLeft: `4px solid ${color}`, paddingLeft: 10, marginBottom: 8 }}>{s.title}</h2>
+            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, borderLeft: `4px solid ${color}`, paddingLeft: 10, marginBottom: 8 }}>{cleanText(s.title)}</h2>
             {s.items.map(renderItem)}
           </div>
         ))}
@@ -189,7 +192,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
       {parsed.contact && <p style={{ fontSize: 12, color: "#666", marginBottom: 24 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
         <div key={i} style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 12 }}>{s.title}</h2>
+          <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 12 }}>{cleanText(s.title)}</h2>
           <div style={{ borderLeft: `3px solid ${color}`, paddingLeft: 20, marginLeft: 8 }}>
             {s.items.map((item, j) => {
               const isBullet = item.startsWith("•") || item.startsWith("-") || item.startsWith("–");
@@ -219,7 +222,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
       <div style={{ padding: "30px 40px 40px" }}>
         {parsed.sections.map((s, i) => (
           <div key={i} style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 8, borderLeft: `3px solid ${color}`, paddingLeft: 10 }}>{s.title}</h2>
+            <h2 style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 8, borderLeft: `3px solid ${color}`, paddingLeft: 10 }}>{cleanText(s.title)}</h2>
             {s.items.map(renderItem)}
           </div>
         ))}

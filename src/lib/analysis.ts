@@ -158,29 +158,41 @@ export const rewriteCV = async (
   const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants : ${missingKeywords.join(", ")}.
 
 Règles absolues :
+- Ne jamais inventer d'expériences, de postes, de compétences ou de formations qui ne sont pas dans le CV original
+- Ne jamais couper des mots en fin de ligne
 - Structure ATS : une colonne, pas de tableau, texte pur
 - Ordre chronologique inverse obligatoire
-- Le CV doit tenir sur UNE SEULE PAGE sauf si le CV original contient plus de 15 ans d'expérience
+- Le CV doit tenir sur UNE SEULE PAGE pour moins de 10 ans d'expérience. Pour les profils 10-15 ans : 2 pages maximum
 - Pour tenir sur une page : maximum 3-4 puces par poste, supprimer les informations redondantes, garder uniquement les 10 dernières années d'expérience, synthétiser la formation en 2-3 lignes
-- INTERDICTION ABSOLUE d'écrire les titres de sections avec des lettres espacées comme "P R O F I L" ou "E X P É R I E N C E". Les ATS lisent chaque lettre comme un mot séparé. Écrire les titres normalement en majuscules : "PROFIL", "EXPÉRIENCE PROFESSIONNELLE", "FORMATION", "COMPÉTENCES"
-- Police Calibri ou Arial, taille 10-11 pour le corps, 13-14 pour les titres
-- N'ajoute PAS de chiffres à chaque ligne — cela paraît artificiel et inventé. Garde UNIQUEMENT les 3 à 4 chiffres les plus impactants et crédibles qui existent déjà dans le CV original. Priorité : taux de réussite, nombre d'élèves/clients encadrés, années d'expérience. N'invente JAMAIS de statistiques. Si un chiffre n'est pas dans le CV original, ne l'ajoute pas.
+- INTERDICTION ABSOLUE d'écrire les titres de sections avec des lettres espacées comme "P R O F I L" ou "E X P É R I E N C E". Les ATS lisent chaque lettre comme un mot séparé. Écrire les titres normalement en majuscules : "PROFIL PROFESSIONNEL", "EXPÉRIENCE PROFESSIONNELLE", "FORMATION", "COMPÉTENCES", "LANGUES"
+- N'ajoute PAS de chiffres à chaque ligne — cela paraît artificiel et inventé. Garde UNIQUEMENT les 3 à 4 chiffres les plus impactants et crédibles qui existent déjà dans le CV original. N'invente JAMAIS de statistiques.
 ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
-- Profil professionnel en début de CV : 3-4 lignes percutantes qui répondent directement à l'offre
 - Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
-- Ne jamais inventer de compétences, formations, expériences ou cours qui ne sont pas présents dans le CV original
 - Si le poste visé est différent du profil du candidat, adapter et reformuler uniquement les expériences existantes pour mettre en valeur les compétences transférables
-- Exemple : un professeur d'économie qui postule en joaillerie — ne pas inventer de cours de joaillerie. Mettre en avant la pédagogie, la transmission de savoir-faire, l'encadrement, la rigueur, la précision
 - Reformuler les expériences existantes avec le vocabulaire du secteur visé sans rien inventer
 
-IMPORTANT : Structure le CV avec des sections clairement séparées :
-- Commence par le NOM COMPLET en majuscules sur la première ligne
-- Puis les coordonnées (email, téléphone, ville)
-- Puis "PROFIL PROFESSIONNEL" avec 3-4 lignes
-- Puis "EXPÉRIENCE PROFESSIONNELLE" avec chaque poste formaté : Titre | Entreprise | Dates, puis puces avec •
-- Puis "FORMATION"
-- Puis "COMPÉTENCES"
-- Puis "LANGUES" si pertinent
+STRUCTURE OBLIGATOIRE DU CV — respecter cet ordre exact :
+
+1. EN-TÊTE :
+   - NOM PRÉNOM en majuscules sur la première ligne (sera affiché en 20-24pt gras)
+   - Sur la ligne suivante, sur UNE SEULE LIGNE séparée par des | : email | téléphone | ville | LinkedIn si disponible
+   - Ne jamais mettre les coordonnées dans la section Profil
+
+2. PROFIL PROFESSIONNEL
+   - 3-4 lignes percutantes qui répondent directement à l'offre
+
+3. EXPÉRIENCE PROFESSIONNELLE
+   - Chaque poste sur UNE SEULE LIGNE : Intitulé du poste | Entreprise, Ville | Dates (MM/AAAA - MM/AAAA)
+   - Puis 3-4 puces commençant par • et un verbe d'action
+   - Ne jamais surligner ou colorer les intitulés de postes
+
+4. FORMATION
+   - Diplômes avec dates
+
+5. COMPÉTENCES
+   - Compétences techniques et outils
+
+6. LANGUES (si pertinent)
 
 Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.
 

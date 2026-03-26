@@ -18,7 +18,6 @@ const queryClient = new QueryClient();
 const ScrollRestorer = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
-  // Save scroll position on scroll
   useEffect(() => {
     const key = `scrollPos_${location.pathname}`;
     const saved = sessionStorage.getItem(key);
@@ -27,11 +26,19 @@ const ScrollRestorer = ({ children }: { children: React.ReactNode }) => {
     }
 
     const handleScroll = () => {
-      sessionStorage.setItem(`scrollPos_${location.pathname}`, String(window.scrollY));
+      sessionStorage.setItem(key, String(window.scrollY));
+    };
+
+    const handleBeforeUnload = () => {
+      sessionStorage.setItem(key, String(window.scrollY));
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, [location.pathname]);
 
   return <>{children}</>;
