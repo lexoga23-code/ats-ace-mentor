@@ -62,7 +62,6 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
 
 const STORAGE_KEY = "scorecv_analysis";
 
-/** Bug #2/#3 fix: Verify payment for SPECIFIC analysis, not any analysis */
 const verifyPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
   if (analysisId) {
     const { data } = await supabase
@@ -73,13 +72,10 @@ const verifyPaidStatus = async (userId: string, analysisId?: string | null): Pro
       .single();
     if (data?.is_paid) return true;
   }
-
-  // Check pro subscription
   try {
     const { data: subData } = await supabase.functions.invoke("check-subscription");
     if (subData?.isPro) return true;
   } catch { /* ignore */ }
-
   return false;
 };
 
@@ -103,15 +99,9 @@ const ResultsPanel = ({
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewDone, setReviewDone] = useState(false);
 
-  useEffect(() => {
-    setRewrittenCV(initialRewrite);
-  }, [initialRewrite]);
+  useEffect(() => { setRewrittenCV(initialRewrite); }, [initialRewrite]);
+  useEffect(() => { setCoverLetter(initialCoverLetter || ""); }, [initialCoverLetter]);
 
-  useEffect(() => {
-    setCoverLetter(initialCoverLetter || "");
-  }, [initialCoverLetter]);
-
-  // Bug #13: Check if review already requested
   useEffect(() => {
     if (!user) return;
     const checkReview = async () => {
@@ -123,7 +113,6 @@ const ResultsPanel = ({
     checkReview();
   }, [user]);
 
-  // Auto-generate CV when paid and no rewritten CV yet
   useEffect(() => {
     if (isPaid && !rewrittenCV && !loadingRewrite && cvText && targetJob) {
       const autoGenerate = async () => {
@@ -145,10 +134,7 @@ const ResultsPanel = ({
   const handleGenerateCV = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id, analysisId);
-    if (!serverPaid) {
-      toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé.");
-      return;
-    }
+    if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé."); return; }
     setLoadingRewrite(true);
     try {
       const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
@@ -161,10 +147,7 @@ const ResultsPanel = ({
   const handleGenerateLetter = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id, analysisId);
-    if (!serverPaid) {
-      toast.error("Veuillez débloquer le rapport complet pour générer votre lettre.");
-      return;
-    }
+    if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre lettre."); return; }
     setLoadingLetter(true);
     try {
       const text = await generateCoverLetter(cvText, targetJob, region, jobDescription);
@@ -182,25 +165,14 @@ const ResultsPanel = ({
       navigate("/auth");
       return;
     }
-
     setCheckoutLoading(productType);
     try {
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
-
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          productType,
-          region: region,
-          successUrl: `${window.location.origin}/payment-success?product=${productType}`,
-          cancelUrl: `${window.location.origin}/#optimiser`,
-        },
+        body: { productType, region, successUrl: `${window.location.origin}/payment-success?product=${productType}`, cancelUrl: `${window.location.origin}/#optimiser` },
       });
-
-      if (error || !data?.url) {
-        throw new Error("Impossible de créer la session de paiement");
-      }
-
+      if (error || !data?.url) throw new Error("Impossible de créer la session de paiement");
       window.open(data.url, '_blank');
       setCheckoutLoading(null);
     } catch (err) {
@@ -211,59 +183,52 @@ const ResultsPanel = ({
   };
 
   const handleReviewCheckout = async () => {
-    if (!user) {
-      toast.info("Créez un compte pour commander une relecture");
-      navigate("/auth");
-      return;
-    }
-
+    if (!user) { toast.info("Créez un compte pour commander une relecture"); navigate("/auth"); return; }
     setReviewLoading(true);
     try {
-      // Bug #18: Save review request to DB as fallback
       await supabase.from("review_requests").insert({
-        user_id: user.id,
-        user_email: user.email || "",
+        user_id: user.id, user_email: user.email || "",
         user_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "",
-        analysis_id: analysisId || null,
-        status: "pending",
+        analysis_id: analysisId || null, status: "pending",
       } as any);
-
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          productType: "review",
-          region: region,
-          successUrl: `${window.location.origin}/payment-success?product=review`,
-          cancelUrl: `${window.location.origin}/#optimiser`,
-        },
+        body: { productType: "review", region, successUrl: `${window.location.origin}/payment-success?product=review`, cancelUrl: `${window.location.origin}/#optimiser` },
       });
-
       if (error || !data?.url) throw new Error("Impossible de créer la session");
       window.open(data.url, '_blank');
     } catch (err) {
       console.error(err);
       toast.error("Erreur lors de la redirection vers le paiement.");
-    } finally {
-      setReviewLoading(false);
-    }
+    } finally { setReviewLoading(false); }
   };
 
-  const statusColors = {
-    ok: "bg-emerald-50 text-emerald-900",
-    fail: "bg-destructive/10 text-destructive",
-    warn: "bg-amber-50 text-amber-900",
-  };
+  const statusColors = { ok: "bg-emerald-50 text-emerald-900", fail: "bg-destructive/10 text-destructive", warn: "bg-amber-50 text-amber-900" };
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
   const totalPossibleGain = 100 - results.score;
   const matchPct = results.matchScore ?? Math.round(results.score * 0.85);
 
-  const atsProblems = results.suggestions.filter((_, i) => i < 3);
-  const humanTips = results.suggestions.filter((_, i) => i >= 3).slice(0, 3);
-  const displayHumanTips = humanTips.length > 0 ? humanTips : atsProblems.slice(0, 3);
+  // Sort problems by priority for free mode - top 3
+  const topProblems = results.checklist
+    .filter(c => c.status === "fail" || c.status === "warn")
+    .sort((a, b) => {
+      if (a.status === "fail" && b.status !== "fail") return -1;
+      if (a.status !== "fail" && b.status === "fail") return 1;
+      return 0;
+    })
+    .slice(0, 3);
+
+  // Separate suggestions by category
+  const manualSuggestions = results.suggestions.filter(s => s.category === "manual").slice(0, 3);
+  const autoSuggestions = results.suggestions.filter(s => s.category === "auto").slice(0, 4);
+
+  // Fallback for old data with ats/human categories
+  const fallbackManual = manualSuggestions.length > 0 ? manualSuggestions : results.suggestions.filter(s => s.category === "ats").slice(0, 3);
+  const fallbackAuto = autoSuggestions.length > 0 ? autoSuggestions : results.suggestions.filter(s => s.category === "human").slice(0, 4);
 
   return (
     <div className="mt-12 space-y-8">
-      {/* Score Overview — only shown for paid users */}
+      {/* Paid: Score Overview */}
       {isPaid && (
         <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
           <div className="space-y-4">
@@ -288,14 +253,15 @@ const ResultsPanel = ({
         </div>
       )}
 
-      {/* Free: Score + Paywall between score and keywords */}
+      {/* FREE MODE */}
       {!isPaid && (
         <div className="space-y-6">
           <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
             🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
           </p>
 
-          <div className="bg-card p-8 rounded-3xl shadow-soft space-y-4">
+          {/* Score + bars */}
+          <div className="bg-card p-8 rounded-3xl shadow-soft">
             <div className="grid md:grid-cols-3 gap-8 items-center">
               <div className="space-y-4">
                 <ScoreCircle score={results.score} />
@@ -317,70 +283,23 @@ const ResultsPanel = ({
             </div>
           </div>
 
-          {/* CTA — Unlock button */}
-          {!showPaymentOptions ? (
-            <button
-              onClick={() => setShowPaymentOptions(true)}
-              className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground"
-              style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px" }}
-            >
-              🔓 Générer votre CV et débloquer le rapport complet — {prices.single}{currency}
-            </button>
-          ) : (
-            <div className="p-6 rounded-3xl border-2 border-primary/30 bg-card">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="p-6 rounded-2xl border border-border bg-background space-y-3">
-                   <h4 className="font-bold text-lg text-foreground">1 CV + rapport complet</h4>
-                   <div className="text-3xl font-bold text-foreground">
-                     {prices.single}<span className="text-lg">{currency}</span>
-                   </div>
-                   <p className="text-sm text-muted-foreground">
-                     CV réécrit · Checklist · Lettre de motivation · Export PDF & Word
-                   </p>
-                  <button
-                    onClick={() => handleCheckout("report")}
-                    disabled={checkoutLoading === "report"}
-                    className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ background: "#1a365d", color: "#fff" }}
-                  >
-                    {checkoutLoading === "report" ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
-                    ) : (
-                      `Choisir — ${prices.single}${currency}`
-                    )}
-                  </button>
-                </div>
-
-                <div className="relative p-6 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
-                    Meilleur choix
-                  </span>
-                  <h4 className="font-bold text-lg text-foreground">Abonnement Pro</h4>
-                  <div className="text-3xl font-bold text-foreground">
-                    {prices.pro}<span className="text-lg">{currency}</span>
-                    <span className="text-sm text-muted-foreground font-normal">/mois</span>
+          {/* Top 3 priority problems */}
+          {topProblems.length > 0 && (
+            <div className="bg-card p-6 rounded-3xl shadow-soft">
+              <h3 className="text-base font-bold mb-3 text-foreground">🔍 Problèmes prioritaires détectés</h3>
+              <div className="space-y-2">
+                {topProblems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <span className="mt-0.5">{item.status === "fail" ? "🔴" : "🟠"}</span>
+                    <span className="text-foreground font-medium">{item.label}</span>
+                    <span className="text-muted-foreground">— {item.detail}</span>
                   </div>
-                   <p className="text-sm text-muted-foreground">
-                     CV réécrit et analyses illimitées · Tout débloqué
-                   </p>
-                  <button
-                    onClick={() => handleCheckout("pro")}
-                    disabled={checkoutLoading === "pro"}
-                    className="w-full py-4 rounded-xl font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ background: "#1a365d", color: "#fff", fontSize: "1rem" }}
-                  >
-                    {checkoutLoading === "pro" ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
-                    ) : (
-                      `S'abonner — ${prices.pro}${currency}/mois`
-                    )}
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Missing keywords compact box */}
+          {/* Missing keywords - max 5 */}
           {results.keywordsMissing.length > 0 && (
             <div className="bg-card p-6 rounded-3xl shadow-soft">
               <h3 className="text-base font-bold mb-3 text-foreground flex items-center gap-2">
@@ -401,71 +320,115 @@ const ResultsPanel = ({
             </div>
           )}
 
-          {/* Two columns: ATS problems vs Human tips */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-card p-8 rounded-3xl shadow-soft">
-              <h3 className="text-lg font-bold mb-4 text-destructive flex items-center gap-2">
-                ⚠️ Problèmes techniques ATS
-              </h3>
-              <p className="text-xs text-muted-foreground mb-3">Ce qui empêche votre CV d'être lu par les logiciels de recrutement</p>
-              <div className="space-y-3">
-                {atsProblems.map((s, i) => {
-                  const impactNum = s.impact?.match(/\d+/)?.[0] || "5";
-                  return (
-                    <div key={i} className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20">
-                      <div className="flex items-start justify-between gap-3 mb-1">
-                        <h4 className="font-bold text-destructive text-sm">🔴 {s.title}</h4>
-                        <span className="text-destructive font-bold text-sm whitespace-nowrap">−{impactNum} pts</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{s.text}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="p-8 rounded-3xl" style={{ background: "#F0F7FF", border: "1px solid #2d6a8f" }}>
-              <h3 className="text-lg font-bold mb-4 text-foreground flex items-center gap-2">
-                💡 Conseils pour convaincre le recruteur
-              </h3>
-              <p className="text-xs text-muted-foreground mb-3">Ce qui empêche votre CV de convaincre un humain</p>
-              <div className="space-y-3">
-                {displayHumanTips.map((s, i) => (
-                  <div key={i} className="p-4 rounded-2xl bg-white/60">
-                    <h4 className="font-bold text-sm text-foreground mb-1">💡 {s.title}</h4>
-                    <p className="text-xs text-muted-foreground">{s.text}</p>
+          {/* CTA — Unlock button */}
+          {!showPaymentOptions ? (
+            <button
+              onClick={() => setShowPaymentOptions(true)}
+              className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground"
+              style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px" }}
+            >
+              🔓 Générer votre CV et débloquer le rapport complet — {prices.single}{currency}
+            </button>
+          ) : (
+            <div className="p-6 rounded-3xl border-2 border-primary/30 bg-card">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-6 rounded-2xl border border-border bg-background space-y-3">
+                  <h4 className="font-bold text-lg text-foreground">1 CV + rapport complet</h4>
+                  <div className="text-3xl font-bold text-foreground">
+                    {prices.single}<span className="text-lg">{currency}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* CV vs Job observations */}
-          {results.matchScore !== undefined && results.matchScore > 0 && (
-            <div className="bg-card p-8 rounded-3xl shadow-soft">
-              <h3 className="text-lg font-bold mb-4 text-foreground">🎯 Votre CV face à cette offre</h3>
-              <div className="space-y-3">
-                {results.keywordsMissing.length > 0 && (
                   <p className="text-sm text-muted-foreground">
-                    ⚠️ Il manque {results.keywordsMissing.length} mot{results.keywordsMissing.length > 1 ? "s" : ""}-clé{results.keywordsMissing.length > 1 ? "s" : ""} attendu{results.keywordsMissing.length > 1 ? "s" : ""} par l'offre. Le rapport complet identifie ces mots-clés et les intègre automatiquement dans votre CV réécrit.
+                    CV réécrit · Checklist · Lettre de motivation · Export PDF & Word
                   </p>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  📊 Score de compatibilité : {results.matchScore}% — {results.matchScore >= 70 ? "bon potentiel, mais des ajustements sont possibles" : "des optimisations ciblées peuvent significativement améliorer votre candidature"}.
-                </p>
+                  <button
+                    onClick={() => handleCheckout("report")}
+                    disabled={checkoutLoading === "report"}
+                    className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: "#1a365d", color: "#fff" }}
+                  >
+                    {checkoutLoading === "report" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                    ) : (
+                      `Choisir — ${prices.single}${currency}`
+                    )}
+                  </button>
+                </div>
+                <div className="relative p-6 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
+                    Meilleur choix
+                  </span>
+                  <h4 className="font-bold text-lg text-foreground">Abonnement Pro</h4>
+                  <div className="text-3xl font-bold text-foreground">
+                    {prices.pro}<span className="text-lg">{currency}</span>
+                    <span className="text-sm text-muted-foreground font-normal">/mois</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    CV réécrit et analyses illimitées · Tout débloqué
+                  </p>
+                  <button
+                    onClick={() => handleCheckout("pro")}
+                    disabled={checkoutLoading === "pro"}
+                    className="w-full py-4 rounded-xl font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: "#1a365d", color: "#fff", fontSize: "1rem" }}
+                  >
+                    {checkoutLoading === "pro" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                    ) : (
+                      `S'abonner — ${prices.pro}${currency}/mois`
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Paid Content */}
+      {/* PAID CONTENT */}
       {isPaid && (
         <div className="space-y-12">
           {results.sectionScores && results.sectionScores.length > 0 && (
             <SectionScores sections={results.sectionScores} />
           )}
 
+          {/* Suggestions — 2 categories */}
+          <div className="space-y-6">
+            {/* Manual: things user must do */}
+            {fallbackManual.length > 0 && (
+              <div className="p-6 rounded-3xl" style={{ background: "hsl(30 100% 97%)", border: "1px solid hsl(30 80% 85%)" }}>
+                <h3 className="text-lg font-bold mb-4 text-foreground flex items-center gap-2">
+                  ⚡ À faire vous-même
+                </h3>
+                <div className="space-y-2">
+                  {fallbackManual.map((s, i) => (
+                    <div key={i} className="flex items-start gap-3 py-2">
+                      <span className="text-amber-600 mt-0.5">⚡</span>
+                      <p className="text-sm text-foreground"><span className="font-bold">{s.title}</span> — {s.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Auto: corrected in rewritten CV */}
+            {fallbackAuto.length > 0 && (
+              <div className="p-6 rounded-3xl" style={{ background: "hsl(210 100% 97%)", border: "1px solid hsl(210 80% 85%)" }}>
+                <h3 className="text-lg font-bold mb-4 text-foreground flex items-center gap-2">
+                  📈 Corrigé automatiquement dans votre CV réécrit
+                </h3>
+                <div className="space-y-2">
+                  {fallbackAuto.map((s, i) => (
+                    <div key={i} className="flex items-start gap-3 py-2">
+                      <span className="text-blue-600 mt-0.5">📈</span>
+                      <p className="text-sm text-foreground"><span className="font-bold">{s.title}</span> — {s.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Checklist */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Checklist de conformité</h3>
             <div className="space-y-4">
@@ -491,13 +454,14 @@ const ResultsPanel = ({
             </div>
           </div>
 
+          {/* Keywords — only missing + suggested */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-4 text-foreground">Mots-clés</h3>
             {results.keywordsMissing.length > 0 && (
               <div className="mb-6">
-                <h4 className="text-sm font-bold text-destructive mb-3 flex items-center gap-2">❌ Mots-clés manquants</h4>
+                <h4 className="text-sm font-bold text-destructive mb-3 flex items-center gap-2">❌ Manquants</h4>
                 <div className="flex flex-wrap gap-2">
-                  {results.keywordsMissing.map((kw, i) => (
+                  {results.keywordsMissing.slice(0, 8).map((kw, i) => (
                     <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold bg-destructive/10 text-destructive">{kw}</span>
                   ))}
                 </div>
@@ -505,34 +469,14 @@ const ResultsPanel = ({
             )}
             {results.keywordsSuggested.length > 0 && (
               <div>
-                <h4 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">💡 Mots-clés conseillés</h4>
+                <h4 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">💡 Conseillés</h4>
                 <div className="flex flex-wrap gap-2">
-                  {results.keywordsSuggested.map((kw, i) => (
+                  {results.keywordsSuggested.slice(0, 6).map((kw, i) => (
                     <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700">{kw}</span>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="bg-card p-8 rounded-3xl shadow-soft">
-            <h3 className="text-xl font-bold mb-6 text-foreground">Améliorations suggérées</h3>
-            <div className="space-y-4">
-              {results.suggestions.map((s, i) => {
-                const prioColors = {
-                  high: "border-l-destructive bg-destructive/5",
-                  medium: "border-l-amber-500 bg-amber-50",
-                  low: "border-l-primary bg-primary/5",
-                };
-                return (
-                  <div key={i} className={`p-4 rounded-xl border-l-4 ${prioColors[s.priority]}`}>
-                    <div className="text-sm font-bold text-foreground">{s.title}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{s.text}</div>
-                    {s.impact && <div className="text-xs font-bold text-primary mt-1">📈 {s.impact}</div>}
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           {/* Rewritten CV */}
@@ -544,17 +488,11 @@ const ResultsPanel = ({
                 <span className="font-bold">✨ Génération de votre CV optimisé en cours…</span>
               </div>
             ) : rewrittenCV ? (
-              <CVPreview cvText={rewrittenCV} onChange={(text) => {
-                setRewrittenCV(text);
-                onRewrittenCVChange?.(text);
-              }} />
+              <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} />
             ) : (
-              <button
-                onClick={handleGenerateCV}
-                disabled={loadingRewrite}
+              <button onClick={handleGenerateCV} disabled={loadingRewrite}
                 className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
-                style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}
-              >
+                style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
                 ✨ Générer mon CV optimisé
               </button>
             )}
@@ -564,16 +502,10 @@ const ResultsPanel = ({
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Lettre de motivation</h3>
             {coverLetter ? (
-              <CoverLetterPreview letter={coverLetter} onChange={(text) => {
-                setCoverLetter(text);
-                onCoverLetterChange?.(text);
-              }} />
+              <CoverLetterPreview letter={coverLetter} onChange={(text) => { setCoverLetter(text); onCoverLetterChange?.(text); }} />
             ) : (
-              <button
-                onClick={handleGenerateLetter}
-                disabled={loadingLetter}
-                className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50"
-              >
+              <button onClick={handleGenerateLetter} disabled={loadingLetter}
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50">
                 {loadingLetter ? "Génération en cours..." : "Générer ma lettre"}
               </button>
             )}
@@ -588,69 +520,32 @@ const ResultsPanel = ({
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">Lien valide 30 jours :</p>
                 <div className="flex gap-2">
-                  <input
-                    readOnly
-                    value={shareUrl}
-                    className="flex-1 p-3 bg-secondary rounded-xl text-sm text-foreground"
-                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                  />
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Lien copié !"); }}
-                    className="px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm"
-                  >
-                    Copier
-                  </button>
+                  <input readOnly value={shareUrl} className="flex-1 p-3 bg-secondary rounded-xl text-sm text-foreground" onClick={(e) => (e.target as HTMLInputElement).select()} />
+                  <button onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Lien copié !"); }}
+                    className="px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm">Copier</button>
                 </div>
                 <div className="flex gap-2 items-center">
                   <Mail className="w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="email"
-                    value={shareEmail}
-                    onChange={(e) => setShareEmail(e.target.value)}
-                    placeholder="Envoyer par email..."
-                    className="flex-1 p-3 bg-secondary rounded-xl text-sm text-foreground placeholder:text-muted-foreground"
-                  />
-                  <button
-                    onClick={() => {
-                      if (shareEmail) {
-                        window.open(`mailto:${shareEmail}?subject=Mon rapport ScoreCV&body=Consultez mon rapport : ${encodeURIComponent(shareUrl)}`);
-                        toast.success("Ouverture du client email...");
-                      }
-                    }}
-                    disabled={!shareEmail}
-                    className="px-4 py-3 bg-foreground text-background rounded-xl font-bold text-sm disabled:opacity-50"
-                  >
-                    Envoyer
-                  </button>
+                  <input type="email" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)} placeholder="Envoyer par email..."
+                    className="flex-1 p-3 bg-secondary rounded-xl text-sm text-foreground placeholder:text-muted-foreground" />
+                  <button onClick={() => { if (shareEmail) { window.open(`mailto:${shareEmail}?subject=Mon rapport ScoreCV&body=Consultez mon rapport : ${encodeURIComponent(shareUrl)}`); toast.success("Ouverture du client email..."); } }}
+                    disabled={!shareEmail} className="px-4 py-3 bg-foreground text-background rounded-xl font-bold text-sm disabled:opacity-50">Envoyer</button>
                 </div>
               </div>
             ) : (
-              <button
-                onClick={async () => {
-                  setShareLoading(true);
-                  try {
-                    const { data, error } = await supabase.from("shared_reports").insert({
-                      target_job: targetJob,
-                      score: results.score,
-                      match_score: results.matchScore || null,
-                      results: results as any,
-                      rewritten_cv: rewrittenCV || null,
-                      cover_letter: coverLetter || null,
-                    }).select("id").single();
-                    if (error) throw error;
-                    const url = `${window.location.origin}/rapport/${data.id}`;
-                    setShareUrl(url);
-                    toast.success("Lien de partage créé !");
-                  } catch (err) {
-                    console.error(err);
-                    toast.error("Erreur lors de la création du lien.");
-                  } finally {
-                    setShareLoading(false);
-                  }
-                }}
-                disabled={shareLoading}
-                className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
-              >
+              <button onClick={async () => {
+                setShareLoading(true);
+                try {
+                  const { data, error } = await supabase.from("shared_reports").insert({
+                    target_job: targetJob, score: results.score, match_score: results.matchScore || null,
+                    results: results as any, rewritten_cv: rewrittenCV || null, cover_letter: coverLetter || null,
+                  }).select("id").single();
+                  if (error) throw error;
+                  setShareUrl(`${window.location.origin}/rapport/${data.id}`);
+                  toast.success("Lien de partage créé !");
+                } catch (err) { console.error(err); toast.error("Erreur lors de la création du lien."); } finally { setShareLoading(false); }
+              }} disabled={shareLoading}
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2">
                 {shareLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
                 {shareLoading ? "Création..." : "Créer un lien de partage"}
               </button>
@@ -668,16 +563,9 @@ const ResultsPanel = ({
                 ✓ Relecture commandée — réponse sous 24h ouvrées
               </div>
             ) : (
-              <button
-                onClick={handleReviewCheckout}
-                disabled={reviewLoading}
-                className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {reviewLoading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
-                ) : (
-                  `Commander — ${prices.human}${currency}`
-                )}
+              <button onClick={handleReviewCheckout} disabled={reviewLoading}
+                className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                {reviewLoading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>) : `Commander — ${prices.human}${currency}`}
               </button>
             )}
           </div>
