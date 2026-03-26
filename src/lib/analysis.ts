@@ -157,6 +157,12 @@ export const rewriteCV = async (
 
   const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants : ${missingKeywords.join(", ")}.
 
+RÈGLES SILENCIEUSES — applique sans mentionner dans le CV :
+- Utilise le titre EXACT de l'offre comme titre du CV (pas de synonyme)
+- Assure que chaque mot requis de l'offre apparaît dans au moins 2 sections différentes du CV
+- Utilise le vocabulaire EXACT de l'offre — jamais de synonymes
+- Ne jamais inventer d'expériences — reformuler uniquement ce qui existe déjà
+
 Règles absolues :
 - Ne jamais inventer d'expériences, de postes, de compétences ou de formations qui ne sont pas dans le CV original
 - Ne jamais couper des mots en fin de ligne
@@ -170,6 +176,8 @@ ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maît
 - Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
 - Si le poste visé est différent du profil du candidat, adapter et reformuler uniquement les expériences existantes pour mettre en valeur les compétences transférables
 - Reformuler les expériences existantes avec le vocabulaire du secteur visé sans rien inventer
+- Mettre les coordonnées complètes dans l'en-tête
+- Structurer chaque expérience avec intitulé | entreprise | dates sur une ligne puis 3-4 puces maximum
 
 STRUCTURE OBLIGATOIRE DU CV — respecter cet ordre exact :
 
