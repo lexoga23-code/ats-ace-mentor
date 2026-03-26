@@ -23,7 +23,7 @@ export interface AnalysisResult {
   keywordsFound: string[];
   keywordsMissing: string[];
   keywordsSuggested: string[];
-  suggestions: Array<{ title: string; text: string; priority: "high" | "medium" | "low"; impact?: string; category?: "ats" | "human" }>;
+  suggestions: Array<{ title: string; text: string; priority: "high" | "medium" | "low"; impact?: string; category?: "manual" | "auto" | "ats" | "human" }>;
 }
 
 const callAnthropic = async (prompt: string, maxTokens = 1500, temperature = 0.3): Promise<string> => {
@@ -55,6 +55,12 @@ Pays : ${country}
 Secteur : ${industry}
 Offre d'emploi : ${jobDescription}
 
+RÈGLES ATS AVANCÉES — applique ces règles EN COULISSES pour calculer les scores, ne les mentionne JAMAIS dans le rapport :
+1. MATCHING EXACT : compare mot pour mot le vocabulaire de l'offre avec le CV. Les synonymes ne comptent PAS. "Gestion de projet" et "pilotage de projet" sont deux tokens différents pour un ATS.
+2. FRÉQUENCE : un mot-clé présent dans 2+ sections du CV (ex: expérience + compétences) vaut plus qu'un mot présent une seule fois. Utilise cette règle pour calculer le score keywords plus précisément.
+3. POIDS DU TITRE : le titre de poste du CV vaut autant que 5 bullet points. Si le titre du CV ne correspond pas mot pour mot au titre de l'offre, pénalise le score de 10 points minimum.
+4. MOTS REQUIS vs SOUHAITÉS : dans l'offre, identifie les mots après "requis/indispensable/obligatoire" (poids x3) vs "souhaité/apprécié/un plus" (poids x1). Un mot requis manquant pénalise 3x plus qu'un mot souhaité manquant.
+
 RÈGLES DE SCORING STRICTES — ne jamais dépasser ces maximums :
 - format : 0 à 20 MAX
 - keywords : 0 à 35 MAX
@@ -77,7 +83,8 @@ RÈGLE MOTS-CLÉS — PERTINENCE OBLIGATOIRE :
 - Les mots-clés doivent être directement liés au poste et au secteur
 - Éviter les termes génériques comme "communication", "travail en équipe", "motivation", "rigueur"
 - Privilégier les termes techniques spécifiques au métier et au pays
-- Exemples de bons mots-clés : "SAP", "IFRS", "React", "gestion de projet agile", "CFC", "DGEP"
+- Maximum 8 mots-clés manquants, classés par importance (requis en premier)
+- Maximum 6 mots-clés suggérés
 
 ${region === "CH" ? `RÈGLES POUR LA SUISSE :
 - Utiliser le vocabulaire suisse : école professionnelle (pas lycée professionnel), maître d'enseignement professionnel (pas professeur), secondaire II, DGEP, CFC, formation duale, maturité professionnelle, LPP, AVS, CCT
@@ -88,25 +95,18 @@ ${region === "CH" ? `RÈGLES POUR LA SUISSE :
 RÈGLES POUR LES SUGGESTIONS — DEUX CATÉGORIES DISTINCTES :
 Les suggestions doivent être séparées en deux catégories avec le champ "category" :
 
-1. category: "ats" — Problèmes TECHNIQUES ATS uniquement :
-   - Format du fichier, colonnes, tableaux, images
-   - Mots-clés manquants pour les filtres automatiques
-   - Structure des sections (titres standards, ordre)
-   - Email non professionnel
-   - Ce sont les problèmes qui empêchent le CV d'être LU par un LOGICIEL
+1. category: "manual" — Actions que l'utilisateur doit faire LUI-MÊME (max 3) :
+   - Choses impossibles à corriger automatiquement : email non professionnel, ajouter une photo, créer un LinkedIn
+   - Format ultra-court : une phrase = problème + action concrète
+   - Exemple : "Email non professionnel — Créez une adresse Gmail prénom.nom avant d'envoyer"
 
-2. category: "human" — Conseils pour convaincre un RECRUTEUR HUMAIN :
-   - Contenu des expériences (impact, résultats chiffrés)
-   - Pertinence par rapport au poste
-   - Profil professionnel percutant
-   - Valorisation des compétences transférables
-   - Ce sont les conseils qui empêchent de CONVAINCRE un HUMAIN
+2. category: "auto" — Ce qui SERA corrigé automatiquement dans le CV réécrit (max 4) :
+   - Titre aligné sur l'offre, mots-clés requis intégrés, structure ATS optimisée
+   - Format : ce qui a été/sera amélioré + détail concret
+   - Exemple : "Titre aligné sur l'offre — 'Enseignant' remplacé par 'Maître d'enseignement professionnel'"
 
-Générer au minimum 3 suggestions "ats" ET 3 suggestions "human".
-- Chaque suggestion doit être CONCRÈTE et ACTIONNABLE — jamais vague
-- Chaque suggestion doit citer des éléments concrets du CV
-- Chaque suggestion doit indiquer l'impact estimé en points
-- Maximum 8 suggestions au total, classées par impact décroissant dans chaque catégorie
+- Maximum 7 suggestions au total
+- Chaque suggestion doit citer des éléments concrets du CV ou de l'offre
 
 CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/warn et des champs detail, correction, impact :
 - "detail" = une phrase décrivant ce qui est détecté dans le CV (factuel), citant un élément RÉEL et CONCRET du CV
@@ -140,7 +140,7 @@ Si une section est absente, score = 0 et status = "fail".
 ${jobDescription ? `MATCH SCORE — calcule un pourcentage de correspondance (0-100) entre le CV et l'offre d'emploi fournie. Analyse point par point les exigences de l'offre et vérifie lesquelles sont couvertes par le CV. Ajoute le champ "matchScore" au JSON.` : ""}
 
 JSON À RETOURNER :
-{"score":0,${jobDescription ? '"matchScore":0,' : ''}"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"sectionScores":[{"name":"Coordonnées","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Profil professionnel","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Expérience","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Formation","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Compétences","score":0,"maxScore":10,"status":"ok","feedback":""}],"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts","category":"ats"},{"title":"","text":"","priority":"high","impact":"+X pts","category":"human"}]}`;
+{"score":0,${jobDescription ? '"matchScore":0,' : ''}"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"sectionScores":[{"name":"Coordonnées","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Profil professionnel","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Expérience","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Formation","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Compétences","score":0,"maxScore":10,"status":"ok","feedback":""}],"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts","category":"manual"},{"title":"","text":"","priority":"high","impact":"+X pts","category":"auto"}]}`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
   const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
@@ -157,6 +157,12 @@ export const rewriteCV = async (
 
   const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants : ${missingKeywords.join(", ")}.
 
+RÈGLES SILENCIEUSES — applique sans mentionner dans le CV :
+- Utilise le titre EXACT de l'offre comme titre du CV (pas de synonyme)
+- Assure que chaque mot requis de l'offre apparaît dans au moins 2 sections différentes du CV
+- Utilise le vocabulaire EXACT de l'offre — jamais de synonymes
+- Ne jamais inventer d'expériences — reformuler uniquement ce qui existe déjà
+
 Règles absolues :
 - Ne jamais inventer d'expériences, de postes, de compétences ou de formations qui ne sont pas dans le CV original
 - Ne jamais couper des mots en fin de ligne
@@ -170,6 +176,8 @@ ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maît
 - Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
 - Si le poste visé est différent du profil du candidat, adapter et reformuler uniquement les expériences existantes pour mettre en valeur les compétences transférables
 - Reformuler les expériences existantes avec le vocabulaire du secteur visé sans rien inventer
+- Mettre les coordonnées complètes dans l'en-tête
+- Structurer chaque expérience avec intitulé | entreprise | dates sur une ligne puis 3-4 puces maximum
 
 STRUCTURE OBLIGATOIRE DU CV — respecter cet ordre exact :
 
