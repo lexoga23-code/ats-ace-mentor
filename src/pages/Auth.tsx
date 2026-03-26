@@ -7,7 +7,7 @@ import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { sendWelcomeEmail } from "@/lib/emailService";
-import { RegionProvider, useRegion } from "@/contexts/RegionContext";
+import { RegionProvider } from "@/contexts/RegionContext";
 import Navbar from "@/components/Navbar";
 
 const AuthInner = () => {
