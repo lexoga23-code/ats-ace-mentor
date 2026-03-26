@@ -1,4 +1,5 @@
 import "https://deno.land/std@0.168.0/dotenv/load.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,8 +12,54 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Bug #7 — JWT verification
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Token invalide' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = claimsData.claims.sub as string;
+
+    // Rate limiting: max 10 calls per hour per user
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count } = await supabaseAdmin
+      .from('user_analyses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', oneHourAgo);
+
+    if (count !== null && count > 10) {
+      return new Response(JSON.stringify({ error: 'Limite de requêtes atteinte (10/heure). Réessayez plus tard.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { prompt, maxTokens = 1500, temperature = 0.3 } = await req.json();
-    console.log("Received request, prompt length:", prompt?.length, "maxTokens:", maxTokens, "temperature:", temperature);
+    console.log("Request from user:", userId, "prompt length:", prompt?.length);
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt requis' }), {

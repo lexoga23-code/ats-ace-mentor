@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      review_requests: {
+        Row: {
+          analysis_id: string | null
+          created_at: string
+          id: string
+          status: string
+          user_email: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          user_email: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       shared_reports: {
         Row: {
           cover_letter: string | null

@@ -15,11 +15,14 @@ interface ResultsPanelProps {
   results: AnalysisResult;
   isPaid: boolean;
   rewrittenCV: string;
+  coverLetter?: string;
   cvText: string;
   targetJob: string;
   region: string;
   analysisId?: string | null;
   jobDescription?: string;
+  onRewrittenCVChange?: (cv: string) => void;
+  onCoverLetterChange?: (letter: string) => void;
 }
 
 const ScoreCircle = ({ score }: { score: number }) => {
@@ -59,17 +62,19 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
 
 const STORAGE_KEY = "scorecv_analysis";
 
-/** Verify payment status server-side — checks both isPaid and Pro subscription */
-const verifyPaidStatus = async (userId: string): Promise<boolean> => {
-  const { data } = await supabase
-    .from("user_analyses")
-    .select("is_paid")
-    .eq("user_id", userId)
-    .eq("is_paid", true)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  if (data && data.length > 0) return true;
+/** Bug #2/#3 fix: Verify payment for SPECIFIC analysis, not any analysis */
+const verifyPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
+  if (analysisId) {
+    const { data } = await supabase
+      .from("user_analyses")
+      .select("is_paid")
+      .eq("id", analysisId)
+      .eq("user_id", userId)
+      .single();
+    if (data?.is_paid) return true;
+  }
 
+  // Check pro subscription
   try {
     const { data: subData } = await supabase.functions.invoke("check-subscription");
     if (subData?.isPro) return true;
@@ -78,12 +83,16 @@ const verifyPaidStatus = async (userId: string): Promise<boolean> => {
   return false;
 };
 
-const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, targetJob, region, analysisId: _analysisId, jobDescription }: ResultsPanelProps) => {
+const ResultsPanel = ({
+  results, isPaid, rewrittenCV: initialRewrite, coverLetter: initialCoverLetter,
+  cvText, targetJob, region, analysisId, jobDescription,
+  onRewrittenCVChange, onCoverLetterChange,
+}: ResultsPanelProps) => {
   const { currency, prices } = useRegion();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [rewrittenCV, setRewrittenCV] = useState(initialRewrite);
-  const [coverLetter, setCoverLetter] = useState("");
+  const [coverLetter, setCoverLetter] = useState(initialCoverLetter || "");
   const [loadingRewrite, setLoadingRewrite] = useState(false);
   const [loadingLetter, setLoadingLetter] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -98,17 +107,34 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     setRewrittenCV(initialRewrite);
   }, [initialRewrite]);
 
+  useEffect(() => {
+    setCoverLetter(initialCoverLetter || "");
+  }, [initialCoverLetter]);
+
+  // Bug #13: Check if review already requested
+  useEffect(() => {
+    if (!user) return;
+    const checkReview = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("check-subscription");
+        if (data?.reviewRequested) setReviewDone(true);
+      } catch { /* ignore */ }
+    };
+    checkReview();
+  }, [user]);
+
   // Auto-generate CV when paid and no rewritten CV yet
   useEffect(() => {
     if (isPaid && !rewrittenCV && !loadingRewrite && cvText && targetJob) {
       const autoGenerate = async () => {
         if (!user) return;
-        const serverPaid = await verifyPaidStatus(user.id);
+        const serverPaid = await verifyPaidStatus(user.id, analysisId);
         if (!serverPaid) return;
         setLoadingRewrite(true);
         try {
           const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
           setRewrittenCV(text);
+          onRewrittenCVChange?.(text);
         } catch { /* ignore */ }
         setLoadingRewrite(false);
       };
@@ -118,7 +144,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
   const handleGenerateCV = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
-    const serverPaid = await verifyPaidStatus(user.id);
+    const serverPaid = await verifyPaidStatus(user.id, analysisId);
     if (!serverPaid) {
       toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé.");
       return;
@@ -127,13 +153,14 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     try {
       const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
       setRewrittenCV(text);
+      onRewrittenCVChange?.(text);
     } catch { alert("Erreur. Réessayez."); }
     setLoadingRewrite(false);
   };
 
   const handleGenerateLetter = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
-    const serverPaid = await verifyPaidStatus(user.id);
+    const serverPaid = await verifyPaidStatus(user.id, analysisId);
     if (!serverPaid) {
       toast.error("Veuillez débloquer le rapport complet pour générer votre lettre.");
       return;
@@ -142,6 +169,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     try {
       const text = await generateCoverLetter(cvText, targetJob, region, jobDescription);
       setCoverLetter(text);
+      onCoverLetterChange?.(text);
     } catch { alert("Erreur. Réessayez."); }
     setLoadingLetter(false);
   };
@@ -150,7 +178,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
     if (!user) {
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
-      localStorage.setItem("scorecv_pending_checkout", "true");
       toast.info("Créez un compte pour obtenir votre rapport complet");
       navigate("/auth");
       return;
@@ -192,6 +219,15 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
     setReviewLoading(true);
     try {
+      // Bug #18: Save review request to DB as fallback
+      await supabase.from("review_requests").insert({
+        user_id: user.id,
+        user_email: user.email || "",
+        user_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "",
+        analysis_id: analysisId || null,
+        status: "pending",
+      } as any);
+
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
           productType: "review",
@@ -221,10 +257,8 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
   const totalPossibleGain = 100 - results.score;
   const matchPct = results.matchScore ?? Math.round(results.score * 0.85);
 
-  // Split suggestions into ATS technical vs human recruiter tips
   const atsProblems = results.suggestions.filter((_, i) => i < 3);
   const humanTips = results.suggestions.filter((_, i) => i >= 3).slice(0, 3);
-  // If not enough suggestions for human tips, use the same but with different framing
   const displayHumanTips = humanTips.length > 0 ? humanTips : atsProblems.slice(0, 3);
 
   return (
@@ -257,12 +291,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       {/* Free: Score + Paywall between score and keywords */}
       {!isPaid && (
         <div className="space-y-6">
-          {/* Personalized AI summary */}
           <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
             🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
           </p>
 
-          {/* Score circle + bars */}
           <div className="bg-card p-8 rounded-3xl shadow-soft space-y-4">
             <div className="grid md:grid-cols-3 gap-8 items-center">
               <div className="space-y-4">
@@ -285,7 +317,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           </div>
 
-          {/* CTA — Unlock button (between score and keywords) */}
+          {/* CTA — Unlock button */}
           {!showPaymentOptions ? (
             <button
               onClick={() => setShowPaymentOptions(true)}
@@ -297,7 +329,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           ) : (
             <div className="p-6 rounded-3xl border-2 border-primary/30 bg-card">
               <div className="grid md:grid-cols-2 gap-6">
-                {/* Option 1 — Single report */}
                 <div className="p-6 rounded-2xl border border-border bg-background space-y-3">
                    <h4 className="font-bold text-lg text-foreground">1 CV + rapport complet</h4>
                    <div className="text-3xl font-bold text-foreground">
@@ -320,7 +351,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
                   </button>
                 </div>
 
-                {/* Option 2 — Pro subscription */}
                 <div className="relative p-6 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
                     Meilleur choix
@@ -373,7 +403,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
 
           {/* Two columns: ATS problems vs Human tips */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Left: ATS technical problems */}
             <div className="bg-card p-8 rounded-3xl shadow-soft">
               <h3 className="text-lg font-bold mb-4 text-destructive flex items-center gap-2">
                 ⚠️ Problèmes techniques ATS
@@ -395,7 +424,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
               </div>
             </div>
 
-            {/* Right: Human recruiter tips */}
             <div className="p-8 rounded-3xl" style={{ background: "#F0F7FF", border: "1px solid #2d6a8f" }}>
               <h3 className="text-lg font-bold mb-4 text-foreground flex items-center gap-2">
                 💡 Conseils pour convaincre le recruteur
@@ -434,12 +462,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
       {/* Paid Content */}
       {isPaid && (
         <div className="space-y-12">
-          {/* Section Scores */}
           {results.sectionScores && results.sectionScores.length > 0 && (
             <SectionScores sections={results.sectionScores} />
           )}
 
-          {/* Checklist with detailed corrections */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Checklist de conformité</h3>
             <div className="space-y-4">
@@ -465,7 +491,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           </div>
 
-          {/* Keywords — only missing + suggested */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-4 text-foreground">Mots-clés</h3>
             {results.keywordsMissing.length > 0 && (
@@ -490,7 +515,6 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             )}
           </div>
 
-          {/* Suggestions */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Améliorations suggérées</h3>
             <div className="space-y-4">
@@ -511,7 +535,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </div>
           </div>
 
-          {/* Rewritten CV — auto-generated */}
+          {/* Rewritten CV */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Optimisation IA</h3>
             {loadingRewrite ? (
@@ -520,7 +544,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
                 <span className="font-bold">✨ Génération de votre CV optimisé en cours…</span>
               </div>
             ) : rewrittenCV ? (
-              <CVPreview cvText={rewrittenCV} onChange={setRewrittenCV} />
+              <CVPreview cvText={rewrittenCV} onChange={(text) => {
+                setRewrittenCV(text);
+                onRewrittenCVChange?.(text);
+              }} />
             ) : (
               <button
                 onClick={handleGenerateCV}
@@ -537,7 +564,10 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-6 text-foreground">Lettre de motivation</h3>
             {coverLetter ? (
-              <CoverLetterPreview letter={coverLetter} onChange={setCoverLetter} />
+              <CoverLetterPreview letter={coverLetter} onChange={(text) => {
+                setCoverLetter(text);
+                onCoverLetterChange?.(text);
+              }} />
             ) : (
               <button
                 onClick={handleGenerateLetter}
@@ -627,7 +657,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             )}
           </div>
 
-          {/* Human Review — Stripe checkout */}
+          {/* Human Review */}
           <div className="bg-secondary p-8 rounded-3xl shadow-soft">
             <h3 className="text-xl font-bold mb-2 text-foreground">Relecture par un expert humain</h3>
             <p className="text-muted-foreground text-sm mb-6">
@@ -635,7 +665,7 @@ const ResultsPanel = ({ results, isPaid, rewrittenCV: initialRewrite, cvText, ta
             </p>
             {reviewDone ? (
               <div className="p-4 bg-emerald-50 rounded-xl text-emerald-800 font-bold text-sm text-center">
-                ✓ Demande de relecture confirmée — vous recevrez votre rapport sous 24h ouvrées.
+                ✓ Relecture commandée — réponse sous 24h ouvrées
               </div>
             ) : (
               <button
