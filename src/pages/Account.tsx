@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { RegionProvider, useRegion } from "@/contexts/RegionContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye, Loader2, CreditCard, ChevronRight } from "lucide-react";
+import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye, Loader2, CreditCard, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import Navbar from "@/components/Navbar";
 
 interface AnalysisEntry {
   id: string;
@@ -22,6 +23,7 @@ const AccountInner = () => {
   const [analyses, setAnalyses] = useState<AnalysisEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
+  const [reviewRequested, setReviewRequested] = useState(false);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [subLoading, setSubLoading] = useState(true);
@@ -46,12 +48,33 @@ const AccountInner = () => {
       setLoading(false);
     };
 
+    // Bug #15: Cache subscription check result
     const checkSubscription = async () => {
+      const cacheKey = "scorecv_sub_cache";
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const c = JSON.parse(cached);
+          if (Date.now() - c.timestamp < 60000) {
+            setIsPro(c.isPro || false);
+            setSubscriptionEnd(c.subscriptionEnd || null);
+            setReviewRequested(c.reviewRequested || false);
+            setSubLoading(false);
+            return;
+          }
+        } catch { /* ignore */ }
+      }
+
       try {
         const { data } = await supabase.functions.invoke("check-subscription");
         if (data) {
           setIsPro(data.isPro || false);
           setSubscriptionEnd(data.subscriptionEnd || null);
+          setReviewRequested(data.reviewRequested || false);
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            ...data,
+            timestamp: Date.now(),
+          }));
         }
       } catch (err) {
         console.error("Failed to check subscription:", err);
@@ -104,7 +127,6 @@ const AccountInner = () => {
   };
 
   const handleNewAnalysis = () => {
-    // Set flag to reset CVAnalyzer state on mount
     localStorage.setItem("scorecv_reset", "true");
     navigate("/");
   };
@@ -132,6 +154,7 @@ const AccountInner = () => {
       results: data[0].results,
       isPaid: data[0].is_paid,
       rewrittenCV: data[0].rewritten_cv || "",
+      coverLetter: data[0].cover_letter || "",
       score: data[0].score,
     }));
     navigate("/");
@@ -160,9 +183,22 @@ const AccountInner = () => {
       results: data.results,
       isPaid: data.is_paid,
       rewrittenCV: data.rewritten_cv || "",
+      coverLetter: data.cover_letter || "",
       score: data.score,
     }));
     navigate("/");
+  };
+
+  const handleDeleteAnalysis = async (e: React.MouseEvent, analysisId: string) => {
+    e.stopPropagation();
+    if (!confirm("Supprimer cette analyse ?")) return;
+    const { error } = await supabase.from("user_analyses").delete().eq("id", analysisId);
+    if (error) {
+      toast.error("Erreur lors de la suppression.");
+    } else {
+      setAnalyses((prev) => prev.filter((a) => a.id !== analysisId));
+      toast.success("Analyse supprimée.");
+    }
   };
 
   if (authLoading || !user) return null;
@@ -176,151 +212,168 @@ const AccountInner = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 py-12">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Retour
-        </button>
+    <div className="min-h-screen bg-background">
+      {/* Bug #24: Navbar with region toggle */}
+      <Navbar />
+      <div className="px-6 py-12 pt-24">
+        <div className="max-w-3xl mx-auto space-y-8">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Retour
+          </button>
 
-        {/* Profile Card */}
-        <div className="bg-card p-8 rounded-3xl shadow-soft">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Mon compte</h1>
-          <p className="text-muted-foreground text-sm">{user.email}</p>
-          <div className="mt-4 flex gap-3 flex-wrap">
-            {isPro && (
-              <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
-                ⭐ Abonnement Pro actif
-              </span>
-            )}
-            {hasPaidReport && !isPro && (
-              <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
-                ✓ Rapport acheté
-              </span>
-            )}
-            {!hasPaidReport && !isPro && (
-              <span className="inline-flex items-center px-3 py-1 bg-secondary rounded-full text-sm font-medium text-muted-foreground">
-                Gratuit
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Subscription Management */}
-        {!subLoading && (
+          {/* Profile Card */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
-            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" /> Abonnement
-            </h2>
-            {isPro ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                  <p className="font-bold text-foreground">Plan Pro — actif</p>
-                  {subscriptionEnd && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-FR")}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                  className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Gérer mon abonnement
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Vous n'avez pas d'abonnement Pro actif.
-                </p>
-                <button
-                  onClick={handleSubscribePro}
-                  disabled={checkoutLoading}
-                  className="py-3 px-6 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Abonnement Pro — {prices.pro}{currency}/mois
-                </button>
-              </div>
-            )}
+            <h1 className="text-2xl font-bold text-foreground mb-2">Mon compte</h1>
+            <p className="text-muted-foreground text-sm">{user.email}</p>
+            <div className="mt-4 flex gap-3 flex-wrap">
+              {isPro && (
+                <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
+                  ⭐ Abonnement Pro actif
+                </span>
+              )}
+              {hasPaidReport && !isPro && (
+                <span className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full text-sm font-medium text-primary">
+                  ✓ Rapport acheté
+                </span>
+              )}
+              {!hasPaidReport && !isPro && (
+                <span className="inline-flex items-center px-3 py-1 bg-secondary rounded-full text-sm font-medium text-muted-foreground">
+                  Gratuit
+                </span>
+              )}
+              {/* Bug #13: Show review status */}
+              {reviewRequested && (
+                <span className="inline-flex items-center px-3 py-1 bg-emerald-100 rounded-full text-sm font-medium text-emerald-800">
+                  ✓ Relecture commandée — réponse sous 24h ouvrées
+                </span>
+              )}
+            </div>
           </div>
-        )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={handleViewLastReport}
-            className="flex items-center justify-center gap-2 p-4 bg-card rounded-2xl shadow-soft text-sm font-bold text-foreground hover:bg-secondary transition-all"
-          >
-            <Eye className="w-4 h-4 text-primary" /> Revoir mon rapport
-          </button>
-          <button
-            onClick={handleNewAnalysis}
-            className="flex items-center justify-center gap-2 p-4 bg-primary text-primary-foreground rounded-2xl text-sm font-bold hover:opacity-90 transition-all"
-          >
-            <Plus className="w-4 h-4" /> Nouvelle analyse
-          </button>
-        </div>
-
-        {/* Analysis History */}
-        <div className="bg-card p-8 rounded-3xl shadow-soft">
-          <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" /> Historique des analyses
-          </h2>
-          {loading ? (
-            <p className="text-muted-foreground text-sm">Chargement...</p>
-          ) : analyses.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Aucune analyse pour le moment.</p>
-          ) : (
-            <div className="space-y-3">
-              {analyses.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => handleViewAnalysis(a.id)}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-left group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-sm truncate">{a.target_job}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(a.created_at).toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-lg font-bold ${getScoreColor(a.score)}`}>{a.score}/100</span>
-                    {a.is_paid && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                        Complet
-                      </span>
+          {/* Subscription Management */}
+          {!subLoading && (
+            <div className="bg-card p-8 rounded-3xl shadow-soft">
+              <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary" /> Abonnement
+              </h2>
+              {isPro ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                    <p className="font-bold text-foreground">Plan Pro — actif</p>
+                    {subscriptionEnd && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-FR")}
+                      </p>
                     )}
-                    <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                      Revoir <ChevronRight className="w-3 h-3" />
-                    </span>
                   </div>
-                </button>
-              ))}
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Gérer mon abonnement
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Vous n'avez pas d'abonnement Pro actif.
+                  </p>
+                  <button
+                    onClick={handleSubscribePro}
+                    disabled={checkoutLoading}
+                    className="py-3 px-6 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Abonnement Pro — {prices.pro}{currency}/mois
+                  </button>
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        {/* Sign Out */}
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-2 text-sm text-destructive hover:underline"
-        >
-          <LogOut className="w-4 h-4" /> Se déconnecter
-        </button>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={handleViewLastReport}
+              className="flex items-center justify-center gap-2 p-4 bg-card rounded-2xl shadow-soft text-sm font-bold text-foreground hover:bg-secondary transition-all"
+            >
+              <Eye className="w-4 h-4 text-primary" /> Revoir mon rapport
+            </button>
+            <button
+              onClick={handleNewAnalysis}
+              className="flex items-center justify-center gap-2 p-4 bg-primary text-primary-foreground rounded-2xl text-sm font-bold hover:opacity-90 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Nouvelle analyse
+            </button>
+          </div>
+
+          {/* Analysis History */}
+          <div className="bg-card p-8 rounded-3xl shadow-soft">
+            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" /> Historique des analyses
+            </h2>
+            {loading ? (
+              <p className="text-muted-foreground text-sm">Chargement...</p>
+            ) : analyses.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Aucune analyse pour le moment.</p>
+            ) : (
+              <div className="space-y-3">
+                {analyses.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => handleViewAnalysis(a.id)}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-left group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">{a.target_job}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(a.created_at).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-lg font-bold ${getScoreColor(a.score)}`}>{a.score}/100</span>
+                      {a.is_paid && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                          Complet
+                        </span>
+                      )}
+                      <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                        Revoir <ChevronRight className="w-3 h-3" />
+                      </span>
+                      <button
+                        onClick={(e) => handleDeleteAnalysis(e, a.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sign Out */}
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-2 text-sm text-destructive hover:underline"
+          >
+            <LogOut className="w-4 h-4" /> Se déconnecter
+          </button>
+        </div>
       </div>
     </div>
   );
