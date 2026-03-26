@@ -131,7 +131,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
       <div style={{ padding: "0 40px 40px" }}>
         {parsed.sections.map((s, i) => (
           <div key={i} style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color, marginBottom: 8 }}>{s.title}</h2>
+            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color, marginBottom: 8 }}>{cleanText(s.title)}</h2>
             {s.items.map(renderItem)}
           </div>
         ))}
@@ -145,7 +145,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
       {parsed.contact && <p style={{ textAlign: "center", fontSize: 11, color: "#888", marginBottom: 30 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
         <div key={i} style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 3, color: "#555", marginBottom: 6, paddingBottom: 4, borderBottom: "1px dashed #ccc" }}>{s.title}</h2>
+          <h2 style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 3, color: "#555", marginBottom: 6, paddingBottom: 4, borderBottom: "1px dashed #ccc" }}>{cleanText(s.title)}</h2>
           {s.items.map(renderItem)}
         </div>
       ))}
@@ -160,7 +160,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
         {parsed.contact && <p style={{ textAlign: "center", fontSize: 12, color: "#666", marginBottom: 28 }}>{parsed.contact}</p>}
         {parsed.sections.map((s, i) => (
           <div key={i} style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${color}33` }}>{s.title}</h2>
+            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${color}33` }}>{cleanText(s.title)}</h2>
             {s.items.map(renderItem)}
           </div>
         ))}
