@@ -22,13 +22,14 @@ const ScrollRestorer = ({ children }: { children: React.ReactNode }) => {
     const key = `scrollPos_${location.pathname}`;
     const saved = sessionStorage.getItem(key);
     if (saved) {
-      // Use requestAnimationFrame + delay to wait for content to render
-      const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         setTimeout(() => window.scrollTo(0, parseInt(saved, 10)), 150);
       });
-      return () => cancelAnimationFrame(raf);
     }
-    }
+
+    const handleScroll = () => {
+      sessionStorage.setItem(key, String(window.scrollY));
+    };
 
     const handleScroll = () => {
       sessionStorage.setItem(key, String(window.scrollY));
