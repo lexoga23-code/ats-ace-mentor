@@ -366,8 +366,10 @@ const CVAnalyzer = () => {
     }
   };
 
-  const handleNewCV = (text: string) => {
+  const handleFileUploaded = (text: string) => {
+    // 1) Set cvText with extracted content
     setCvText(text);
+    // 2) Then reset everything else
     setTargetJob("");
     setJobDescription("");
     setIndustry("");
@@ -406,7 +408,7 @@ const CVAnalyzer = () => {
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div className="space-y-6">
-            <CVUploader onTextExtracted={handleNewCV} resetKey={uploaderResetKey} />
+            <CVUploader onTextExtracted={setCvText} onFileUploaded={handleFileUploaded} resetKey={uploaderResetKey} />
             <AnalysisHistory onRestore={handleRestoreHistory} />
           </div>
 

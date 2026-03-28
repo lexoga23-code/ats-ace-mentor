@@ -5,10 +5,11 @@ import { toast } from "sonner";
 
 interface CVUploaderProps {
   onTextExtracted: (text: string) => void;
+  onFileUploaded?: (text: string) => void;
   resetKey?: number;
 }
 
-const CVUploader = ({ onTextExtracted, resetKey = 0 }: CVUploaderProps) => {
+const CVUploader = ({ onTextExtracted, onFileUploaded, resetKey = 0 }: CVUploaderProps) => {
   const [uploaded, setUploaded] = useState(false);
   const [fileName, setFileName] = useState("");
   const [showWarning, setShowWarning] = useState(false);
@@ -32,13 +33,14 @@ const CVUploader = ({ onTextExtracted, resetKey = 0 }: CVUploaderProps) => {
 
     try {
       const text = await extractText(file);
+      const callback = onFileUploaded || onTextExtracted;
       if (text.length < 200) {
         setShowWarning(true);
-        onTextExtracted(text);
+        callback(text);
       } else {
         setShowWarning(false);
         setPasteText(text);
-        onTextExtracted(text);
+        callback(text);
       }
     } catch {
       setShowWarning(true);
