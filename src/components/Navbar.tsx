@@ -12,11 +12,17 @@ const Navbar = () => {
     document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleLogoClick = () => {
+    localStorage.setItem("scorecv_reset", "true");
+    navigate("/");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <nav className="fixed top-0 w-full z-50 glass-nav border-b border-border/50">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <span className="text-xl font-bold tracking-tighter text-primary cursor-pointer" onClick={() => navigate("/")}>ScoreCV</span>
+          <span className="text-xl font-bold tracking-tighter text-primary cursor-pointer" onClick={handleLogoClick}>ScoreCV</span>
           <div className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
             <button onClick={() => smoothTo("#optimiser")} className="hover:text-primary transition-colors">Optimiser</button>
             <button onClick={() => smoothTo("#ats")} className="hover:text-primary transition-colors">{"C'est quoi l'ATS ?"}</button>
