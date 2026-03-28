@@ -31,10 +31,6 @@ const ScrollRestorer = ({ children }: { children: React.ReactNode }) => {
       sessionStorage.setItem(key, String(window.scrollY));
     };
 
-    const handleScroll = () => {
-      sessionStorage.setItem(key, String(window.scrollY));
-    };
-
     const handleBeforeUnload = () => {
       sessionStorage.setItem(key, String(window.scrollY));
     };
