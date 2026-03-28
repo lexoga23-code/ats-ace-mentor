@@ -39,6 +39,7 @@ const CVAnalyzer = () => {
   const [restoringPaid, setRestoringPaid] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [uploaderResetKey, setUploaderResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   /** Bug #2/#3 fix: Check server-side if user has paid for THIS SPECIFIC analysis OR has active pro subscription */
@@ -390,7 +391,7 @@ const CVAnalyzer = () => {
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div className="space-y-6">
-            <CVUploader onTextExtracted={setCvText} />
+            <CVUploader onTextExtracted={handleNewCV} resetKey={uploaderResetKey} />
             <AnalysisHistory onRestore={handleRestoreHistory} />
           </div>
 
