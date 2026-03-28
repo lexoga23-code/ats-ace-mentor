@@ -22,7 +22,9 @@ const ScrollRestorer = ({ children }: { children: React.ReactNode }) => {
     const key = `scrollPos_${location.pathname}`;
     const saved = sessionStorage.getItem(key);
     if (saved) {
-      setTimeout(() => window.scrollTo(0, parseInt(saved, 10)), 50);
+      requestAnimationFrame(() => {
+        setTimeout(() => window.scrollTo(0, parseInt(saved, 10)), 150);
+      });
     }
 
     const handleScroll = () => {

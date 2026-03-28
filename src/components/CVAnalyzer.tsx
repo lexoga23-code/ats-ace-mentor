@@ -73,23 +73,31 @@ const CVAnalyzer = () => {
   };
 
   // On mount: handle reset flag, restore from localStorage, or restore from DB
+  // Separate effect for reset flag — must react to route navigation, not just user changes
   useEffect(() => {
-    // Handle reset flag from "Nouvelle analyse" button
-    if (localStorage.getItem("scorecv_reset") === "true") {
-      localStorage.removeItem("scorecv_reset");
-      setCvText("");
-      setTargetJob("");
-      setJobDescription("");
-      setIndustry("");
-      setCustomIndustry("");
-      setResults(null);
-      setRewrittenCV("");
-      setCoverLetter("");
-      setIsPaid(false);
-      setCurrentAnalysisId(null);
-      setUploaderResetKey(k => k + 1);
-      return;
-    }
+    const checkReset = () => {
+      if (localStorage.getItem("scorecv_reset") === "true") {
+        localStorage.removeItem("scorecv_reset");
+        setCvText("");
+        setTargetJob("");
+        setJobDescription("");
+        setIndustry("");
+        setCustomIndustry("");
+        setResults(null);
+        setRewrittenCV("");
+        setCoverLetter("");
+        setIsPaid(false);
+        setCurrentAnalysisId(null);
+        setUploaderResetKey(k => k + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+    checkReset();
+    window.addEventListener("focus", checkReset);
+    return () => window.removeEventListener("focus", checkReset);
+  }, []);
+
+  useEffect(() => {
 
     // Handle restore from Account page (specific analysis)
     const restoreData = localStorage.getItem("scorecv_restore_analysis");
@@ -289,6 +297,7 @@ const CVAnalyzer = () => {
     setResults(null);
     setRewrittenCV("");
     setCoverLetter("");
+    justAnalyzedRef.current = true;
 
     try {
       const effectiveIndustry = industry === "Autre" ? (customIndustry || "Non précisé") : (industry || "Non précisé");
@@ -398,9 +407,12 @@ const CVAnalyzer = () => {
     }, 100);
   };
 
+  // Only auto-scroll to results after a NEW analysis (not on restore)
+  const justAnalyzedRef = useRef(false);
   useEffect(() => {
-    if (results && resultsRef.current && !isPaid) {
+    if (justAnalyzedRef.current && results && resultsRef.current) {
       resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      justAnalyzedRef.current = false;
     }
   }, [results]);
 
