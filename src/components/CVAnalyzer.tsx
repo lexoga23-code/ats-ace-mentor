@@ -87,6 +87,7 @@ const CVAnalyzer = () => {
       setCoverLetter("");
       setIsPaid(false);
       setCurrentAnalysisId(null);
+      setUploaderResetKey(k => k + 1);
       return;
     }
 
