@@ -1,17 +1,28 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FileText, CheckCircle } from "lucide-react";
 import { extractText } from "@/lib/fileParser";
 import { toast } from "sonner";
 
 interface CVUploaderProps {
   onTextExtracted: (text: string) => void;
+  resetKey?: number;
 }
 
-const CVUploader = ({ onTextExtracted }: CVUploaderProps) => {
+const CVUploader = ({ onTextExtracted, resetKey = 0 }: CVUploaderProps) => {
   const [uploaded, setUploaded] = useState(false);
   const [fileName, setFileName] = useState("");
   const [showWarning, setShowWarning] = useState(false);
   const [pasteText, setPasteText] = useState("");
+
+  // Reset internal state when resetKey changes
+  useEffect(() => {
+    if (resetKey > 0) {
+      setUploaded(false);
+      setFileName("");
+      setShowWarning(false);
+      setPasteText("");
+    }
+  }, [resetKey]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {

@@ -39,6 +39,7 @@ const CVAnalyzer = () => {
   const [restoringPaid, setRestoringPaid] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [uploaderResetKey, setUploaderResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   /** Bug #2/#3 fix: Check server-side if user has paid for THIS SPECIFIC analysis OR has active pro subscription */
@@ -86,6 +87,7 @@ const CVAnalyzer = () => {
       setCoverLetter("");
       setIsPaid(false);
       setCurrentAnalysisId(null);
+      setUploaderResetKey(k => k + 1);
       return;
     }
 
@@ -364,6 +366,20 @@ const CVAnalyzer = () => {
     }
   };
 
+  const handleNewCV = (text: string) => {
+    setCvText(text);
+    setTargetJob("");
+    setJobDescription("");
+    setIndustry("");
+    setCustomIndustry("");
+    setResults(null);
+    setRewrittenCV("");
+    setCoverLetter("");
+    setIsPaid(false);
+    setCurrentAnalysisId(null);
+    toast.success("✓ Nouveau CV chargé — remplissez le poste ciblé et relancez l'analyse.");
+  };
+
   const handleRestoreHistory = (entry: HistoryEntry) => {
     setCvText(entry.cvText);
     setTargetJob(entry.targetJob);
@@ -372,7 +388,7 @@ const CVAnalyzer = () => {
     setResults(entry.results);
     setRewrittenCV("");
     setCoverLetter("");
-    setIsPaid(false); // Never trust local — will be checked server-side
+    setIsPaid(false);
     saveState(entry.results);
     setTimeout(() => {
       resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -390,7 +406,7 @@ const CVAnalyzer = () => {
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div className="space-y-6">
-            <CVUploader onTextExtracted={setCvText} />
+            <CVUploader onTextExtracted={handleNewCV} resetKey={uploaderResetKey} />
             <AnalysisHistory onRestore={handleRestoreHistory} />
           </div>
 
