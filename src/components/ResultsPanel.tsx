@@ -234,7 +234,7 @@ const ResultsPanel = ({
         <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
           <div className="space-y-4">
             <ScoreCircle score={results.score} />
-            {results.matchScore !== undefined && results.matchScore > 0 && (
+            {hasJobDescription && results.matchScore !== undefined && results.matchScore > 0 && (
               <div className="text-center">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
                   <Target className="w-4 h-4 text-primary" />
@@ -257,9 +257,15 @@ const ResultsPanel = ({
       {/* FREE MODE */}
       {!isPaid && (
         <div className="space-y-6">
-          <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
-            🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
-          </p>
+          {matchPct !== null && matchPct > 0 ? (
+            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+            </p>
+          ) : (
+            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+              🎯 {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+            </p>
+          )}
 
           {/* Score + bars */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
