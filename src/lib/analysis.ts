@@ -151,9 +151,13 @@ export const rewriteCV = async (
   cvText: string,
   job: string,
   region: string,
-  missingKeywords: string[]
+  missingKeywords: string[],
+  userAnswers?: Record<string, string>
 ): Promise<string> => {
   const country = region === "CH" ? "Suisse romande" : "France";
+  const answersBlock = userAnswers && Object.values(userAnswers).some(v => v.trim())
+    ? `\n\nL'utilisateur a fourni ces informations complémentaires : ${Object.entries(userAnswers).filter(([,v]) => v.trim()).map(([k,v]) => `${k}: ${v}`).join("; ")}. Intègre-les naturellement dans le CV réécrit sans les copier mot pour mot. Si une adresse email professionnelle est fournie, remplace l'ancienne. Si des chiffres sont fournis, intègre-les dans les expériences concernées. Si des compétences supplémentaires sont mentionnées, ajoute-les dans la section compétences.`
+    : "";
 
   const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants : ${missingKeywords.join(", ")}.
 
@@ -202,7 +206,7 @@ STRUCTURE OBLIGATOIRE DU CV — respecter cet ordre exact :
 
 6. LANGUES (si pertinent)
 
-Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.
+Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.${answersBlock}
 
 CV: ${cvText.substring(0, 2000)}`;
 
