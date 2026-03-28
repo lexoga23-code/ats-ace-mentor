@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Bug #7 — JWT verification
+    // JWT verification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Non autorisé' }), {
@@ -68,24 +68,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
-      console.error("ANTHROPIC_API_KEY not configured");
+      console.error("LOVABLE_API_KEY not configured");
       return new Response(JSON.stringify({ error: 'Clé API non configurée' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call Lovable AI gateway (OpenAI-compatible endpoint)
+    const response = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'google/gemini-2.5-flash',
         max_tokens: maxTokens,
         temperature,
         messages: [{ role: 'user', content: prompt }],
@@ -93,17 +93,19 @@ Deno.serve(async (req) => {
     });
 
     const data = await response.json();
-    console.log("Anthropic response status:", response.status);
+    console.log("Lovable AI response status:", response.status);
 
-    if (!response.ok || data.type === 'error') {
-      console.error("Anthropic API error:", JSON.stringify(data));
-      return new Response(JSON.stringify({ error: data.error?.message || 'Erreur API Anthropic' }), {
+    if (!response.ok) {
+      console.error("Lovable AI error:", JSON.stringify(data));
+      return new Response(JSON.stringify({ error: data.error?.message || 'Erreur API IA' }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ text: data.content[0].text }), {
+    const text = data.choices?.[0]?.message?.content || '';
+
+    return new Response(JSON.stringify({ text }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
