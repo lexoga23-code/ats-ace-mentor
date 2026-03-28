@@ -206,7 +206,8 @@ const ResultsPanel = ({
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
   const totalPossibleGain = 100 - results.score;
-  const matchPct = results.matchScore ?? Math.round(results.score * 0.85);
+  const hasJobDescription = !!(jobDescription && jobDescription.length >= 50);
+  const matchPct = hasJobDescription ? (results.matchScore ?? null) : null;
 
   // Sort problems by priority for free mode - top 3
   const topProblems = results.checklist
