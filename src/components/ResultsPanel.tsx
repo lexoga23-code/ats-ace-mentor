@@ -272,7 +272,7 @@ const ResultsPanel = ({
             <div className="grid md:grid-cols-3 gap-8 items-center">
               <div className="space-y-4">
                 <ScoreCircle score={results.score} />
-                {results.matchScore !== undefined && results.matchScore > 0 && (
+                {hasJobDescription && results.matchScore !== undefined && results.matchScore > 0 && (
                   <div className="text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
                       <Target className="w-4 h-4 text-primary" />
