@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Target, Share2, Mail, Loader2, Sparkles } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
+import RewriteQuestionsModal from "./RewriteQuestionsModal";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
@@ -98,6 +99,7 @@ const ResultsPanel = ({
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewDone, setReviewDone] = useState(false);
+  const [showRewriteQuestions, setShowRewriteQuestions] = useState(false);
 
   useEffect(() => { setRewrittenCV(initialRewrite); }, [initialRewrite]);
   useEffect(() => { setCoverLetter(initialCoverLetter || ""); }, [initialCoverLetter]);
@@ -131,17 +133,23 @@ const ResultsPanel = ({
     }
   }, [isPaid]);
 
-  const handleGenerateCV = async () => {
+  const handleGenerateCV = async (userAnswers?: Record<string, string>) => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id, analysisId);
     if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé."); return; }
+    setShowRewriteQuestions(false);
     setLoadingRewrite(true);
+    console.log('CV utilisé pour réécriture — longueur:', cvText.length);
     try {
-      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
+      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing, userAnswers);
       setRewrittenCV(text);
       onRewrittenCVChange?.(text);
     } catch { alert("Erreur. Réessayez."); }
     setLoadingRewrite(false);
+  };
+
+  const handleStartGenerateCV = () => {
+    setShowRewriteQuestions(true);
   };
 
   const handleGenerateLetter = async () => {
