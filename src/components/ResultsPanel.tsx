@@ -505,13 +505,22 @@ const ResultsPanel = ({
             ) : rewrittenCV ? (
               <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} />
             ) : (
-              <button onClick={handleGenerateCV} disabled={loadingRewrite}
+              <button onClick={handleStartGenerateCV} disabled={loadingRewrite}
                 className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
                 style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
                 ✨ Générer mon CV optimisé
               </button>
             )}
           </div>
+
+          {showRewriteQuestions && (
+            <RewriteQuestionsModal
+              analysisResult={results}
+              cvText={cvText}
+              onSubmit={(answers) => handleGenerateCV(answers)}
+              onCancel={() => setShowRewriteQuestions(false)}
+            />
+          )}
 
           {/* Cover Letter */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
