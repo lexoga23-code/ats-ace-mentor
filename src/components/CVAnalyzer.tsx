@@ -369,6 +369,7 @@ const CVAnalyzer = () => {
   const handleFileUploaded = (text: string) => {
     // 1) Set cvText with extracted content
     setCvText(text);
+    console.log('CV chargé pour: nouveau fichier —', 'longueur:', text.length);
     // 2) Then reset everything else
     setTargetJob("");
     setJobDescription("");

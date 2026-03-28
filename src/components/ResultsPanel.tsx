@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Target, Share2, Mail, Loader2, Sparkles } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
+import RewriteQuestionsModal from "./RewriteQuestionsModal";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
@@ -98,6 +99,7 @@ const ResultsPanel = ({
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewDone, setReviewDone] = useState(false);
+  const [showRewriteQuestions, setShowRewriteQuestions] = useState(false);
 
   useEffect(() => { setRewrittenCV(initialRewrite); }, [initialRewrite]);
   useEffect(() => { setCoverLetter(initialCoverLetter || ""); }, [initialCoverLetter]);
@@ -131,17 +133,23 @@ const ResultsPanel = ({
     }
   }, [isPaid]);
 
-  const handleGenerateCV = async () => {
+  const handleGenerateCV = async (userAnswers?: Record<string, string>) => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id, analysisId);
     if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé."); return; }
+    setShowRewriteQuestions(false);
     setLoadingRewrite(true);
+    console.log('CV utilisé pour réécriture — longueur:', cvText.length);
     try {
-      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
+      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing, userAnswers);
       setRewrittenCV(text);
       onRewrittenCVChange?.(text);
     } catch { alert("Erreur. Réessayez."); }
     setLoadingRewrite(false);
+  };
+
+  const handleStartGenerateCV = () => {
+    setShowRewriteQuestions(true);
   };
 
   const handleGenerateLetter = async () => {
@@ -206,7 +214,8 @@ const ResultsPanel = ({
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
   const totalPossibleGain = 100 - results.score;
-  const matchPct = results.matchScore ?? Math.round(results.score * 0.85);
+  const hasJobDescription = !!(jobDescription && jobDescription.length >= 50);
+  const matchPct = hasJobDescription ? (results.matchScore ?? null) : null;
 
   // Sort problems by priority for free mode - top 3
   const topProblems = results.checklist
@@ -233,7 +242,7 @@ const ResultsPanel = ({
         <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
           <div className="space-y-4">
             <ScoreCircle score={results.score} />
-            {results.matchScore !== undefined && results.matchScore > 0 && (
+            {hasJobDescription && results.matchScore !== undefined && results.matchScore > 0 && (
               <div className="text-center">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
                   <Target className="w-4 h-4 text-primary" />
@@ -256,16 +265,22 @@ const ResultsPanel = ({
       {/* FREE MODE */}
       {!isPaid && (
         <div className="space-y-6">
-          <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
-            🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
-          </p>
+          {matchPct !== null && matchPct > 0 ? (
+            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+            </p>
+          ) : (
+            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+              🎯 {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+            </p>
+          )}
 
           {/* Score + bars */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
             <div className="grid md:grid-cols-3 gap-8 items-center">
               <div className="space-y-4">
                 <ScoreCircle score={results.score} />
-                {results.matchScore !== undefined && results.matchScore > 0 && (
+                {hasJobDescription && results.matchScore !== undefined && results.matchScore > 0 && (
                   <div className="text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
                       <Target className="w-4 h-4 text-primary" />
@@ -490,13 +505,22 @@ const ResultsPanel = ({
             ) : rewrittenCV ? (
               <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} />
             ) : (
-              <button onClick={handleGenerateCV} disabled={loadingRewrite}
+              <button onClick={handleStartGenerateCV} disabled={loadingRewrite}
                 className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
                 style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
                 ✨ Générer mon CV optimisé
               </button>
             )}
           </div>
+
+          {showRewriteQuestions && (
+            <RewriteQuestionsModal
+              analysisResult={results}
+              cvText={cvText}
+              onSubmit={(answers) => handleGenerateCV(answers)}
+              onCancel={() => setShowRewriteQuestions(false)}
+            />
+          )}
 
           {/* Cover Letter */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">
