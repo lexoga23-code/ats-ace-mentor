@@ -345,6 +345,10 @@ const CVAnalyzer = () => {
       alert("Erreur lors de l'analyse. Veuillez réessayer.");
     } finally {
       setLoading(false);
+      // Scroll to results after analysis completes
+      setTimeout(() => {
+        document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
     }
   };
 
