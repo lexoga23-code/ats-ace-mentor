@@ -14,37 +14,24 @@ import Account from "./pages/Account.tsx";
 
 const queryClient = new QueryClient();
 
-/** Save and restore scroll position per route */
-const ScrollRestorer = ({ children }: { children: React.ReactNode }) => {
+function ScrollRestorer() {
   const location = useLocation();
 
   useEffect(() => {
-    const key = `scrollPos_${location.pathname}`;
-    const saved = sessionStorage.getItem(key);
+    const saved = sessionStorage.getItem('scroll_' + location.pathname);
     if (saved) {
-      requestAnimationFrame(() => {
-        setTimeout(() => window.scrollTo(0, parseInt(saved, 10)), 150);
-      });
+      setTimeout(() => window.scrollTo(0, parseInt(saved)), 50);
     }
-
-    const handleScroll = () => {
-      sessionStorage.setItem(key, String(window.scrollY));
-    };
-
-    const handleBeforeUnload = () => {
-      sessionStorage.setItem(key, String(window.scrollY));
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
   }, [location.pathname]);
 
-  return <>{children}</>;
-};
+  useEffect(() => {
+    const save = () => sessionStorage.setItem('scroll_' + location.pathname, window.scrollY.toString());
+    window.addEventListener('scroll', save);
+    return () => window.removeEventListener('scroll', save);
+  }, [location.pathname]);
+
+  return null;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -53,17 +40,16 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ScrollRestorer>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/compte" element={<Account />} />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/rapport/:id" element={<SharedReportPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ScrollRestorer>
+          <ScrollRestorer />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/compte" element={<Account />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/rapport/:id" element={<SharedReportPage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
