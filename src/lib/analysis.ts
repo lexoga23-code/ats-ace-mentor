@@ -111,6 +111,12 @@ ${region === "CH" ? `RÈGLES POUR LA SUISSE :
 - Toujours inclure dans les suggestions : "Adaptez votre vocabulaire au système suisse romand — les recruteurs suisses valorisent fortement la connaissance des termes locaux (DGEP, secondaire II, école professionnelle)"
 - Dans le CV réécrit, ne jamais laisser "lycée professionnel" ou "Professeur" si contexte suisse` : ""}
 
+RÈGLE CRITIQUE — INTERDICTION DE CONSEILS DE FORMATION OU CARRIÈRE :
+- Ne JAMAIS suggérer à l'utilisateur de se former, passer une certification, acquérir une nouvelle compétence, suivre une formation, ou apprendre un outil/logiciel
+- Les suggestions doivent porter UNIQUEMENT sur ce qui peut être amélioré dans le CV EXISTANT : reformulation, ajout de chiffres déjà connus, correction de structure, réorganisation
+- Exemples INTERDITS : "Formez-vous à Robot Framework", "Obtenez la certification PMP", "Apprenez Python"
+- Exemples AUTORISÉS : "Ajoutez des résultats chiffrés à votre expérience chez X", "Déplacez la section Compétences avant Expérience"
+
 RÈGLES POUR LES SUGGESTIONS — DEUX CATÉGORIES DISTINCTES :
 Les suggestions doivent être séparées en deux catégories avec le champ "category" :
 

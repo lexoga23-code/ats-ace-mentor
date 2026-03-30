@@ -14,6 +14,13 @@ const Navbar = () => {
 
   const handleLogoClick = () => {
     localStorage.setItem("scorecv_reset", "true");
+    localStorage.removeItem("rewrittenCV");
+    localStorage.removeItem("coverLetter");
+    localStorage.removeItem("scorecv_data");
+    localStorage.removeItem("scorecv_paid");
+    localStorage.removeItem("scorecv_analysis");
+    sessionStorage.removeItem("rewrittenCV");
+    sessionStorage.removeItem("coverLetter");
     navigate("/");
   };
 

@@ -274,17 +274,30 @@ const CVAnalyzer = () => {
     }));
   };
 
+  const hardResetCVAndLetter = () => {
+    setRewrittenCV('');
+    setCoverLetter('');
+    setResults(null);
+    setIsPaid(false);
+    setCurrentAnalysisId(null);
+    localStorage.removeItem('rewrittenCV');
+    localStorage.removeItem('coverLetter');
+    localStorage.removeItem('scorecv_data');
+    localStorage.removeItem('scorecv_paid');
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem('rewrittenCV');
+    sessionStorage.removeItem('coverLetter');
+    console.log('HARD RESET — CV et lettre effacés');
+  };
+
   const startAnalysis = async () => {
     if (!cvText || !targetJob) {
       alert("Veuillez charger un CV et indiquer le poste ciblé.");
       return;
     }
 
-
+    hardResetCVAndLetter();
     setLoading(true);
-    setResults(null);
-    setRewrittenCV("");
-    setCoverLetter("");
     justAnalyzedRef.current = true;
 
     try {
@@ -368,19 +381,13 @@ const CVAnalyzer = () => {
   };
 
   const handleFileUploaded = (text: string) => {
-    // 1) Set cvText with extracted content
+    hardResetCVAndLetter();
     setCvText(text);
     console.log('CV chargé pour: nouveau fichier —', 'longueur:', text.length);
-    // 2) Then reset everything else
     setTargetJob("");
     setJobDescription("");
     setIndustry("");
     setCustomIndustry("");
-    setResults(null);
-    setRewrittenCV("");
-    setCoverLetter("");
-    setIsPaid(false);
-    setCurrentAnalysisId(null);
     toast.success("✓ Nouveau CV chargé — remplissez le poste ciblé et relancez l'analyse.");
   };
 
