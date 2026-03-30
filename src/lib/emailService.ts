@@ -43,7 +43,7 @@ export const sendWelcomeEmail = (toName: string, toEmail: string) =>
   sendEmail(TEMPLATES.welcome, {
     to_name: toName,
     to_email: toEmail,
-    message: `Bonjour ${toName}, votre compte ScoreCV est créé. Uploadez votre CV pour obtenir votre score ATS gratuit en 30 secondes.\n\nL'équipe ScoreCV — contact.scorecv@gmail.com`,
+    message: `Bonjour ${toName}, votre compte ScoreCV est créé. Uploadez votre CV pour obtenir votre score ATS gratuit en moins de 2 minutes.\n\nL'équipe ScoreCV — contact.scorecv@gmail.com`,
   }, "bienvenue");
 
 /** Email 2 — Payment confirmation (4€) */

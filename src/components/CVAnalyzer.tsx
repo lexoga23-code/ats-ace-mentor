@@ -20,6 +20,7 @@ const INDUSTRIES = [
   "Industrie",
   "Services",
   "Éducation / Formation",
+  "Ressources Humaines",
   "Commerce / Distribution",
   "Autre",
 ];
@@ -279,6 +280,7 @@ const CVAnalyzer = () => {
       return;
     }
 
+
     setLoading(true);
     setResults(null);
     setRewrittenCV("");
@@ -343,6 +345,10 @@ const CVAnalyzer = () => {
       alert("Erreur lors de l'analyse. Veuillez réessayer.");
     } finally {
       setLoading(false);
+      // Scroll to results after analysis completes
+      setTimeout(() => {
+        document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
     }
   };
 
@@ -445,7 +451,7 @@ const CVAnalyzer = () => {
               )}
             </div>
             <button
-              onClick={startAnalysis}
+              onClick={(e) => { e.preventDefault(); startAnalysis(); }}
               disabled={loading}
               className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
@@ -456,7 +462,7 @@ const CVAnalyzer = () => {
 
         {(loading || restoringPaid) && <LoadingOverlay />}
 
-        <div ref={resultsRef}>
+        <div ref={resultsRef} id="results-panel">
           {results && (
             <ResultsPanel
               results={results}

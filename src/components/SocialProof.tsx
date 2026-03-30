@@ -23,7 +23,7 @@ const TESTIMONIALS = [
 
 const TRUST_BADGES = [
   { icon: Shield, label: "Données chiffrées SSL" },
-  { icon: Zap, label: "Analyse en 30 secondes" },
+  { icon: Zap, label: "Analyse en moins de 2 minutes" },
   { icon: Users, label: "Utilisé par +5 000 candidats" },
 ];
 
