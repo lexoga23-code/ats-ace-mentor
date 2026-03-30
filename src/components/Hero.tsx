@@ -1,8 +1,4 @@
 const Hero = () => {
-  const smoothTo = (id: string) => {
-    document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <section className="pt-32 pb-20 px-6">
       <div className="max-w-4xl mx-auto text-center">
@@ -25,18 +21,18 @@ const Hero = () => {
           ))}
         </div>
         <div className="flex flex-wrap justify-center gap-4">
-          <button
-            onClick={() => smoothTo("#optimiser")}
+          <a
+            href="#optimiser"
             className="px-8 py-4 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all"
           >
             Analyser mon CV
-          </button>
-          <button
-            onClick={() => smoothTo("#ats")}
+          </a>
+          <a
+            href="#ats"
             className="px-8 py-4 bg-card text-foreground rounded-xl font-bold shadow-soft hover:bg-secondary transition-all"
           >
             {"C'est quoi l'ATS ?"}
-          </button>
+          </a>
         </div>
       </div>
     </section>

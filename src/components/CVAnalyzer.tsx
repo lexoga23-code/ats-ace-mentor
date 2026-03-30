@@ -89,7 +89,6 @@ const CVAnalyzer = () => {
         setIsPaid(false);
         setCurrentAnalysisId(null);
         setUploaderResetKey(k => k + 1);
-        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     };
     checkReset();
@@ -123,9 +122,6 @@ const CVAnalyzer = () => {
           setIsPaid(false);
         }
 
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 300);
       } catch { /* ignore */ }
       return;
     }
@@ -194,9 +190,6 @@ const CVAnalyzer = () => {
         }
 
         toast.success("✓ Paiement confirmé — voici votre rapport complet");
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 300);
       }
     };
 
@@ -273,13 +266,6 @@ const CVAnalyzer = () => {
     setTimeout(() => tryVerify(), 500);
   }, [region, user]); // Bug #5: added user
 
-  useEffect(() => {
-    if (results && isPaid && resultsRef.current) {
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 300);
-    }
-  }, [results, isPaid]);
 
   const saveState = (analysisResults: AnalysisResult) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -402,16 +388,12 @@ const CVAnalyzer = () => {
     setCoverLetter("");
     setIsPaid(false);
     saveState(entry.results);
-    setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
   };
 
   // Only auto-scroll to results after a NEW analysis (not on restore)
   const justAnalyzedRef = useRef(false);
   useEffect(() => {
-    if (justAnalyzedRef.current && results && resultsRef.current) {
-      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (justAnalyzedRef.current && results) {
       justAnalyzedRef.current = false;
     }
   }, [results]);
