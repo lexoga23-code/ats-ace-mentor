@@ -12,59 +12,48 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Optional auth — never block unauthenticated users
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let userId: string | null = null;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "").trim();
+      if (token) {
+        const supabaseClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data: claimsData } = await supabaseClient.auth.getClaims(token);
+        if (claimsData?.claims?.sub) {
+          userId = claimsData.claims.sub as string;
+        }
+      }
     }
 
-    const token = authHeader.replace("Bearer ", "").trim();
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Token manquant" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Rate limiting only for authenticated users
+    if (userId) {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count } = await supabaseAdmin
+        .from("user_analyses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", oneHourAgo);
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Token invalide (JWT utilisateur requis)" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub as string;
-
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count } = await supabaseAdmin
-      .from("user_analyses")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", oneHourAgo);
-
-    if (count !== null && count > 10) {
-      return new Response(JSON.stringify({ error: "Limite de requêtes atteinte (10/heure). Réessayez plus tard." }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (count !== null && count > 10) {
+        return new Response(JSON.stringify({ error: "Limite de requêtes atteinte (10/heure). Réessayez plus tard." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { prompt, maxTokens = 1500, temperature = 0.3 } = await req.json();
-    console.log("Request from user:", userId, "prompt length:", prompt?.length);
+    console.log("Request from user:", userId ?? "anonymous", "prompt length:", prompt?.length);
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt requis" }), {
