@@ -13,19 +13,20 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
   const handlePrint = () => {
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title></title><style>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title>\u00A0</title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; padding: 60px; max-width: 700px; margin: 0 auto; font-size: 13px; line-height: 1.8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
       .objet { font-weight: 700; text-decoration: underline; margin: 16px 0; }
       .spacer { height: 16px; }
       @media print {
-        @page { margin: 1.5cm; }
+        @page { margin: 1.5cm; size: A4; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         header, footer { display: none !important; }
       }
     </style></head><body>${renderLetterHTML()}</body></html>`);
     win.document.close();
-    win.document.title = "";
+    win.document.title = "\u00A0";
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
