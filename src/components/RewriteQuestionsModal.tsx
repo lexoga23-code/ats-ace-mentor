@@ -94,6 +94,26 @@ const detectQuestions = (result: AnalysisResult, cvText: string): Question[] => 
     });
   }
 
+  // Check reconversion profile (job title mismatch)
+  const pertinenceCheck = result.checklist?.find(c => c.label?.includes("Pertinence") || c.label?.includes("pertinence"));
+  if (pertinenceCheck && pertinenceCheck.status !== "ok") {
+    questions.push({
+      id: "reconversion_motivation",
+      label: "Quelle est votre principale motivation pour ce changement de secteur ? (1-2 phrases)",
+      placeholder: "Ex: Passionné par le digital depuis 5 ans, j'ai suivi une formation certifiante...",
+    });
+  }
+
+  // Check for LinkedIn
+  const hasLinkedin = /linkedin/i.test(text);
+  if (!hasLinkedin) {
+    questions.push({
+      id: "linkedin",
+      label: "Avez-vous un profil LinkedIn à jour ? Si oui, collez l'URL ici",
+      placeholder: "Ex: https://linkedin.com/in/prenom-nom",
+    });
+  }
+
   // Max 4 questions
   return questions.slice(0, 4);
 };
@@ -112,8 +132,8 @@ const RewriteQuestionsModal = ({ analysisResult, cvText, onSubmit, onCancel }: R
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-card rounded-3xl shadow-xl max-w-lg w-full p-8 space-y-6 max-h-[90vh] overflow-y-auto">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Avant de générer votre CV, quelques précisions :</h2>
-          <p className="text-sm text-muted-foreground mt-1">Ces informations amélioreront la qualité de votre CV réécrit.</p>
+          <h2 className="text-xl font-bold text-foreground">✏️ Quelques précisions pour personnaliser votre CV</h2>
+          <p className="text-sm text-muted-foreground mt-1">Ces informations amélioreront la qualité de votre CV réécrit. Vous pouvez ignorer les questions et cliquer directement sur Générer.</p>
         </div>
 
         <div className="space-y-4">
