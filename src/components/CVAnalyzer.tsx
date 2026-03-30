@@ -20,6 +20,7 @@ const INDUSTRIES = [
   "Industrie",
   "Services",
   "Éducation / Formation",
+  "Ressources Humaines",
   "Commerce / Distribution",
   "Autre",
 ];
