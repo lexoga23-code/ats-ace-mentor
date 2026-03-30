@@ -68,24 +68,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) {
-      console.error("LOVABLE_API_KEY not configured");
+      console.error("ANTHROPIC_API_KEY not configured");
       return new Response(JSON.stringify({ error: 'Clé API non configurée' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Call Lovable AI gateway (OpenAI-compatible endpoint)
-    const response = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
+    // Call Anthropic API
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: maxTokens,
         temperature,
         messages: [{ role: 'user', content: prompt }],
@@ -93,17 +94,17 @@ Deno.serve(async (req) => {
     });
 
     const data = await response.json();
-    console.log("Lovable AI response status:", response.status);
+    console.log("Anthropic response status:", response.status);
 
     if (!response.ok) {
-      console.error("Lovable AI error:", JSON.stringify(data));
-      return new Response(JSON.stringify({ error: data.error?.message || 'Erreur API IA' }), {
+      console.error("Anthropic error:", JSON.stringify(data));
+      return new Response(JSON.stringify({ error: data.error?.message || 'Erreur API Anthropic' }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const text = data.choices?.[0]?.message?.content || '';
+    const text = data.content?.[0]?.text || '';
 
     return new Response(JSON.stringify({ text }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
