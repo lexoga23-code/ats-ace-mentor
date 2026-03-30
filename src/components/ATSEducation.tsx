@@ -81,7 +81,7 @@ const ATSEducation = () => {
           >
             {"Analyser mon CV — c'est gratuit"}
           </a>
-          <p className="mt-3 text-sm text-muted-foreground">Analyse en 30 secondes · Aucune inscription</p>
+          <p className="mt-3 text-sm text-muted-foreground">Analyse en moins de 2 minutes · Aucune inscription</p>
         </div>
       </div>
     </section>

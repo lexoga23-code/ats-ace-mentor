@@ -180,12 +180,19 @@ export const rewriteCV = async (
 
   const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants UNIQUEMENT s'ils correspondent à des compétences réelles du candidat : ${missingKeywords.join(", ")}.
 
-RÈGLE CRITIQUE — FIDÉLITÉ AU CV ORIGINAL :
-- Utilise UNIQUEMENT les informations présentes dans le CV original
-- Ne jamais ajouter de compétences, logiciels, certifications ou expériences qui ne sont pas explicitement mentionnés par le candidat
-- Si un mot-clé de l'offre n'est pas dans le CV, NE PAS l'inventer dans le CV réécrit
+RÈGLE CRITIQUE N°1 — INTERDICTION ABSOLUE D'INVENTER :
+- Il est STRICTEMENT INTERDIT d'ajouter toute compétence, logiciel, certification, outil ou expérience qui n'est pas EXPLICITEMENT mentionné dans le CV original
+- Si une compétence de l'offre n'est pas dans le CV (ex: Salesforce, SAP, Abacus, Sage 50, Swiss GAAP, Python, etc.), NE JAMAIS l'écrire dans le CV réécrit — la signaler uniquement dans les suggestions
+- Avant d'écrire chaque compétence ou outil dans le CV réécrit, VÉRIFIE qu'il apparaît mot pour mot dans le CV original. Si ce n'est pas le cas, ne l'inclus pas.
 - Reformuler uniquement ce qui existe — jamais inventer
-- Si le candidat n'a pas mentionné un logiciel (ex: Abacus, Sage 50, Swiss GAAP), ne JAMAIS l'ajouter même s'il est dans l'offre
+- N'ajoute PAS de chiffres inventés — garde UNIQUEMENT les chiffres qui existent déjà dans le CV original
+
+RÈGLE CRITIQUE N°2 — TITRE POUR LES RECONVERSIONS :
+- Ne JAMAIS écrire "en reconversion" dans le titre du CV
+- Utiliser le titre EXACT du poste visé comme titre principal
+- Ajouter un sous-titre valorisant les compétences transférables, format : "Titre du poste | Expertise [domaine transférable]"
+- Exemple : "Chargée de Recrutement | Expertise Marketing & Digital"
+- Valoriser les compétences transférables sans mentionner la reconversion explicitement
 
 RÈGLES SILENCIEUSES — applique sans mentionner dans le CV :
 - Utilise le titre EXACT de l'offre comme titre du CV (pas de synonyme)
@@ -201,7 +208,6 @@ Règles absolues :
 - Le CV doit tenir sur UNE SEULE PAGE pour moins de 10 ans d'expérience. Pour les profils 10-15 ans : 2 pages maximum
 - Pour tenir sur une page : maximum 3-4 puces par poste, supprimer les informations redondantes, garder uniquement les 10 dernières années d'expérience, synthétiser la formation en 2-3 lignes
 - INTERDICTION ABSOLUE d'écrire les titres de sections avec des lettres espacées comme "P R O F I L" ou "E X P É R I E N C E". Les ATS lisent chaque lettre comme un mot séparé. Écrire les titres normalement en majuscules : "PROFIL PROFESSIONNEL", "EXPÉRIENCE PROFESSIONNELLE", "FORMATION", "COMPÉTENCES", "LANGUES"
-- N'ajoute PAS de chiffres à chaque ligne — cela paraît artificiel et inventé. Garde UNIQUEMENT les 3 à 4 chiffres les plus impactants et crédibles qui existent déjà dans le CV original. N'invente JAMAIS de statistiques.
 ${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
 - Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
 - Si le poste visé est différent du profil du candidat, adapter et reformuler uniquement les expériences existantes pour mettre en valeur les compétences transférables

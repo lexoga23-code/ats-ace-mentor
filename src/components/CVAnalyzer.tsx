@@ -447,7 +447,7 @@ const CVAnalyzer = () => {
               )}
             </div>
             <button
-              onClick={startAnalysis}
+              onClick={(e) => { e.preventDefault(); startAnalysis(); }}
               disabled={loading}
               className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
