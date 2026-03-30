@@ -27,13 +27,32 @@ export interface AnalysisResult {
 }
 
 const callAnthropic = async (prompt: string, maxTokens = 1500, temperature = 0.3): Promise<string> => {
-  const { data, error } = await supabase.functions.invoke('anthropic-proxy', {
-    body: { prompt, maxTokens, temperature },
-  });
+  const maxAttempts = 3;
+  let lastMessage = "Erreur lors de l'appel API";
 
-  if (error) throw new Error(error.message || "Erreur lors de l'appel API");
-  if (data?.error) throw new Error(data.error);
-  return data.text;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const { data, error } = await supabase.functions.invoke('anthropic-proxy', {
+      body: { prompt, maxTokens, temperature },
+    });
+
+    if (!error && !data?.error && typeof data?.text === "string") {
+      return data.text;
+    }
+
+    const message = error?.message || data?.error || "Erreur lors de l'appel API";
+    lastMessage = message;
+
+    const isTransientNetworkError = /Failed to send a request to the Edge Function|ERR_CONNECTION_CLOSED|Failed to fetch|NetworkError/i.test(message);
+    const hasRemainingAttempt = attempt < maxAttempts;
+
+    if (!isTransientNetworkError || !hasRemainingAttempt) {
+      throw new Error(message);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+  }
+
+  throw new Error(lastMessage);
 };
 
 export const analyzeCV = async (
