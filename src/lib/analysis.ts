@@ -133,6 +133,14 @@ Les suggestions doivent être séparées en deux catégories avec le champ "cate
 - Maximum 7 suggestions au total
 - Chaque suggestion doit citer des éléments concrets du CV ou de l'offre
 
+RÈGLE POUR LES PROBLÈMES PRIORITAIRES (checklist fail/warn) :
+Pour chaque problème prioritaire, formule en 2 parties dans le champ "detail" :
+1) La CONSÉQUENCE CONCRÈTE pour la candidature — ce que ça coûte en termes de chances (ton direct, urgent, émotionnel sans être alarmiste)
+2) Ce que le rapport complet va corriger automatiquement
+Exemples de BONNE formulation : "Votre CV est invisible pour les ATS — sans chiffres concrets, les recruteurs ne peuvent pas évaluer votre impact réel. Le rapport complet les intègre automatiquement dans votre CV réécrit."
+Exemples à ÉVITER : "Aucun chiffre dans les expériences" (trop neutre et technique)
+Maximum 2 lignes par problème.
+
 CHECKLIST — exactement ces 10 critères dans cet ordre, chacun avec ok/fail/warn et des champs detail, correction, impact :
 - "detail" = une phrase décrivant ce qui est détecté dans le CV (factuel), citant un élément RÉEL et CONCRET du CV
 - "correction" = si warn ou fail : une correction CONCRÈTE avec un EXEMPLE SPÉCIFIQUE basé sur le contenu réel du CV. Ne jamais donner un conseil générique. Si ok : chaîne vide.
