@@ -288,9 +288,8 @@ En-tête expéditeur (haut gauche) :
 (ligne vide)
 
 Destinataire (aligné à droite) :
-${offerDetails ? `- Extraire le nom de l'entreprise/établissement depuis l'offre d'emploi ci-dessous. Si l'adresse complète n'est pas trouvée dans l'offre, écrire le nom de l'entreprise suivi de "[Adresse de l'entreprise]" et "[Code postal, Ville]" comme placeholders éditables.` : `- [Nom de l'entreprise]
-- [Adresse de l'entreprise]
-- [Code postal, Ville]`}
+${offerDetails ? `- Extraire le nom de l'entreprise/établissement depuis l'offre d'emploi ci-dessous. Si l'adresse complète n'est pas trouvée dans l'offre, NE PAS mettre de placeholder entre crochets [xxx]. À la place, écrire uniquement le nom de l'entreprise sur une ligne et laisser la ligne d'adresse vide. Ne JAMAIS écrire "[Adresse de l'entreprise]" ou "[Code postal, Ville]" dans le document final.` : `- Écrire uniquement le nom de l'entreprise si connu, sinon écrire "Entreprise destinataire" sans crochets ni placeholders.
+- NE PAS écrire de placeholders entre crochets comme [Nom], [Adresse], [Code postal]. Laisser la ligne vide si l'information n'est pas disponible.`}
 - ${region === "CH" ? "Lausanne" : "Paris"}, le ${today}
 
 (ligne vide)

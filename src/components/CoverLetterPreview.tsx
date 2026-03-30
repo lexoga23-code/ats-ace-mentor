@@ -58,8 +58,17 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
     );
   }
 
+  // Detect placeholders like [xxx] in the letter
+  const hasPlaceholders = /\[[^\]]{2,}\]/.test(letter);
+
   return (
     <div className="space-y-4">
+      {hasPlaceholders && (
+        <div className="p-4 rounded-xl border-2 border-destructive/50 bg-destructive/10 text-destructive text-sm font-semibold flex items-start gap-2">
+          <span className="text-lg">⚠️</span>
+          <span>Pensez à ajouter l'adresse de l'entreprise et à remplacer les éléments entre [crochets] avant d'envoyer cette lettre.</span>
+        </div>
+      )}
       <div className="flex justify-end">
         <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
           <Pencil className="w-3.5 h-3.5" /> Modifier
