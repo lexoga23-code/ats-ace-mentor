@@ -310,6 +310,7 @@ const CVAnalyzer = () => {
     setResults(null);
     setIsPaid(false);
     setCurrentAnalysisId(null);
+    sessionStorage.removeItem('scorecv_current_analysis_id');
     localStorage.removeItem('rewrittenCV');
     localStorage.removeItem('coverLetter');
     localStorage.removeItem('scorecv_data');
