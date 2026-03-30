@@ -274,17 +274,30 @@ const CVAnalyzer = () => {
     }));
   };
 
+  const hardResetCVAndLetter = () => {
+    setRewrittenCV('');
+    setCoverLetter('');
+    setResults(null);
+    setIsPaid(false);
+    setCurrentAnalysisId(null);
+    localStorage.removeItem('rewrittenCV');
+    localStorage.removeItem('coverLetter');
+    localStorage.removeItem('scorecv_data');
+    localStorage.removeItem('scorecv_paid');
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem('rewrittenCV');
+    sessionStorage.removeItem('coverLetter');
+    console.log('HARD RESET — CV et lettre effacés');
+  };
+
   const startAnalysis = async () => {
     if (!cvText || !targetJob) {
       alert("Veuillez charger un CV et indiquer le poste ciblé.");
       return;
     }
 
-
+    hardResetCVAndLetter();
     setLoading(true);
-    setResults(null);
-    setRewrittenCV("");
-    setCoverLetter("");
     justAnalyzedRef.current = true;
 
     try {
