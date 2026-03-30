@@ -237,13 +237,18 @@ export const generateCoverLetter = async (
 ): Promise<string> => {
   const country = region === "CH" ? "Suisse romande" : "France";
 
-  const prompt = `Tu es un expert en recrutement ${country}. Rédige une lettre de motivation professionnelle tenant sur UNE SEULE PAGE, maximum 350 mots, respectant strictement les normes françaises et suisses, pour le poste de ${job}.
+  const today = new Date().toLocaleDateString(region === "CH" ? 'fr-CH' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const prompt = `Tu es un expert en recrutement ${country}. Rédige une lettre de motivation professionnelle tenant sur UNE SEULE PAGE, entre 300 et 400 mots, 4 paragraphes de corps, respectant strictement les normes françaises et suisses, pour le poste de ${job}.
 
 Règles absolues :
+- La lettre doit faire entre 300 et 400 mots — c'est OBLIGATOIRE. Compte les mots avant de finaliser.
+- Ton : professionnel, direct et humain — jamais robotique
 - Ne jamais inventer d'éléments non présents dans le CV
 - Adapter le vocabulaire au secteur visé sans créer de fausses expériences
-- Ton professionnel mais humain
 - Jamais de formule creuse comme "je suis une personne motivée et dynamique"
+- Chaque phrase doit apporter une information concrète sur le candidat ou sa motivation pour ce poste précis
+- Pour calculer les années d'expérience, additionne toutes les périodes d'emploi présentes dans le CV en utilisant l'année actuelle (${new Date().getFullYear()}) pour les postes marqués "aujourd'hui" ou "présent" ou "actuel". Ne jamais estimer — calcule précisément.
 ${region === "CH" ? `- Ne jamais écrire "j'ai décidé de m'installer en Suisse" — trop hésitant. Écrire plutôt "Installé en Suisse depuis [date], je souhaite contribuer au système éducatif vaudois"
 - Mentionner la connaissance ou la volonté d'apprendre le système local (DGEP, secondaire II, formation duale)` : ""}
 
@@ -258,8 +263,10 @@ En-tête expéditeur (haut gauche) :
 (ligne vide)
 
 Destinataire (aligné à droite) :
-${offerDetails ? `- Extraire le nom de l'entreprise/établissement et l'adresse depuis l'offre d'emploi ci-dessous. Si l'adresse n'est pas trouvée dans l'offre, écrire "[Nom de l'entreprise], [Adresse]".` : `- [Nom de l'entreprise], [Adresse]`}
-- [Ville, le DATE DU JOUR]
+${offerDetails ? `- Extraire le nom de l'entreprise/établissement depuis l'offre d'emploi ci-dessous. Si l'adresse complète n'est pas trouvée dans l'offre, écrire le nom de l'entreprise suivi de "[Adresse de l'entreprise]" et "[Code postal, Ville]" comme placeholders éditables.` : `- [Nom de l'entreprise]
+- [Adresse de l'entreprise]
+- [Code postal, Ville]`}
+- ${region === "CH" ? "Lausanne" : "Paris"}, le ${today}
 
 (ligne vide)
 
@@ -273,7 +280,9 @@ Paragraphe 1 — Accroche OBLIGATOIRE : Le premier paragraphe doit obligatoireme
 
 Paragraphe 2 — Valeur ajoutée : 2-3 réalisations concrètes et chiffrées tirées du CV original qui démontrent les compétences pour CE poste. Ne jamais inventer.
 
-Paragraphe 3 — Motivation : lien entre le parcours du candidat et le projet de l'entreprise/établissement.${region === "CH" ? " Mentionner la connaissance ou la volonté d'apprendre le système local." : ""}
+Paragraphe 3 — Exemple concret différenciant : Commencer par "Ainsi, lors de mon expérience chez [entreprise réelle du CV], j'ai [action concrète avec résultat si disponible dans le CV]." Ce paragraphe doit contenir UN exemple spécifique et détaillé d'une réalisation tirée du CV original — jamais inventé. Si le CV ne contient pas de chiffres, formuler avec des éléments qualitatifs concrets (type de projet, contexte, résultat observable).
+
+Paragraphe 4 — Motivation : lien entre le parcours du candidat et le projet de l'entreprise/établissement.${region === "CH" ? " Mentionner la connaissance ou la volonté d'apprendre le système local." : ""}
 
 Dans l'attente de vous rencontrer, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
 
@@ -284,5 +293,5 @@ Offre : ${offerDetails || "Non précisée"}
 
 Retourne UNIQUEMENT la lettre, prête à envoyer, avec la structure ci-dessus.`;
 
-  return callAnthropic(prompt, 1500, 0.4);
+  return callAnthropic(prompt, 2000, 0.4);
 };
