@@ -315,8 +315,9 @@ Dans l'attente de vous rencontrer, je vous prie d'agréer, Madame, Monsieur, l'e
 
 CV : ${cvText.substring(0, 1500)}
 Offre : ${offerDetails || "Non précisée"}
+${userAnswers && Object.values(userAnswers).some(v => v.trim()) ? `\nInformations complémentaires fournies par le candidat : ${Object.entries(userAnswers).filter(([,v]) => v.trim()).map(([k,v]) => `${k}: ${v}`).join("; ")}. Intègre-les naturellement dans la lettre. Si une motivation de reconversion est fournie, utilise-la dans le 1er paragraphe.` : ""}
 
-Retourne UNIQUEMENT la lettre, prête à envoyer, avec la structure ci-dessus.`;
+Retourne UNIQUEMENT la lettre, prête à envoyer, avec la structure ci-dessus. Ne JAMAIS inclure de placeholders entre crochets [xxx] dans le résultat final.`;
 
   return callAnthropic(prompt, 2000, 0.4);
 };
