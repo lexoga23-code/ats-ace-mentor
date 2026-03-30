@@ -304,49 +304,12 @@ const ResultsPanel = ({
             </div>
           </div>
 
-          {/* Top 3 priority problems */}
-          {topProblems.length > 0 && (
-            <div className="bg-card p-6 rounded-3xl shadow-soft">
-              <h3 className="text-base font-bold mb-3 text-foreground">🔍 Problèmes prioritaires détectés</h3>
-              <div className="space-y-2">
-                {topProblems.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm">
-                    <span className="mt-0.5">{item.status === "fail" ? "🔴" : "🟠"}</span>
-                    <span className="text-foreground font-medium">{item.label}</span>
-                    <span className="text-muted-foreground">— {item.detail}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Missing keywords - max 5 */}
-          {results.keywordsMissing.length > 0 && (
-            <div className="bg-card p-6 rounded-3xl shadow-soft">
-              <h3 className="text-base font-bold mb-3 text-foreground flex items-center gap-2">
-                ❌ Mots-clés manquants
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {results.keywordsMissing.slice(0, 5).map((kw, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive">
-                    {kw}
-                  </span>
-                ))}
-                {results.keywordsMissing.length > 5 && (
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-secondary text-muted-foreground">
-                    +{results.keywordsMissing.length - 5} autres
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* CTA — Unlock button */}
+          {/* CTA — Unlock button — immediately after score */}
           {!showPaymentOptions ? (
             <button
               onClick={() => setShowPaymentOptions(true)}
-              className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground"
-              style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px" }}
+              className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+              style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px", background: "#1a365d", color: "#fff" }}
             >
               🔓 Générer votre CV et débloquer le rapport complet — {prices.single}{currency}
             </button>
@@ -402,6 +365,44 @@ const ResultsPanel = ({
               </div>
             </div>
           )}
+
+          {/* Top 3 priority problems */}
+          {topProblems.length > 0 && (
+            <div className="bg-card p-6 rounded-3xl shadow-soft">
+              <h3 className="text-base font-bold mb-3 text-foreground">🔍 Problèmes prioritaires détectés</h3>
+              <div className="space-y-2">
+                {topProblems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <span className="mt-0.5">{item.status === "fail" ? "🔴" : "🟠"}</span>
+                    <span className="text-foreground font-medium">{item.label}</span>
+                    <span className="text-muted-foreground">— {item.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Missing keywords - max 5 */}
+          {results.keywordsMissing.length > 0 && (
+            <div className="bg-card p-6 rounded-3xl shadow-soft">
+              <h3 className="text-base font-bold mb-3 text-foreground flex items-center gap-2">
+                ❌ Mots-clés manquants
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {results.keywordsMissing.slice(0, 5).map((kw, i) => (
+                  <span key={i} className="px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive">
+                    {kw}
+                  </span>
+                ))}
+                {results.keywordsMissing.length > 5 && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-secondary text-muted-foreground">
+                    +{results.keywordsMissing.length - 5} autres
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 

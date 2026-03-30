@@ -113,6 +113,9 @@ const CVAnalyzer = () => {
         setCurrentAnalysisId(d.id || null);
         setCoverLetter(d.coverLetter || "");
 
+        // Persist current analysis ID so tab-switch doesn't lose it
+        if (d.id) sessionStorage.setItem("scorecv_current_analysis_id", d.id);
+
         // Bug #8: Always verify server-side before trusting isPaid
         if (user && d.id) {
           checkServerPaidStatus(user.id, d.id).then((serverPaid) => {
@@ -124,6 +127,33 @@ const CVAnalyzer = () => {
         }
 
       } catch { /* ignore */ }
+      return;
+    }
+
+    // On tab re-focus: restore specific analysis from DB if we had one active
+    const savedAnalysisId = sessionStorage.getItem("scorecv_current_analysis_id");
+    if (savedAnalysisId && user && !results) {
+      const restoreSpecific = async () => {
+        const { data } = await supabase
+          .from("user_analyses")
+          .select("*")
+          .eq("id", savedAnalysisId)
+          .eq("user_id", user.id)
+          .single();
+        if (data) {
+          setCvText(data.cv_text || "");
+          setTargetJob(data.target_job || "");
+          setJobDescription(data.job_description || "");
+          setIndustry(data.industry || "");
+          setResults(data.results as unknown as AnalysisResult);
+          setCurrentAnalysisId(data.id);
+          const serverPaid = await checkServerPaidStatus(user.id, data.id);
+          setIsPaid(serverPaid);
+          if (data.rewritten_cv && serverPaid) setRewrittenCV(data.rewritten_cv);
+          if (data.cover_letter && serverPaid) setCoverLetter(data.cover_letter);
+        }
+      };
+      restoreSpecific();
       return;
     }
 
@@ -280,6 +310,7 @@ const CVAnalyzer = () => {
     setResults(null);
     setIsPaid(false);
     setCurrentAnalysisId(null);
+    sessionStorage.removeItem('scorecv_current_analysis_id');
     localStorage.removeItem('rewrittenCV');
     localStorage.removeItem('coverLetter');
     localStorage.removeItem('scorecv_data');
@@ -342,6 +373,7 @@ const CVAnalyzer = () => {
 
         if (inserted) {
           setCurrentAnalysisId(inserted.id);
+          sessionStorage.setItem("scorecv_current_analysis_id", inserted.id);
           // Check if user is Pro (Pro users get auto-paid)
           currentPaid = await checkServerPaidStatus(user.id, inserted.id);
           setIsPaid(currentPaid);
