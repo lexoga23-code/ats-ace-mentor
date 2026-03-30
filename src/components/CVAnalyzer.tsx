@@ -373,6 +373,7 @@ const CVAnalyzer = () => {
 
         if (inserted) {
           setCurrentAnalysisId(inserted.id);
+          sessionStorage.setItem("scorecv_current_analysis_id", inserted.id);
           // Check if user is Pro (Pro users get auto-paid)
           currentPaid = await checkServerPaidStatus(user.id, inserted.id);
           setIsPaid(currentPaid);
