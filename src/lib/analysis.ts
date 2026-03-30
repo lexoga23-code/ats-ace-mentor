@@ -258,7 +258,8 @@ export const generateCoverLetter = async (
   cvText: string,
   job: string,
   region: string,
-  offerDetails?: string
+  offerDetails?: string,
+  userAnswers?: Record<string, string>
 ): Promise<string> => {
   const country = region === "CH" ? "Suisse romande" : "France";
 
