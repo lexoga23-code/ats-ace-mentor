@@ -101,8 +101,14 @@ const ResultsPanel = ({
   const [reviewDone, setReviewDone] = useState(false);
   const [showRewriteQuestions, setShowRewriteQuestions] = useState(false);
 
-  useEffect(() => { setRewrittenCV(initialRewrite); }, [initialRewrite]);
-  useEffect(() => { setCoverLetter(initialCoverLetter || ""); }, [initialCoverLetter]);
+  useEffect(() => {
+    setRewrittenCV(initialRewrite);
+    if (!initialRewrite) setLoadingRewrite(false);
+  }, [initialRewrite]);
+  useEffect(() => {
+    setCoverLetter(initialCoverLetter || "");
+    if (!initialCoverLetter) setLoadingLetter(false);
+  }, [initialCoverLetter]);
 
   useEffect(() => {
     if (!user) return;
