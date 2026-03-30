@@ -280,6 +280,7 @@ const CVAnalyzer = () => {
       return;
     }
 
+
     setLoading(true);
     setResults(null);
     setRewrittenCV("");
