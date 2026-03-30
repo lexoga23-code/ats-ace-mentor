@@ -159,16 +159,23 @@ export const rewriteCV = async (
     ? `\n\nL'utilisateur a fourni ces informations complémentaires : ${Object.entries(userAnswers).filter(([,v]) => v.trim()).map(([k,v]) => `${k}: ${v}`).join("; ")}. Intègre-les naturellement dans le CV réécrit sans les copier mot pour mot. Si une adresse email professionnelle est fournie, remplace l'ancienne. Si des chiffres sont fournis, intègre-les dans les expériences concernées. Si des compétences supplémentaires sont mentionnées, ajoute-les dans la section compétences.`
     : "";
 
-  const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants : ${missingKeywords.join(", ")}.
+  const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants UNIQUEMENT s'ils correspondent à des compétences réelles du candidat : ${missingKeywords.join(", ")}.
+
+RÈGLE CRITIQUE — FIDÉLITÉ AU CV ORIGINAL :
+- Utilise UNIQUEMENT les informations présentes dans le CV original
+- Ne jamais ajouter de compétences, logiciels, certifications ou expériences qui ne sont pas explicitement mentionnés par le candidat
+- Si un mot-clé de l'offre n'est pas dans le CV, NE PAS l'inventer dans le CV réécrit
+- Reformuler uniquement ce qui existe — jamais inventer
+- Si le candidat n'a pas mentionné un logiciel (ex: Abacus, Sage 50, Swiss GAAP), ne JAMAIS l'ajouter même s'il est dans l'offre
 
 RÈGLES SILENCIEUSES — applique sans mentionner dans le CV :
 - Utilise le titre EXACT de l'offre comme titre du CV (pas de synonyme)
-- Assure que chaque mot requis de l'offre apparaît dans au moins 2 sections différentes du CV
+- Assure que chaque mot requis de l'offre apparaît dans au moins 2 sections différentes du CV, SEULEMENT si le candidat possède réellement cette compétence
 - Utilise le vocabulaire EXACT de l'offre — jamais de synonymes
 - Ne jamais inventer d'expériences — reformuler uniquement ce qui existe déjà
 
 Règles absolues :
-- Ne jamais inventer d'expériences, de postes, de compétences ou de formations qui ne sont pas dans le CV original
+- Ne jamais inventer d'expériences, de postes, de compétences, de logiciels ou de formations qui ne sont pas dans le CV original
 - Ne jamais couper des mots en fin de ligne
 - Structure ATS : une colonne, pas de tableau, texte pur
 - Ordre chronologique inverse obligatoire
