@@ -304,6 +304,68 @@ const ResultsPanel = ({
             </div>
           </div>
 
+          {/* CTA — Unlock button — immediately after score */}
+          {!showPaymentOptions ? (
+            <button
+              onClick={() => setShowPaymentOptions(true)}
+              className="w-full font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+              style={{ padding: "1.4rem 2rem", fontSize: "1.15rem", borderRadius: "12px", background: "#1a365d", color: "#fff" }}
+            >
+              🔓 Générer votre CV et débloquer le rapport complet — {prices.single}{currency}
+            </button>
+          ) : (
+            <div className="p-6 rounded-3xl border-2 border-primary/30 bg-card">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-6 rounded-2xl border border-border bg-background space-y-3">
+                  <h4 className="font-bold text-lg text-foreground">1 CV + rapport complet</h4>
+                  <div className="text-3xl font-bold text-foreground">
+                    {prices.single}<span className="text-lg">{currency}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    CV réécrit · Checklist · Lettre de motivation · Export PDF & Word
+                  </p>
+                  <button
+                    onClick={() => handleCheckout("report")}
+                    disabled={checkoutLoading === "report"}
+                    className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: "#1a365d", color: "#fff" }}
+                  >
+                    {checkoutLoading === "report" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                    ) : (
+                      `Choisir — ${prices.single}${currency}`
+                    )}
+                  </button>
+                </div>
+                <div className="relative p-6 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
+                    Meilleur choix
+                  </span>
+                  <h4 className="font-bold text-lg text-foreground">Abonnement Pro</h4>
+                  <div className="text-3xl font-bold text-foreground">
+                    {prices.pro}<span className="text-lg">{currency}</span>
+                    <span className="text-sm text-muted-foreground font-normal">/mois</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    CV réécrit et analyses illimitées · Tout débloqué
+                  </p>
+                  <button
+                    onClick={() => handleCheckout("pro")}
+                    disabled={checkoutLoading === "pro"}
+                    className="w-full py-4 rounded-xl font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: "#1a365d", color: "#fff", fontSize: "1rem" }}
+                  >
+                    {checkoutLoading === "pro" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Ouverture...</>
+                    ) : (
+                      `S'abonner — ${prices.pro}${currency}/mois`
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top 3 priority problems */}
           {topProblems.length > 0 && (
             <div className="bg-card p-6 rounded-3xl shadow-soft">
