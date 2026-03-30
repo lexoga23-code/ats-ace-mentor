@@ -9,13 +9,12 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const smoothTo = (id: string) => {
-    document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
+    navigate(`/${id}`);
   };
 
   const handleLogoClick = () => {
     localStorage.setItem("scorecv_reset", "true");
     navigate("/");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (

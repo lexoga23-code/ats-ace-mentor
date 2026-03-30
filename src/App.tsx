@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,33 +14,13 @@ import Account from "./pages/Account.tsx";
 
 const queryClient = new QueryClient();
 
-function ScrollRestorer() {
-  const location = useLocation();
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem('scroll_' + location.pathname);
-    if (saved) {
-      setTimeout(() => window.scrollTo(0, parseInt(saved)), 50);
-    }
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const save = () => sessionStorage.setItem('scroll_' + location.pathname, window.scrollY.toString());
-    window.addEventListener('scroll', save);
-    return () => window.removeEventListener('scroll', save);
-  }, [location.pathname]);
-
-  return null;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <ScrollRestorer />
+        <BrowserRouter future={{ v7_scrollRestoration: false }}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />

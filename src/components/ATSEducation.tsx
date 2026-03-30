@@ -75,12 +75,12 @@ const ATSEducation = () => {
           <p className="text-lg text-muted-foreground mb-6">
             <span className="font-bold text-foreground">Prêt à tester votre CV ?</span> {"Découvrez si votre CV passe les filtres ATS."}
           </p>
-          <button
-            onClick={() => document.querySelector("#optimiser")?.scrollIntoView({ behavior: "smooth" })}
-            className="bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+          <a
+            href="#optimiser"
+            className="inline-block bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
           >
             {"Analyser mon CV — c'est gratuit"}
-          </button>
+          </a>
           <p className="mt-3 text-sm text-muted-foreground">Analyse en 30 secondes · Aucune inscription</p>
         </div>
       </div>
