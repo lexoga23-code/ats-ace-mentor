@@ -71,16 +71,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Also check if user has any paid single report
-    const { data: paidAnalyses } = await supabaseClient
-      .from("user_analyses")
-      .select("is_paid")
-      .eq("user_id", user.id)
-      .eq("is_paid", true)
-      .limit(1);
-
-    const hasPaidReport = !!(paidAnalyses && paidAnalyses.length > 0);
-
     // Check review requested
     const { data: subData } = await supabaseClient
       .from("user_subscriptions")
@@ -91,7 +81,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       isPro,
       subscriptionEnd,
-      hasPaidReport,
       reviewRequested: subData?.review_requested ?? false,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

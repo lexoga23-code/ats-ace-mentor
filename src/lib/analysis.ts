@@ -28,7 +28,6 @@ export interface AnalysisResult {
 
 const callAnthropic = async (prompt: string, maxTokens = 1500, temperature = 0.3): Promise<string> => {
   const maxAttempts = 3;
-  let lastMessage = "Erreur lors de l'appel API";
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const { data, error } = await supabase.functions.invoke('anthropic-proxy', {
@@ -40,19 +39,28 @@ const callAnthropic = async (prompt: string, maxTokens = 1500, temperature = 0.3
     }
 
     const message = error?.message || data?.error || "Erreur lors de l'appel API";
-    lastMessage = message;
 
     const isTransientNetworkError = /Failed to send a request to the Edge Function|ERR_CONNECTION_CLOSED|Failed to fetch|NetworkError/i.test(message);
-    const hasRemainingAttempt = attempt < maxAttempts;
+    const isTimeout = /timeout|timed out|504|408/i.test(message);
+    const isRateLimit = /rate limit|429|too many requests/i.test(message);
 
+    // Messages d'erreur clairs pour l'utilisateur
+    if (isRateLimit) {
+      throw new Error("Trop de demandes en cours. Veuillez patienter quelques secondes et réessayer.");
+    }
+    if (isTimeout) {
+      throw new Error("L'analyse prend plus de temps que prévu. Veuillez réessayer dans quelques instants.");
+    }
+
+    const hasRemainingAttempt = attempt < maxAttempts;
     if (!isTransientNetworkError || !hasRemainingAttempt) {
-      throw new Error(message);
+      throw new Error("Une erreur est survenue lors de l'analyse. Veuillez réessayer. Si le problème persiste, contactez-nous.");
     }
 
     await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
   }
 
-  throw new Error(lastMessage);
+  throw new Error("Service temporairement indisponible. Veuillez réessayer dans quelques instants.");
 };
 
 export const analyzeCV = async (
@@ -111,11 +119,12 @@ ${region === "CH" ? `RÈGLES POUR LA SUISSE :
 - Toujours inclure dans les suggestions : "Adaptez votre vocabulaire au système suisse romand — les recruteurs suisses valorisent fortement la connaissance des termes locaux (DGEP, secondaire II, école professionnelle)"
 - Dans le CV réécrit, ne jamais laisser "lycée professionnel" ou "Professeur" si contexte suisse` : ""}
 
-RÈGLE CRITIQUE — INTERDICTION DE CONSEILS DE FORMATION OU CARRIÈRE :
-- Ne JAMAIS suggérer à l'utilisateur de se former, passer une certification, acquérir une nouvelle compétence, suivre une formation, ou apprendre un outil/logiciel
-- Les suggestions doivent porter UNIQUEMENT sur ce qui peut être amélioré dans le CV EXISTANT : reformulation, ajout de chiffres déjà connus, correction de structure, réorganisation
-- Exemples INTERDITS : "Formez-vous à Robot Framework", "Obtenez la certification PMP", "Apprenez Python"
-- Exemples AUTORISÉS : "Ajoutez des résultats chiffrés à votre expérience chez X", "Déplacez la section Compétences avant Expérience"
+⛔ RÈGLE CRITIQUE — INTERDICTION ABSOLUE DE CONSEILS DE FORMATION ⛔
+- Ne JAMAIS suggérer à l'utilisateur de : se former, passer une certification, acquérir une compétence, suivre un cours, apprendre un outil/logiciel, obtenir un diplôme, développer une expertise, améliorer son niveau de langue
+- Les suggestions doivent porter UNIQUEMENT sur le CV EXISTANT : reformulation, structure, mise en page, ajout de chiffres DÉJÀ CONNUS du candidat
+- Exemples STRICTEMENT INTERDITS : "Formez-vous à...", "Obtenez la certification...", "Apprenez...", "Développez vos compétences en...", "Suivez une formation...", "Passez le TOEIC...", "Certifiez-vous...", "Améliorez votre niveau..."
+- Exemples AUTORISÉS : "Ajoutez des résultats chiffrés", "Réorganisez les sections", "Mettez le titre en valeur", "Précisez les dates"
+- Si tu ne sais pas quoi suggérer sans parler de formation, ne mets AUCUNE suggestion plutôt que de violer cette règle
 
 RÈGLES POUR LES SUGGESTIONS — DEUX CATÉGORIES DISTINCTES :
 Les suggestions doivent être séparées en deux catégories avec le champ "category" :
@@ -194,12 +203,13 @@ export const rewriteCV = async (
 
   const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants UNIQUEMENT s'ils correspondent à des compétences réelles du candidat : ${missingKeywords.join(", ")}.
 
-RÈGLE CRITIQUE N°1 — INTERDICTION ABSOLUE D'INVENTER :
-- Il est STRICTEMENT INTERDIT d'ajouter toute compétence, logiciel, certification, outil ou expérience qui n'est pas EXPLICITEMENT mentionné dans le CV original
-- Si une compétence de l'offre n'est pas dans le CV (ex: Salesforce, SAP, Abacus, Sage 50, Swiss GAAP, Python, etc.), NE JAMAIS l'écrire dans le CV réécrit — la signaler uniquement dans les suggestions
-- Avant d'écrire chaque compétence ou outil dans le CV réécrit, VÉRIFIE qu'il apparaît mot pour mot dans le CV original. Si ce n'est pas le cas, ne l'inclus pas.
-- Reformuler uniquement ce qui existe — jamais inventer
-- N'ajoute PAS de chiffres inventés — garde UNIQUEMENT les chiffres qui existent déjà dans le CV original
+⛔ RÈGLE ABSOLUE #1 — INTERDICTION TOTALE D'INVENTER ⛔
+- Il est STRICTEMENT INTERDIT d'ajouter toute compétence, logiciel, certification, outil, langue ou expérience qui n'est pas EXPLICITEMENT mentionné dans le CV original ci-dessous
+- AVANT d'écrire chaque compétence ou outil, VÉRIFIE qu'il apparaît MOT POUR MOT dans le CV original
+- Si un mot-clé manquant (${missingKeywords.join(", ")}) n'existe PAS dans le CV original, NE PAS l'ajouter — même s'il est demandé
+- Exemples INTERDITS : ajouter "Python" si absent du CV, ajouter "Salesforce" si absent, inventer des certifications, ajouter des langues non mentionnées
+- N'ajoute AUCUN chiffre qui n'existe pas déjà dans le CV original — ne jamais inventer de statistiques ou résultats
+- Cette règle est NON NÉGOCIABLE — une seule invention = échec total
 
 RÈGLE CRITIQUE N°2 — TITRE POUR LES RECONVERSIONS :
 - Ne JAMAIS écrire "en reconversion" dans le titre du CV
@@ -252,9 +262,12 @@ STRUCTURE OBLIGATOIRE DU CV — respecter cet ordre exact :
 
 6. LANGUES (si pertinent)
 
+⛔ RAPPEL FINAL AVANT DE RÉPONDRE ⛔
+Relis le CV original une dernière fois. Si tu as écrit une compétence, un outil, un logiciel ou une certification qui N'APPARAÎT PAS dans le CV original ci-dessous, SUPPRIME-LE immédiatement de ta réponse.
+
 Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.${answersBlock}
 
-CV: ${cvText.substring(0, 2000)}`;
+CV ORIGINAL À RÉÉCRIRE (ne rien inventer qui n'est pas présent ici) : ${cvText.substring(0, 2000)}`;
 
   return callAnthropic(prompt, 2500, 0.3);
 };

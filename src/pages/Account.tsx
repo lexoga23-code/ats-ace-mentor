@@ -157,7 +157,7 @@ const AccountInner = () => {
       coverLetter: data[0].cover_letter || "",
       score: data[0].score,
     }));
-    navigate("/");
+    navigate("/#optimiser");
   };
 
   const handleViewAnalysis = async (analysisId: string) => {
@@ -186,7 +186,7 @@ const AccountInner = () => {
       coverLetter: data.cover_letter || "",
       score: data.score,
     }));
-    navigate("/");
+    navigate("/#optimiser");
   };
 
   const handleDeleteAnalysis = async (e: React.MouseEvent, analysisId: string) => {

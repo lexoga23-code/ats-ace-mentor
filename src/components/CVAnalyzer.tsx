@@ -44,18 +44,38 @@ const CVAnalyzer = () => {
   const resultsRef = useRef<HTMLDivElement>(null);
 
   /** Bug #2/#3 fix: Check server-side if user has paid for THIS SPECIFIC analysis OR has active pro subscription */
+  /** Amélioration: Cache de 60 secondes pour check-subscription */
   const checkServerPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
-    // If no analysisId, default to false (never assume paid)
-    if (!analysisId) {
-      // Still check pro subscription
+    const cacheKey = "scorecv_sub_cache";
+
+    // Fonction helper pour vérifier le statut Pro avec cache
+    const checkProWithCache = async (): Promise<boolean> => {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const c = JSON.parse(cached);
+          if (Date.now() - c.timestamp < 60000 && c.isPro) {
+            return true;
+          }
+        } catch { /* ignore */ }
+      }
+
       try {
         const { data: subData } = await supabase.functions.invoke("check-subscription");
-        if (subData?.isPro) return true;
+        if (subData) {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ ...subData, timestamp: Date.now() }));
+          if (subData.isPro) return true;
+        }
       } catch { /* ignore */ }
       return false;
+    };
+
+    // Si pas d'analysisId, vérifier uniquement le statut Pro
+    if (!analysisId) {
+      return await checkProWithCache();
     }
 
-    // Check this specific analysis
+    // Vérifier l'analyse spécifique
     const { data } = await supabase
       .from("user_analyses")
       .select("is_paid")
@@ -64,13 +84,8 @@ const CVAnalyzer = () => {
       .single();
     if (data?.is_paid) return true;
 
-    // Also check pro subscription
-    try {
-      const { data: subData } = await supabase.functions.invoke("check-subscription");
-      if (subData?.isPro) return true;
-    } catch { /* ignore */ }
-
-    return false;
+    // Aussi vérifier l'abonnement Pro avec cache
+    return await checkProWithCache();
   };
 
   // On mount: handle reset flag, restore from localStorage, or restore from DB
@@ -111,7 +126,6 @@ const CVAnalyzer = () => {
         setIndustry(d.industry || "");
         setResults(d.results as AnalysisResult);
         setCurrentAnalysisId(d.id || null);
-        setCoverLetter(d.coverLetter || "");
 
         // Persist current analysis ID so tab-switch doesn't lose it
         if (d.id) sessionStorage.setItem("scorecv_current_analysis_id", d.id);
@@ -120,7 +134,10 @@ const CVAnalyzer = () => {
         if (user && d.id) {
           checkServerPaidStatus(user.id, d.id).then((serverPaid) => {
             setIsPaid(serverPaid);
-            if (d.rewrittenCV && serverPaid) setRewrittenCV(d.rewrittenCV);
+            if (serverPaid) {
+              if (d.rewrittenCV) setRewrittenCV(d.rewrittenCV);
+              if (d.coverLetter) setCoverLetter(d.coverLetter);
+            }
           });
         } else {
           setIsPaid(false);
@@ -147,6 +164,7 @@ const CVAnalyzer = () => {
           setIndustry(data.industry || "");
           setResults(data.results as unknown as AnalysisResult);
           setCurrentAnalysisId(data.id);
+          sessionStorage.setItem("scorecv_current_analysis_id", data.id);
           const serverPaid = await checkServerPaidStatus(user.id, data.id);
           setIsPaid(serverPaid);
           if (data.rewritten_cv && serverPaid) setRewrittenCV(data.rewritten_cv);
@@ -189,33 +207,34 @@ const CVAnalyzer = () => {
       if (e.key === "scorecv_paid" && e.newValue === "true") {
         localStorage.removeItem("scorecv_paid");
 
-        if (user) {
-          // Get the latest analysis to find its ID
+        if (user && currentAnalysisId) {
+          // Verify payment for the CURRENT analysis only
+          const serverPaid = await checkServerPaidStatus(user.id, currentAnalysisId);
+          if (!serverPaid) return;
+
+          // Fetch the current analysis data
           const { data } = await supabase
             .from("user_analyses")
             .select("*")
+            .eq("id", currentAnalysisId)
             .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(1);
+            .single();
 
-          if (data && data.length > 0) {
-            const latest = data[0];
-            // Bug #8: Always verify server-side with specific analysisId
-            const serverPaid = await checkServerPaidStatus(user.id, latest.id);
-            if (!serverPaid) return;
+          if (data) {
             setIsPaid(true);
-
-            setCvText(latest.cv_text || "");
-            setTargetJob(latest.target_job || "");
-            setResults(latest.results as unknown as AnalysisResult);
-            setCurrentAnalysisId(latest.id);
-            if (latest.rewritten_cv) {
-              setRewrittenCV(latest.rewritten_cv);
-            } else if (latest.cv_text && latest.target_job) {
-              const r = latest.results as unknown as AnalysisResult;
-              rewriteCV(latest.cv_text, latest.target_job, region, r.keywordsMissing || [])
-                .then(setRewrittenCV)
-                .catch(() => {});
+            if (data.rewritten_cv) {
+              setRewrittenCV(data.rewritten_cv);
+            } else if (cvText && targetJob) {
+              // Generate rewritten CV for current analysis
+              const r = results;
+              if (r) {
+                rewriteCV(cvText, targetJob, region, r.keywordsMissing || [])
+                  .then(setRewrittenCV)
+                  .catch(() => {});
+              }
+            }
+            if (data.cover_letter) {
+              setCoverLetter(data.cover_letter);
             }
           }
         }
@@ -226,7 +245,7 @@ const CVAnalyzer = () => {
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, [user, region]); // Bug #5: added user to dependencies
+  }, [user, region, currentAnalysisId, cvText, targetJob, results]);
 
   // On mount: check for session_id in URL (return from Stripe same-tab redirect)
   useEffect(() => {
@@ -316,6 +335,7 @@ const CVAnalyzer = () => {
     localStorage.removeItem('scorecv_data');
     localStorage.removeItem('scorecv_paid');
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('scorecv_restore_analysis');
     sessionStorage.removeItem('rewrittenCV');
     sessionStorage.removeItem('coverLetter');
     console.log('HARD RESET — CV et lettre effacés');
@@ -387,7 +407,8 @@ const CVAnalyzer = () => {
       }
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'analyse. Veuillez réessayer.");
+      const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de l'analyse";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
       // Scroll to results after analysis completes

@@ -101,14 +101,29 @@ const ResultsPanel = ({
   const [reviewDone, setReviewDone] = useState(false);
   const [showRewriteQuestions, setShowRewriteQuestions] = useState(false);
 
+  // Vérification serveur au montage pour contenu payant existant
   useEffect(() => {
-    setRewrittenCV(initialRewrite);
-    if (!initialRewrite) setLoadingRewrite(false);
-  }, [initialRewrite]);
-  useEffect(() => {
-    setCoverLetter(initialCoverLetter || "");
-    if (!initialCoverLetter) setLoadingLetter(false);
-  }, [initialCoverLetter]);
+    const verifyAndSetContent = async () => {
+      if (initialRewrite || initialCoverLetter) {
+        if (user && analysisId) {
+          const serverPaid = await verifyPaidStatus(user.id, analysisId);
+          if (serverPaid) {
+            if (initialRewrite) setRewrittenCV(initialRewrite);
+            if (initialCoverLetter) setCoverLetter(initialCoverLetter);
+          } else {
+            setRewrittenCV("");
+            setCoverLetter("");
+          }
+        }
+      } else {
+        setRewrittenCV("");
+        setCoverLetter("");
+      }
+      setLoadingRewrite(false);
+      setLoadingLetter(false);
+    };
+    verifyAndSetContent();
+  }, [initialRewrite, initialCoverLetter, user, analysisId]);
 
   useEffect(() => {
     if (!user) return;
@@ -150,7 +165,10 @@ const ResultsPanel = ({
       const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing, userAnswers);
       setRewrittenCV(text);
       onRewrittenCVChange?.(text);
-    } catch { alert("Erreur. Réessayez."); }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erreur lors de la génération du CV";
+      toast.error(errorMessage);
+    }
     setLoadingRewrite(false);
   };
 
@@ -167,7 +185,10 @@ const ResultsPanel = ({
       const text = await generateCoverLetter(cvText, targetJob, region, jobDescription);
       setCoverLetter(text);
       onCoverLetterChange?.(text);
-    } catch { alert("Erreur. Réessayez."); }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erreur lors de la génération de la lettre";
+      toast.error(errorMessage);
+    }
     setLoadingLetter(false);
   };
 

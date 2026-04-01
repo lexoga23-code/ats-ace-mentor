@@ -9,7 +9,13 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const smoothTo = (id: string) => {
-    navigate(`/${id}`);
+    const elementId = id.replace('#', '');
+    const el = document.getElementById(elementId);
+    if (el && window.location.pathname === '/') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      navigate(`/${id}`);
+    }
   };
 
   const handleLogoClick = () => {
