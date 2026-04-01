@@ -42,6 +42,7 @@ const CVAnalyzer = () => {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [uploaderResetKey, setUploaderResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const uploadInProgressRef = useRef(false);  // Flag pour éviter race condition avec restauration DB
 
   /** Bug #2/#3 fix: Check server-side if user has paid for THIS SPECIFIC analysis OR has active pro subscription */
   /** Amélioration: Cache de 60 secondes pour check-subscription */
@@ -157,6 +158,13 @@ const CVAnalyzer = () => {
           .eq("id", savedAnalysisId)
           .eq("user_id", user.id)
           .single();
+
+        // Ne pas écraser si un nouveau CV a été uploadé entre-temps (race condition fix)
+        if (uploadInProgressRef.current) {
+          console.log('Restauration spécifique annulée — nouveau CV uploadé entre-temps');
+          return;
+        }
+
         if (data) {
           setCvText(data.cv_text || "");
           setTargetJob(data.target_job || "");
@@ -183,6 +191,12 @@ const CVAnalyzer = () => {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1);
+
+      // Ne pas écraser si un nouveau CV a été uploadé entre-temps (race condition fix)
+      if (uploadInProgressRef.current) {
+        console.log('Restauration DB annulée — nouveau CV uploadé entre-temps');
+        return;
+      }
 
       if (data && data.length > 0) {
         const latest = data[0];
@@ -434,6 +448,7 @@ const CVAnalyzer = () => {
   };
 
   const handleFileUploaded = (text: string) => {
+    uploadInProgressRef.current = true;  // Empêche la restauration DB d'écraser ce nouveau CV
     hardResetCVAndLetter();
     setCvText(text);
     console.log('CV chargé pour: nouveau fichier —', 'longueur:', text.length);
