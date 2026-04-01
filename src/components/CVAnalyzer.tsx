@@ -89,8 +89,20 @@ const CVAnalyzer = () => {
     return await checkProWithCache();
   };
 
-  // On mount: handle reset flag, restore from localStorage, or restore from DB
-  // Separate effect for reset flag — must react to route navigation, not just user changes
+  // On mount: clean analysis data (not history or subscription cache)
+  // Ensures fresh start on page refresh as per user requirements
+  useEffect(() => {
+    // Nettoyer les données d'analyse au rafraîchissement
+    sessionStorage.removeItem('scorecv_current_analysis_id');
+    localStorage.removeItem('scorecv_analysis');
+    localStorage.removeItem('scorecv_data');
+    localStorage.removeItem('rewrittenCV');
+    localStorage.removeItem('coverLetter');
+    sessionStorage.removeItem('rewrittenCV');
+    sessionStorage.removeItem('coverLetter');
+  }, []);
+
+  // Handle reset flag — must react to route navigation, not just user changes
   useEffect(() => {
     const checkReset = () => {
       if (localStorage.getItem("scorecv_reset") === "true") {
@@ -113,9 +125,9 @@ const CVAnalyzer = () => {
     return () => window.removeEventListener("focus", checkReset);
   }, []);
 
+  // Handle restore from Account page only (explicit user action)
+  // No automatic restore from DB on refresh — fresh start each time
   useEffect(() => {
-
-    // Handle restore from Account page (specific analysis)
     const restoreData = localStorage.getItem("scorecv_restore_analysis");
     if (restoreData) {
       localStorage.removeItem("scorecv_restore_analysis");
@@ -127,9 +139,6 @@ const CVAnalyzer = () => {
         setIndustry(d.industry || "");
         setResults(d.results as AnalysisResult);
         setCurrentAnalysisId(d.id || null);
-
-        // Persist current analysis ID so tab-switch doesn't lose it
-        if (d.id) sessionStorage.setItem("scorecv_current_analysis_id", d.id);
 
         // Bug #8: Always verify server-side before trusting isPaid
         if (user && d.id) {
@@ -143,76 +152,8 @@ const CVAnalyzer = () => {
         } else {
           setIsPaid(false);
         }
-
       } catch { /* ignore */ }
-      return;
     }
-
-    // On tab re-focus: restore specific analysis from DB if we had one active
-    const savedAnalysisId = sessionStorage.getItem("scorecv_current_analysis_id");
-    if (savedAnalysisId && user && !results) {
-      const restoreSpecific = async () => {
-        const { data } = await supabase
-          .from("user_analyses")
-          .select("*")
-          .eq("id", savedAnalysisId)
-          .eq("user_id", user.id)
-          .single();
-
-        // Ne pas écraser si un nouveau CV a été uploadé entre-temps (race condition fix)
-        if (uploadInProgressRef.current) {
-          console.log('Restauration spécifique annulée — nouveau CV uploadé entre-temps');
-          return;
-        }
-
-        if (data) {
-          setCvText(data.cv_text || "");
-          setTargetJob(data.target_job || "");
-          setJobDescription(data.job_description || "");
-          setIndustry(data.industry || "");
-          setResults(data.results as unknown as AnalysisResult);
-          setCurrentAnalysisId(data.id);
-          sessionStorage.setItem("scorecv_current_analysis_id", data.id);
-          const serverPaid = await checkServerPaidStatus(user.id, data.id);
-          setIsPaid(serverPaid);
-          if (data.rewritten_cv && serverPaid) setRewrittenCV(data.rewritten_cv);
-          if (data.cover_letter && serverPaid) setCoverLetter(data.cover_letter);
-        }
-      };
-      restoreSpecific();
-      return;
-    }
-
-    if (!user) return;
-    const restoreFromDb = async () => {
-      const { data } = await supabase
-        .from("user_analyses")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      // Ne pas écraser si un nouveau CV a été uploadé entre-temps (race condition fix)
-      if (uploadInProgressRef.current) {
-        console.log('Restauration DB annulée — nouveau CV uploadé entre-temps');
-        return;
-      }
-
-      if (data && data.length > 0) {
-        const latest = data[0];
-        setCvText(latest.cv_text || "");
-        setTargetJob(latest.target_job || "");
-        setJobDescription(latest.job_description || "");
-        setIndustry(latest.industry || "");
-        setResults(latest.results as unknown as AnalysisResult);
-        setCurrentAnalysisId(latest.id);
-        const serverPaid = await checkServerPaidStatus(user.id, latest.id);
-        setIsPaid(serverPaid);
-        if (latest.rewritten_cv && serverPaid) setRewrittenCV(latest.rewritten_cv);
-        if (latest.cover_letter && serverPaid) setCoverLetter(latest.cover_letter);
-      }
-    };
-    restoreFromDb();
   }, [user]);
 
   // Bug #14 fix: Single storage event listener only (removed redundant polling interval)
