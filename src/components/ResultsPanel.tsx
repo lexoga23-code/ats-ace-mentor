@@ -106,6 +106,7 @@ const ResultsPanel = ({
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewDone, setReviewDone] = useState(false);
   const [showRewriteQuestions, setShowRewriteQuestions] = useState(false);
+  const [savedUserAnswers, setSavedUserAnswers] = useState<Record<string, string>>({});
 
   // Vérification serveur au montage pour contenu payant existant
   useEffect(() => {
@@ -169,6 +170,7 @@ const ResultsPanel = ({
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id, analysisId);
     if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé."); return; }
+    if (userAnswers) setSavedUserAnswers(userAnswers);
     setShowRewriteQuestions(false);
     setLoadingRewrite(true);
     console.log('CV utilisé pour réécriture — longueur:', cvText.length);
@@ -193,7 +195,7 @@ const ResultsPanel = ({
     if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre lettre."); return; }
     setLoadingLetter(true);
     try {
-      const text = await generateCoverLetter(cvText, targetJob, region, jobDescription);
+      const text = await generateCoverLetter(cvText, targetJob, region, jobDescription, savedUserAnswers);
       setCoverLetter(text);
       onCoverLetterChange?.(text);
     } catch (err) {
