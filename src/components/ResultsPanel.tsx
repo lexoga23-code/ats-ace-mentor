@@ -266,6 +266,16 @@ const ResultsPanel = ({
     <div className="mt-12 space-y-8">
       {/* Paid: Score Overview */}
       {isPaid && (
+        <div className="space-y-4">
+          {matchPct !== null && matchPct > 0 ? (
+            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
+            </p>
+          ) : (
+            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+              📊 Votre CV obtient {results.score}/100 — voici comment progresser vers 80+
+            </p>
+          )}
         <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
           <div className="space-y-4">
             <ScoreCircle score={results.score} />
@@ -286,7 +296,8 @@ const ResultsPanel = ({
               <ScoreBar label="LISIBILITÉ" value={results.scoreDetails.readability} max={20} />
             </div>
           </div>
-        </div>
+      </div>
+      </div>
       )}
 
       {/* FREE MODE */}
@@ -294,11 +305,11 @@ const ResultsPanel = ({
         <div className="space-y-6">
           {matchPct !== null && matchPct > 0 ? (
             <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
-              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
             </p>
           ) : (
             <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
-              🎯 {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+              📊 Votre CV obtient {results.score}/100 — voici comment progresser vers 80+
             </p>
           )}
 
