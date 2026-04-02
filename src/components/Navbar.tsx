@@ -18,23 +18,27 @@ const Navbar = () => {
     }
   };
 
-  const handleLogoClick = () => {
+  const handleFullReset = () => {
     localStorage.setItem("scorecv_reset", "true");
     localStorage.removeItem("rewrittenCV");
     localStorage.removeItem("coverLetter");
     localStorage.removeItem("scorecv_data");
     localStorage.removeItem("scorecv_paid");
     localStorage.removeItem("scorecv_analysis");
+    localStorage.removeItem("scorecv_restore_analysis");
     sessionStorage.removeItem("rewrittenCV");
     sessionStorage.removeItem("coverLetter");
+    sessionStorage.removeItem("scorecv_current_analysis_id");
+    sessionStorage.removeItem("scorecv_sub_cache");
     navigate("/");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <nav className="fixed top-0 w-full z-50 glass-nav border-b border-border/50">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 h-[76px] flex items-center justify-between py-4">
         <div className="flex items-center gap-8">
-          <span className="text-xl font-bold tracking-tighter text-primary cursor-pointer" onClick={handleLogoClick}>ScoreCV</span>
+          <span className="text-[30px] font-[800] tracking-tighter text-primary cursor-pointer" onClick={handleFullReset}>ScoreCV</span>
           <div className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
             <button onClick={() => smoothTo("#optimiser")} className="hover:text-primary transition-colors">Optimiser</button>
             <button onClick={() => smoothTo("#ats")} className="hover:text-primary transition-colors">{"C'est quoi l'ATS ?"}</button>
@@ -67,8 +71,8 @@ const Navbar = () => {
             </button>
           )}
           <button
-            onClick={() => smoothTo("#optimiser")}
-            className="bg-primary text-primary-foreground px-5 py-2 rounded-full text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+            onClick={handleFullReset}
+            className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
           >
             COMMENCER
           </button>
