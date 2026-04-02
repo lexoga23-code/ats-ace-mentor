@@ -13,7 +13,7 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
   const handlePrint = () => {
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title> </title><style>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title>\u00A0</title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; padding: 60px; max-width: 700px; margin: 0 auto; font-size: 13px; line-height: 1.8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
@@ -28,11 +28,7 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
       }
     </style></head><body>${renderLetterHTML()}</body></html>`);
     win.document.close();
-    // Supprimer date, numéro de page et about:blank à l'impression
     win.document.title = "\u00A0";
-    const hideStyle = win.document.createElement('style');
-    hideStyle.textContent = '@media print { @page { margin: 1.5cm; size: A4; } head, header, footer { display: none !important; } }';
-    win.document.head.appendChild(hideStyle);
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
