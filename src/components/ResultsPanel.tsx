@@ -296,7 +296,8 @@ const ResultsPanel = ({
               <ScoreBar label="LISIBILITÉ" value={results.scoreDetails.readability} max={20} />
             </div>
           </div>
-        </div>
+      </div>
+      </div>
       )}
 
       {/* FREE MODE */}
