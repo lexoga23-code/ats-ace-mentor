@@ -62,6 +62,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Faille #4: Validation du prompt (max 50000 chars, pas de scripts malveillants)
+    if (typeof prompt !== "string" || prompt.length > 50000) {
+      return new Response(JSON.stringify({ error: "Prompt trop long (max 50000 caractères)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Sanitize: reject obvious malicious patterns
+    const dangerousPatterns = /<script[\s>]/i;
+    if (dangerousPatterns.test(prompt)) {
+      console.warn("Suspicious prompt detected from user:", userId ?? "anonymous");
+      return new Response(JSON.stringify({ error: "Contenu non autorisé détecté" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
       console.error("ANTHROPIC_API_KEY not configured");

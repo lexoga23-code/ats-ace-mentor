@@ -10,6 +10,7 @@ import ResultsPanel from "./ResultsPanel";
 import LoadingOverlay from "./LoadingOverlay";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cleanExpiredStorage } from "@/lib/storage";
 
 const STORAGE_KEY = "scorecv_analysis";
 
@@ -71,9 +72,9 @@ const CVAnalyzer = () => {
       return false;
     };
 
-    // Si pas d'analysisId, vérifier uniquement le statut Pro
+    // Sécurité: exiger analysisId, sinon retourner false par défaut
     if (!analysisId) {
-      return await checkProWithCache();
+      return false;
     }
 
     // Vérifier l'analyse spécifique
@@ -92,6 +93,8 @@ const CVAnalyzer = () => {
   // On mount: clean analysis data (not history or subscription cache)
   // Ensures fresh start on page refresh as per user requirements
   useEffect(() => {
+    // Nettoyer les entrées localStorage expirées (24h)
+    cleanExpiredStorage();
     // Nettoyer les données d'analyse au rafraîchissement
     sessionStorage.removeItem('scorecv_current_analysis_id');
     localStorage.removeItem('scorecv_analysis');

@@ -64,15 +64,21 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
 const STORAGE_KEY = "scorecv_analysis";
 
 const verifyPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
-  if (analysisId) {
-    const { data } = await supabase
-      .from("user_analyses")
-      .select("is_paid")
-      .eq("id", analysisId)
-      .eq("user_id", userId)
-      .single();
-    if (data?.is_paid) return true;
+  // Sécurité: exiger analysisId, sinon retourner false par défaut
+  if (!analysisId) {
+    return false;
   }
+
+  // Vérifier l'analyse spécifique
+  const { data } = await supabase
+    .from("user_analyses")
+    .select("is_paid")
+    .eq("id", analysisId)
+    .eq("user_id", userId)
+    .single();
+  if (data?.is_paid) return true;
+
+  // Vérifier aussi le statut Pro
   try {
     const { data: subData } = await supabase.functions.invoke("check-subscription");
     if (subData?.isPro) return true;
