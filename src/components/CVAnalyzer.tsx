@@ -159,49 +159,64 @@ const CVAnalyzer = () => {
     }
   }, [user]);
 
-  // Bug #14 fix: Single storage event listener only (removed redundant polling interval)
+  // Fonction pour gérer la détection de paiement
+  const handlePaymentDetected = async () => {
+    if (localStorage.getItem("scorecv_paid") !== "true") return;
+    localStorage.removeItem("scorecv_paid");
+
+    if (user && currentAnalysisId) {
+      // Verify payment for the CURRENT analysis only
+      const serverPaid = await checkServerPaidStatus(user.id, currentAnalysisId);
+      if (!serverPaid) return;
+
+      // Fetch the current analysis data
+      const { data } = await supabase
+        .from("user_analyses")
+        .select("*")
+        .eq("id", currentAnalysisId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (data) {
+        setIsPaid(true);
+        if (data.rewritten_cv) {
+          setRewrittenCV(data.rewritten_cv);
+        } else if (cvText && targetJob) {
+          // Generate rewritten CV for current analysis
+          const r = results;
+          if (r) {
+            rewriteCV(cvText, targetJob, region, r.keywordsMissing || [])
+              .then(setRewrittenCV)
+              .catch(() => {});
+          }
+        }
+        if (data.cover_letter) {
+          setCoverLetter(data.cover_letter);
+        }
+        // Scroll automatique vers le rapport complet
+        setTimeout(() => {
+          document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+    }
+
+    toast.success("✓ Paiement confirmé — voici votre rapport complet");
+  };
+
+  // Vérifier le paiement au montage et au focus (même onglet)
+  useEffect(() => {
+    // Check on mount
+    handlePaymentDetected();
+    // Check on focus (when returning from payment page in same tab)
+    window.addEventListener("focus", handlePaymentDetected);
+    return () => window.removeEventListener("focus", handlePaymentDetected);
+  }, [user, currentAnalysisId, cvText, targetJob, results, region]);
+
+  // Storage event listener for cross-tab payment detection
   useEffect(() => {
     const handleStorage = async (e: StorageEvent) => {
       if (e.key === "scorecv_paid" && e.newValue === "true") {
-        localStorage.removeItem("scorecv_paid");
-
-        if (user && currentAnalysisId) {
-          // Verify payment for the CURRENT analysis only
-          const serverPaid = await checkServerPaidStatus(user.id, currentAnalysisId);
-          if (!serverPaid) return;
-
-          // Fetch the current analysis data
-          const { data } = await supabase
-            .from("user_analyses")
-            .select("*")
-            .eq("id", currentAnalysisId)
-            .eq("user_id", user.id)
-            .single();
-
-          if (data) {
-            setIsPaid(true);
-            if (data.rewritten_cv) {
-              setRewrittenCV(data.rewritten_cv);
-            } else if (cvText && targetJob) {
-              // Generate rewritten CV for current analysis
-              const r = results;
-              if (r) {
-                rewriteCV(cvText, targetJob, region, r.keywordsMissing || [])
-                  .then(setRewrittenCV)
-                  .catch(() => {});
-              }
-            }
-            if (data.cover_letter) {
-              setCoverLetter(data.cover_letter);
-            }
-            // Scroll automatique vers le rapport complet
-            setTimeout(() => {
-              document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-          }
-        }
-
-        toast.success("✓ Paiement confirmé — voici votre rapport complet");
+        handlePaymentDetected();
       }
     };
 
