@@ -1,59 +1,17 @@
-import "https://deno.land/std@0.168.0/dotenv/load.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
 
   try {
-    // Optional auth — never block unauthenticated users
-    const authHeader = req.headers.get("Authorization");
-    let userId: string | null = null;
-
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.replace("Bearer ", "").trim();
-      if (token) {
-        const supabaseClient = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!,
-          { global: { headers: { Authorization: authHeader } } },
-        );
-        const { data: claimsData } = await supabaseClient.auth.getClaims(token);
-        if (claimsData?.claims?.sub) {
-          userId = claimsData.claims.sub as string;
-        }
-      }
-    }
-
-    // Rate limiting only for authenticated users
-    if (userId) {
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      );
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { count } = await supabaseAdmin
-        .from("user_analyses")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("created_at", oneHourAgo);
-
-      if (count !== null && count > 10) {
-        return new Response(JSON.stringify({ error: "Limite de requêtes atteinte (10/heure). Réessayez plus tard." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
     const { prompt, maxTokens = 1500, temperature = 0.3 } = await req.json();
-    console.log("Request from user:", userId ?? "anonymous", "prompt length:", prompt?.length);
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt requis" }), {
@@ -62,27 +20,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Faille #4: Validation du prompt (max 50000 chars, pas de scripts malveillants)
-    if (typeof prompt !== "string" || prompt.length > 50000) {
-      return new Response(JSON.stringify({ error: "Prompt trop long (max 50000 caractères)" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Sanitize: reject obvious malicious patterns
-    const dangerousPatterns = /<script[\s>]/i;
-    if (dangerousPatterns.test(prompt)) {
-      console.warn("Suspicious prompt detected from user:", userId ?? "anonymous");
-      return new Response(JSON.stringify({ error: "Contenu non autorisé détecté" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
-      console.error("ANTHROPIC_API_KEY not configured");
       return new Response(JSON.stringify({ error: "Clé API non configurée" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -105,10 +44,8 @@ Deno.serve(async (req) => {
     });
 
     const data = await response.json();
-    console.log("Anthropic response status:", response.status);
 
     if (!response.ok) {
-      console.error("Anthropic error:", JSON.stringify(data));
       return new Response(JSON.stringify({ error: data.error?.message || "Erreur API Anthropic" }), {
         status: response.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -120,8 +57,8 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error) {
-    console.error("Edge function error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
