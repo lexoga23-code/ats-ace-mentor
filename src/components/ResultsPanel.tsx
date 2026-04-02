@@ -305,11 +305,11 @@ const ResultsPanel = ({
         <div className="space-y-6">
           {matchPct !== null && matchPct > 0 ? (
             <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
-              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
             </p>
           ) : (
             <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
-              🎯 {totalPossibleGain} points peuvent être gagnés en corrigeant les problèmes détectés
+              📊 Votre CV obtient {results.score}/100 — voici comment progresser vers 80+
             </p>
           )}
 
