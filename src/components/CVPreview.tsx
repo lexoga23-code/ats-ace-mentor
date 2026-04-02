@@ -75,8 +75,8 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     if (!content) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>\u00A0</title><style>
+
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; line-height: 1.3; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; word-break: normal; overflow-wrap: break-word; }
@@ -85,11 +85,16 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
       @media print {
         @page { margin: 1.5cm; size: A4; }
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        header, footer { display: none !important; }
+        html { -webkit-print-color-adjust: exact; }
+        head, header, footer { display: none !important; visibility: hidden !important; }
       }
     </style></head><body>${content.innerHTML}</body></html>`);
     win.document.close();
+    // Supprimer date, numéro de page et about:blank à l'impression
     win.document.title = "\u00A0";
+    const hideStyle = win.document.createElement('style');
+    hideStyle.textContent = '@media print { @page { margin: 1.5cm; size: A4; } head, header, footer { display: none !important; } }';
+    win.document.head.appendChild(hideStyle);
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 

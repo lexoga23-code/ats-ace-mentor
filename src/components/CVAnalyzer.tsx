@@ -194,6 +194,10 @@ const CVAnalyzer = () => {
             if (data.cover_letter) {
               setCoverLetter(data.cover_letter);
             }
+            // Scroll automatique vers le rapport complet
+            setTimeout(() => {
+              document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
           }
         }
 
@@ -243,6 +247,10 @@ const CVAnalyzer = () => {
             if (serverPaid) {
               setIsPaid(true);
               setCurrentAnalysisId(latestId);
+              // Scroll automatique vers le rapport complet
+              setTimeout(() => {
+                document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 300);
             }
           }
           localStorage.removeItem("scorecv_checkout_session");
@@ -393,14 +401,21 @@ const CVAnalyzer = () => {
 
   const handleFileUploaded = (text: string) => {
     uploadInProgressRef.current = true;  // Empêche la restauration DB d'écraser ce nouveau CV
-    hardResetCVAndLetter();
+    // Reset uniquement les données d'analyse, PAS les champs du formulaire (targetJob, jobDescription, industry)
+    setRewrittenCV('');
+    setCoverLetter('');
+    setResults(null);
+    setIsPaid(false);
+    setCurrentAnalysisId(null);
+    sessionStorage.removeItem('scorecv_current_analysis_id');
+    localStorage.removeItem('rewrittenCV');
+    localStorage.removeItem('coverLetter');
+    sessionStorage.removeItem('rewrittenCV');
+    sessionStorage.removeItem('coverLetter');
     setCvText(text);
     console.log('CV chargé pour: nouveau fichier —', 'longueur:', text.length);
-    setTargetJob("");
-    setJobDescription("");
-    setIndustry("");
-    setCustomIndustry("");
-    toast.success("✓ Nouveau CV chargé — remplissez le poste ciblé et relancez l'analyse.");
+    // Les champs targetJob, jobDescription, industry sont conservés
+    toast.success("✓ Nouveau CV chargé — lancez l'analyse.");
   };
 
   const handleRestoreHistory = (entry: HistoryEntry) => {

@@ -131,8 +131,13 @@ const ResultsPanel = ({
     verifyAndSetContent();
   }, [initialRewrite, initialCoverLetter, user, analysisId]);
 
+  // Réinitialiser reviewDone à chaque nouvelle analyse
   useEffect(() => {
-    if (!user) return;
+    setReviewDone(false);
+  }, [analysisId]);
+
+  useEffect(() => {
+    if (!user || !analysisId) return;
     const checkReview = async () => {
       try {
         const { data } = await supabase.functions.invoke("check-subscription");
@@ -140,7 +145,7 @@ const ResultsPanel = ({
       } catch { /* ignore */ }
     };
     checkReview();
-  }, [user]);
+  }, [user, analysisId]);
 
   useEffect(() => {
     if (isPaid && !rewrittenCV && !loadingRewrite && cvText && targetJob) {

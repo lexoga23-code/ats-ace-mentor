@@ -13,20 +13,26 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
   const handlePrint = () => {
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title>\u00A0</title><style>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content=""><title> </title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; padding: 60px; max-width: 700px; margin: 0 auto; font-size: 13px; line-height: 1.8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
       .objet { font-weight: 700; text-decoration: underline; margin: 16px 0; }
       .spacer { height: 16px; }
+      .date-line { text-align: left !important; margin-top: 8px; margin-bottom: 16px; }
       @media print {
         @page { margin: 1.5cm; size: A4; }
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        header, footer { display: none !important; }
+        html { -webkit-print-color-adjust: exact; }
+        head, header, footer { display: none !important; visibility: hidden !important; }
       }
     </style></head><body>${renderLetterHTML()}</body></html>`);
     win.document.close();
+    // Supprimer date, numéro de page et about:blank à l'impression
     win.document.title = "\u00A0";
+    const hideStyle = win.document.createElement('style');
+    hideStyle.textContent = '@media print { @page { margin: 1.5cm; size: A4; } head, header, footer { display: none !important; } }';
+    win.document.head.appendChild(hideStyle);
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
@@ -35,6 +41,9 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
       const trimmed = line.trim();
       if (!trimmed) return '<div class="spacer"></div>';
       if (trimmed.toLowerCase().startsWith("objet")) return `<p class="objet">${trimmed}</p>`;
+      // Date line (contains "le" + date pattern) — left aligned per French/Swiss norms
+      const isDateLine = /,\s*le\s+\d{1,2}\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}/i.test(trimmed);
+      if (isDateLine) return `<p class="date-line">${trimmed}</p>`;
       return `<p>${trimmed}</p>`;
     }).join("");
   };
@@ -83,11 +92,16 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
           if (trimmed.toLowerCase().startsWith("objet")) {
             return <p key={i} style={{ fontWeight: 700, textDecoration: "underline", fontSize: 13, margin: "12px 0" }}>{trimmed}</p>;
           }
+          // Detect date line (contains "le" + date pattern like "2 avril 2026") — always left aligned per French/Swiss norms
+          const isDateLine = /,\s*le\s+\d{1,2}\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}/i.test(trimmed);
+          if (isDateLine) {
+            return <p key={i} style={{ fontSize: 12, lineHeight: 1.6, color: "#444", textAlign: "left", marginTop: 8, marginBottom: 16 }}>{trimmed}</p>;
+          }
           // First few lines = sender info (left aligned, small)
           if (i < 5 && trimmed.length < 60) {
             return <p key={i} style={{ fontSize: 12, lineHeight: 1.6, color: "#444" }}>{trimmed}</p>;
           }
-          // Detect recipient/date block (lines 6-7 area, after blank)
+          // Detect recipient block (lines 6-9 area, after blank, NOT a date line)
           if (i >= 5 && i < 10 && trimmed.length < 60 && !trimmed.startsWith("Madame")) {
             return <p key={i} style={{ fontSize: 12, lineHeight: 1.6, color: "#444", textAlign: "right" }}>{trimmed}</p>;
           }
