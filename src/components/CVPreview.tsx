@@ -69,6 +69,8 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   const [color, setColor] = useState(PALETTES[0].hex);
   const printRef = useRef<HTMLDivElement>(null);
   const parsed = parseCV(cvText);
+  const wordCount = cvText.split(/\s+/).filter(Boolean).length;
+  const isShort = wordCount < 400;
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -76,29 +78,28 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     const win = window.open("", "_blank");
     if (!win) return;
 
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title><style>
+    const shortCSS = isShort ? `body { line-height: 1.6; } .section { margin-bottom: 20px; } .bullet { padding-top: 3px; padding-bottom: 3px; }` : "";
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>\u00A0</title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; line-height: 1.3; }
-      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; word-break: normal; overflow-wrap: break-word; }
+      body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; line-height: 1.3; width: 100%; }
+      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; word-break: normal; overflow-wrap: break-word; width: 100%; }
       h1 { font-size: 22pt; font-weight: 700; letter-spacing: 0 !important; }
       h2 { font-size: 12pt; font-weight: 700; letter-spacing: 0 !important; }
+      div { width: 100%; }
       @media print {
         @page { margin: 1.5cm; size: A4; }
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         html { -webkit-print-color-adjust: exact; }
         head, header, footer { display: none !important; visibility: hidden !important; }
       }
+      ${shortCSS}
     </style></head><body>${content.innerHTML}</body></html>`);
     win.document.close();
-    // Supprimer date, numéro de page et about:blank à l'impression
     win.document.title = "\u00A0";
-    const hideStyle = win.document.createElement('style');
-    hideStyle.textContent = '@media print { @page { margin: 1.5cm; size: A4; } head, header, footer { display: none !important; } }';
-    win.document.head.appendChild(hideStyle);
     setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
-  const itemStyle: React.CSSProperties = { fontSize: 11, lineHeight: 1.3, textAlign: "justify", hyphens: "auto", WebkitHyphens: "auto" as any, fontFamily: "Calibri, Arial, sans-serif", wordBreak: "normal", overflowWrap: "break-word" };
+  const itemStyle: React.CSSProperties = { fontSize: 11, lineHeight: isShort ? 1.6 : 1.3, textAlign: "justify", hyphens: "auto", WebkitHyphens: "auto" as any, fontFamily: "Calibri, Arial, sans-serif", wordBreak: "normal", overflowWrap: "break-word", width: "100%", paddingTop: isShort ? 3 : 0, paddingBottom: isShort ? 3 : 0 };
 
   const cleanText = (t: string) => /^([A-ZÀ-Ü] ){2,}[A-ZÀ-Ü]$/.test(t.trim()) ? t.replace(/ /g, "") : t;
 
@@ -111,11 +112,11 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     return <p key={i} style={itemStyle}>{cleanText(item)}</p>;
   };
 
-  const sectionStyle: React.CSSProperties = { marginBottom: 8 };
+  const sectionStyle: React.CSSProperties = { marginBottom: isShort ? 20 : 8, width: "100%" };
   const sectionTitleStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0, color, borderBottom: `2px solid ${color}`, paddingBottom: 3, marginBottom: 6 };
 
   const renderClassic = () => (
-    <div style={{ padding: "24px 40px", fontFamily: "Calibri, Arial, sans-serif", lineHeight: 1.3, width: "100%" }}>
+    <div style={{ padding: "24px 40px", fontFamily: "Calibri, Arial, sans-serif", lineHeight: isShort ? 1.6 : 1.3, width: "100%" }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, color, textAlign: "center", marginBottom: 2 }}>{parsed.name}</h1>
       {parsed.contact && <p style={{ textAlign: "center", fontSize: 10, color: "#666", marginBottom: 14 }}>{parsed.contact}</p>}
       {parsed.sections.map((s, i) => (
@@ -128,7 +129,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderModern = () => (
-    <div style={{ fontFamily: "Calibri, Arial, sans-serif" }}>
+    <div style={{ fontFamily: "Calibri, Arial, sans-serif", width: "100%" }}>
       <div style={{ background: color, color: "#fff", padding: "30px 40px", marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{parsed.name}</h1>
         {parsed.contact && <p style={{ fontSize: 13, opacity: 0.9 }}>{parsed.contact}</p>}
@@ -158,7 +159,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   );
 
   const renderChrono = () => (
-    <div style={{ fontFamily: "Calibri, Arial, sans-serif" }}>
+    <div style={{ fontFamily: "Calibri, Arial, sans-serif", width: "100%" }}>
       <div style={{ height: 6, background: color, width: "100%" }} />
       <div style={{ padding: "30px 40px 40px" }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color, textAlign: "center", marginBottom: 4 }}>{parsed.name}</h1>
