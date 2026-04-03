@@ -257,7 +257,7 @@ const ResultsPanel = ({
   const hasJobDescription = !!(jobDescription && jobDescription.length >= 50);
   const matchPct = hasJobDescription ? (results.matchScore ?? null) : null;
 
-  // Sort problems by priority for free mode - top 3
+  // Sort problems by priority for free mode - top 5
   const topProblems = results.checklist
     .filter(c => c.status === "fail" || c.status === "warn")
     .sort((a, b) => {
@@ -265,7 +265,7 @@ const ResultsPanel = ({
       if (a.status !== "fail" && b.status === "fail") return 1;
       return 0;
     })
-    .slice(0, 3);
+    .slice(0, 5);
 
   // Separate suggestions by category
   const manualSuggestions = results.suggestions.filter(s => s.category === "manual").slice(0, 3);
@@ -484,10 +484,10 @@ const ResultsPanel = ({
 
           {/* +N problèmes verrouillés */}
           {(() => {
-            const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
-            const lockedCount = Math.max(allProblems.length - 3, 0);
+             const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
+            const lockedCount = Math.max(allProblems.length - 5, 0);
             if (lockedCount <= 0) return null;
-            const lockedTitles = allProblems.slice(3).map(p => p.label).join(", ");
+            const lockedTitles = allProblems.slice(5).map(p => p.label).join(", ");
             return (
               <div className="bg-card p-4 flex items-center gap-3" style={{ borderRadius: "12px", border: "1px dashed #cbd5e0" }}>
                 <span style={{ fontSize: "22px", flexShrink: 0 }}>🔒</span>
