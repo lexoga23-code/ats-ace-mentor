@@ -91,11 +91,17 @@ const CVAnalyzer = () => {
   };
 
   // On mount: clean analysis data (not history or subscription cache)
-  // Ensures fresh start on page refresh as per user requirements
+  // BUT preserve state if returning from payment (scorecv_paid flag present)
   useEffect(() => {
-    // Nettoyer les entrées localStorage expirées (24h)
     cleanExpiredStorage();
-    // Nettoyer les données d'analyse au rafraîchissement
+
+    // Si on revient d'un paiement, NE PAS effacer les données
+    if (localStorage.getItem("scorecv_paid") === "true") {
+      console.log("Retour de paiement détecté — conservation des données");
+      return;
+    }
+
+    // Sinon, nettoyer pour un fresh start
     sessionStorage.removeItem('scorecv_current_analysis_id');
     localStorage.removeItem('scorecv_analysis');
     localStorage.removeItem('scorecv_data');
@@ -164,43 +170,89 @@ const CVAnalyzer = () => {
     if (localStorage.getItem("scorecv_paid") !== "true") return;
     localStorage.removeItem("scorecv_paid");
 
-    if (user && currentAnalysisId) {
-      // Verify payment for the CURRENT analysis only
-      const serverPaid = await checkServerPaidStatus(user.id, currentAnalysisId);
-      if (!serverPaid) return;
+    if (!user) {
+      toast.success("✓ Paiement confirmé — connectez-vous pour voir votre rapport");
+      return;
+    }
 
-      // Fetch the current analysis data
-      const { data } = await supabase
+    // Si currentAnalysisId est null, chercher la dernière analyse payée en DB
+    let analysisIdToUse = currentAnalysisId;
+    if (!analysisIdToUse) {
+      const { data: latestPaid } = await supabase
         .from("user_analyses")
-        .select("*")
-        .eq("id", currentAnalysisId)
+        .select("id")
         .eq("user_id", user.id)
+        .eq("is_paid", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
-      if (data) {
-        setIsPaid(true);
-        if (data.rewritten_cv) {
-          setRewrittenCV(data.rewritten_cv);
-        } else if (cvText && targetJob) {
-          // Generate rewritten CV for current analysis
-          const r = results;
-          if (r) {
-            rewriteCV(cvText, targetJob, region, r.keywordsMissing || [])
-              .then(setRewrittenCV)
-              .catch(() => {});
-          }
-        }
-        if (data.cover_letter) {
-          setCoverLetter(data.cover_letter);
-        }
-        // Scroll automatique vers le rapport complet
-        setTimeout(() => {
-          document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
+      if (latestPaid) {
+        analysisIdToUse = latestPaid.id;
+        setCurrentAnalysisId(latestPaid.id);
       }
     }
 
-    toast.success("✓ Paiement confirmé — voici votre rapport complet");
+    if (!analysisIdToUse) {
+      // Aucune analyse payée trouvée — chercher la plus récente
+      const { data: latest } = await supabase
+        .from("user_analyses")
+        .select("id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latest) {
+        analysisIdToUse = latest.id;
+        setCurrentAnalysisId(latest.id);
+      }
+    }
+
+    if (!analysisIdToUse) {
+      toast.error("Aucune analyse trouvée. Veuillez relancer une analyse.");
+      return;
+    }
+
+    // Vérifier le paiement côté serveur
+    const serverPaid = await checkServerPaidStatus(user.id, analysisIdToUse);
+    if (!serverPaid) {
+      toast.error("Le paiement n'a pas pu être vérifié. Contactez-nous si le problème persiste.");
+      return;
+    }
+
+    // Récupérer les données complètes de l'analyse
+    const { data } = await supabase
+      .from("user_analyses")
+      .select("*")
+      .eq("id", analysisIdToUse)
+      .eq("user_id", user.id)
+      .single();
+
+    if (data) {
+      // Restaurer l'état complet
+      setCvText(data.cv_text || "");
+      setTargetJob(data.target_job || "");
+      setJobDescription(data.job_description || "");
+      setIndustry(data.industry || "");
+      setResults(data.results as AnalysisResult);
+      setCurrentAnalysisId(data.id);
+      setIsPaid(true);
+
+      if (data.rewritten_cv) {
+        setRewrittenCV(data.rewritten_cv);
+      }
+      if (data.cover_letter) {
+        setCoverLetter(data.cover_letter);
+      }
+
+      // Scroll automatique vers le rapport complet
+      setTimeout(() => {
+        document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+
+      toast.success("✓ Paiement confirmé — voici votre rapport complet");
+    }
   };
 
   // Vérifier le paiement au montage et au focus (même onglet)

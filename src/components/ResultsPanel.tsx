@@ -148,23 +148,13 @@ const ResultsPanel = ({
     checkReview();
   }, [user, analysisId]);
 
+  // Quand isPaid devient true sans CV généré, afficher la modale de questions
   useEffect(() => {
-    if (isPaid && !rewrittenCV && !loadingRewrite && cvText && targetJob) {
-      const autoGenerate = async () => {
-        if (!user) return;
-        const serverPaid = await verifyPaidStatus(user.id, analysisId);
-        if (!serverPaid) return;
-        setLoadingRewrite(true);
-        try {
-          const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing);
-          setRewrittenCV(text);
-          onRewrittenCVChange?.(text);
-        } catch { /* ignore */ }
-        setLoadingRewrite(false);
-      };
-      autoGenerate();
+    if (isPaid && !rewrittenCV && !loadingRewrite && cvText && targetJob && !showRewriteQuestions) {
+      // Afficher automatiquement la modale de questions contextuelles
+      setShowRewriteQuestions(true);
     }
-  }, [isPaid]);
+  }, [isPaid, rewrittenCV, loadingRewrite, cvText, targetJob, showRewriteQuestions]);
 
   const handleGenerateCV = async (userAnswers?: Record<string, string>) => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
