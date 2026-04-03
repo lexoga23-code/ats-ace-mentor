@@ -427,6 +427,34 @@ const ResultsPanel = ({
             </div>
           )}
 
+          {/* Taux de rappel estimé */}
+          {(() => {
+            const s = results.score;
+            const rate = s >= 80 ? "~32%" : s >= 60 ? "~14%" : "~5%";
+            const rateColor = s >= 80 ? "#16a34a" : s >= 60 ? "#ea580c" : "#dc2626";
+            const rateMsg = s >= 80
+              ? "Votre CV passe la majorité des filtres ATS. Vous êtes bien positionné pour décrocher des entretiens."
+              : s >= 60
+              ? "Votre CV passe certains filtres mais se retrouve en bas de pile face aux profils mieux optimisés. Vous êtes visible, mais rarement prioritaire."
+              : "Votre CV est filtré par la plupart des logiciels de recrutement avant d'être lu.";
+            return (
+              <div className="bg-card p-5 shadow-soft flex items-center gap-4" style={{ borderRadius: "12px" }}>
+                <div className="flex-shrink-0 text-center">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Taux de rappel estimé</p>
+                  <p className="text-3xl font-bold" style={{ color: rateColor }}>{rate}</p>
+                </div>
+                <div className="flex-shrink-0" style={{ width: "1px", height: "44px", background: "#e8edff" }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground">{rateMsg}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Les profils avec un score supérieur à 80 atteignent en moyenne{" "}
+                    <span className="font-bold" style={{ color: "#16a34a" }}>~35% de taux de rappel</span>.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Missing keywords - max 5 */}
           {results.keywordsMissing.length > 0 && (
             <div className="bg-card p-6 rounded-3xl shadow-soft">
@@ -445,8 +473,31 @@ const ResultsPanel = ({
                   </span>
                 )}
               </div>
+              {/* Le saviez-vous */}
+              <div style={{ marginTop: "14px", background: "#FFFBE6", border: "1px solid #FDE68A", borderRadius: "8px", padding: "10px 14px" }}>
+                <p style={{ fontSize: "12px", color: "#555" }}>
+                  <strong>💡 Le saviez-vous ?</strong> Les mots-clés manquants sont la première cause de rejet par les logiciels ATS, responsables de 75% des éliminations automatiques. Seul 1 CV sur 4 passe ces filtres.
+                </p>
+              </div>
             </div>
           )}
+
+          {/* +N problèmes verrouillés */}
+          {(() => {
+            const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
+            const lockedCount = Math.max(allProblems.length - 3, 0);
+            if (lockedCount <= 0) return null;
+            const lockedTitles = allProblems.slice(3).map(p => p.label).join(", ");
+            return (
+              <div className="bg-card p-4 flex items-center gap-3" style={{ borderRadius: "12px", border: "1px dashed #cbd5e0" }}>
+                <span style={{ fontSize: "22px", flexShrink: 0 }}>🔒</span>
+                <div>
+                  <p className="font-bold" style={{ fontSize: "13px", color: "#1a365d" }}>+{lockedCount} problèmes détectés</p>
+                  <p style={{ fontSize: "12px", color: "#8899AA" }}>{lockedTitles}…</p>
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
       )}
