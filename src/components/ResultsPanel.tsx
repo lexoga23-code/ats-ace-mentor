@@ -424,6 +424,22 @@ const ResultsPanel = ({
                   </div>
                 ))}
               </div>
+              {/* +N problèmes verrouillés — intégré dans le même encadré */}
+              {(() => {
+                const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
+                const realCount = Math.max(allProblems.length - 3, 0);
+                const lockedCount = Math.max(realCount, 9);
+                const lockedTitles = allProblems.slice(3).map(p => p.label).join(", ");
+                return (
+                  <div className="mt-4 pt-4 flex items-center gap-3" style={{ borderTop: "1px dashed #cbd5e0" }}>
+                    <span style={{ fontSize: "22px", flexShrink: 0 }}>🔒</span>
+                    <div>
+                      <p className="font-bold" style={{ fontSize: "13px", color: "#1a365d" }}>+{lockedCount} problèmes détectés</p>
+                      <p style={{ fontSize: "12px", color: "#8899AA" }}>{lockedTitles ? `${lockedTitles}…` : "Analyse complète disponible dans le rapport payant…"}</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -482,22 +498,6 @@ const ResultsPanel = ({
             </div>
           )}
 
-          {/* +N problèmes verrouillés */}
-          {(() => {
-            const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
-            const lockedCount = Math.max(allProblems.length - 3, 0);
-            if (lockedCount <= 0) return null;
-            const lockedTitles = allProblems.slice(3).map(p => p.label).join(", ");
-            return (
-              <div className="bg-card p-4 flex items-center gap-3" style={{ borderRadius: "12px", border: "1px dashed #cbd5e0" }}>
-                <span style={{ fontSize: "22px", flexShrink: 0 }}>🔒</span>
-                <div>
-                  <p className="font-bold" style={{ fontSize: "13px", color: "#1a365d" }}>+{lockedCount} problèmes détectés</p>
-                  <p style={{ fontSize: "12px", color: "#8899AA" }}>{lockedTitles}…</p>
-                </div>
-              </div>
-            );
-          })()}
 
         </div>
       )}
