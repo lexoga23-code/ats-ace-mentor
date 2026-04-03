@@ -484,8 +484,8 @@ const ResultsPanel = ({
 
           {/* +N problèmes verrouillés */}
           {(() => {
-            const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
-            const lockedCount = Math.max(allProblems.length - 3, 0);
+             const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
+            const lockedCount = Math.max(allProblems.length - 5, 0);
             if (lockedCount <= 0) return null;
             const lockedTitles = allProblems.slice(3).map(p => p.label).join(", ");
             return (
