@@ -257,7 +257,7 @@ const ResultsPanel = ({
   const hasJobDescription = !!(jobDescription && jobDescription.length >= 50);
   const matchPct = hasJobDescription ? (results.matchScore ?? null) : null;
 
-  // Sort problems by priority for free mode - top 3
+  // Sort problems by priority for free mode - top 5
   const topProblems = results.checklist
     .filter(c => c.status === "fail" || c.status === "warn")
     .sort((a, b) => {
@@ -265,7 +265,7 @@ const ResultsPanel = ({
       if (a.status !== "fail" && b.status === "fail") return 1;
       return 0;
     })
-    .slice(0, 3);
+    .slice(0, 5);
 
   // Separate suggestions by category
   const manualSuggestions = results.suggestions.filter(s => s.category === "manual").slice(0, 3);
