@@ -487,7 +487,7 @@ const ResultsPanel = ({
              const allProblems = results.checklist.filter(c => c.status === "fail" || c.status === "warn");
             const lockedCount = Math.max(allProblems.length - 5, 0);
             if (lockedCount <= 0) return null;
-            const lockedTitles = allProblems.slice(3).map(p => p.label).join(", ");
+            const lockedTitles = allProblems.slice(5).map(p => p.label).join(", ");
             return (
               <div className="bg-card p-4 flex items-center gap-3" style={{ borderRadius: "12px", border: "1px dashed #cbd5e0" }}>
                 <span style={{ fontSize: "22px", flexShrink: 0 }}>🔒</span>
