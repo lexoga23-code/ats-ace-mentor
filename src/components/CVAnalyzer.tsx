@@ -235,7 +235,7 @@ const CVAnalyzer = () => {
       setTargetJob(data.target_job || "");
       setJobDescription(data.job_description || "");
       setIndustry(data.industry || "");
-      setResults(data.results as AnalysisResult);
+      setResults(data.results as unknown as AnalysisResult);
       setCurrentAnalysisId(data.id);
       setIsPaid(true);
 
