@@ -339,6 +339,11 @@ const ResultsPanel = ({
             </div>
           </div>
 
+          {/* Section Scores — detailed criteria */}
+          {results.sectionScores && results.sectionScores.length > 0 && (
+            <SectionScores sections={results.sectionScores} />
+          )}
+
           {/* CTA — Unlock button — immediately after score */}
           {!showPaymentOptions ? (
             <button
@@ -501,22 +506,38 @@ const ResultsPanel = ({
 
           {/* Suggestions — 2 categories */}
           <div className="space-y-6">
-            {/* Manual: things user must do */}
-            {fallbackManual.length > 0 && (
-              <div className="p-6 rounded-3xl" style={{ background: "hsl(30 100% 97%)", border: "1px solid hsl(30 80% 85%)" }}>
-                <h3 className="text-lg font-bold mb-4 text-foreground flex items-center gap-2">
-                  ⚡ À faire vous-même
-                </h3>
-                <div className="space-y-2">
-                  {fallbackManual.map((s, i) => (
-                    <div key={i} className="flex items-start gap-3 py-2">
-                      <span className="text-amber-600 mt-0.5">⚡</span>
-                      <p className="text-sm text-foreground"><span className="font-bold">{s.title}</span> — {s.text}</p>
-                    </div>
-                  ))}
+            {/* Manual: things user must do — hide if empty after filtering */}
+            {(() => {
+              const validEmails = ["gmail", "icloud"];
+              const unprofEmails = ["hotmail", "wanadoo", "orange", "laposte", "yahoo", "free", "sfr", "msn", "live"];
+              const filteredManual = fallbackManual.filter(s => {
+                const txt = (s.title + " " + s.text).toLowerCase();
+                // If it's about email, only keep if truly unprofessional
+                if (/email|e-mail|adresse mail/i.test(txt)) {
+                  const hasUnprof = unprofEmails.some(e => txt.includes(e));
+                  const hasProf = validEmails.some(e => txt.includes(e) && !txt.includes(`remplacer par ${e}`) && !txt.includes(`créer.*${e}`));
+                  if (!hasUnprof) return false;
+                  if (hasProf) return false;
+                }
+                return true;
+              });
+              if (filteredManual.length === 0) return null;
+              return (
+                <div className="p-6 rounded-3xl" style={{ background: "hsl(30 100% 97%)", border: "1px solid hsl(30 80% 85%)" }}>
+                  <h3 className="text-lg font-bold mb-4 text-foreground flex items-center gap-2">
+                    ⚡ À faire vous-même
+                  </h3>
+                  <div className="space-y-2">
+                    {filteredManual.map((s, i) => (
+                      <div key={i} className="flex items-start gap-3 py-2">
+                        <span className="text-amber-600 mt-0.5">⚡</span>
+                        <p className="text-sm text-foreground"><span className="font-bold">{s.title}</span> — {s.text}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Auto: corrected in rewritten CV */}
             {fallbackAuto.length > 0 && (
