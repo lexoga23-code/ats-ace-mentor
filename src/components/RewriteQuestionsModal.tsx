@@ -326,20 +326,17 @@ const RewriteQuestionsModal = ({
           ))}
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-3 rounded-xl font-bold text-sm bg-secondary text-muted-foreground hover:opacity-80 transition-all"
-          >
-            Passer cette étape
-          </button>
+        <div className="space-y-2">
           <button
             onClick={() => onSubmit(answers)}
-            className="flex-1 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 transition-all"
+            className="w-full py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 transition-all"
             style={{ background: "#1a365d" }}
           >
             Générer mon CV →
           </button>
+          <p className="text-xs text-muted-foreground text-center">
+            Vous pouvez laisser les champs vides et cliquer directement sur Générer.
+          </p>
         </div>
       </div>
     </div>
