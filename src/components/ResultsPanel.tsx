@@ -610,6 +610,9 @@ const ResultsPanel = ({
             <RewriteQuestionsModal
               analysisResult={results}
               cvText={cvText}
+              jobDescription={jobDescription}
+              targetJob={targetJob}
+              region={region}
               onSubmit={(answers) => handleGenerateCV(answers)}
               onCancel={() => setShowRewriteQuestions(false)}
             />
