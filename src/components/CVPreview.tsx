@@ -78,25 +78,46 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     const win = window.open("", "_blank");
     if (!win) return;
 
-    const shortCSS = isShort ? `body { line-height: 1.6; } .section { margin-bottom: 20px; } .bullet { padding-top: 3px; padding-bottom: 3px; }` : "";
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>\u00A0</title><style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11pt; line-height: 1.3; width: 100%; }
-      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; word-break: normal; overflow-wrap: break-word; width: 100%; }
-      h1 { font-size: 22pt; font-weight: 700; letter-spacing: 0 !important; }
-      h2 { font-size: 12pt; font-weight: 700; letter-spacing: 0 !important; }
-      div { width: 100%; }
-      @media print {
-        @page { margin: 1.5cm; size: A4; }
-        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        html { -webkit-print-color-adjust: exact; }
-        head, header, footer { display: none !important; visibility: hidden !important; }
-      }
-      ${shortCSS}
-    </style></head><body>${content.innerHTML}</body></html>`);
+    const shortCSS = isShort ? `.section { margin-bottom: 20px; } .bullet { padding-top: 3px; padding-bottom: 3px; }` : "";
+
+    // Document HTML complet avec titre espace insécable pour masquer l'en-tête d'impression
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>&#x00A0;</title>
+  <style>
+    @media print {
+      @page { margin: 1.5cm; size: A4; }
+      body { margin: 0; padding: 0; }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Calibri, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: ${isShort ? '1.6' : '1.3'};
+      color: #1a1a1a;
+      padding: 1.5cm;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; word-break: normal; overflow-wrap: break-word; }
+    h1 { font-size: 22pt; font-weight: 700; }
+    h2 { font-size: 12pt; font-weight: 700; }
+    ${shortCSS}
+  </style>
+  <script>
+    window.onload = function() {
+      window.print();
+      window.onafterprint = function() { window.close(); };
+    };
+  </script>
+</head>
+<body>
+${content.innerHTML}
+</body>
+</html>`);
     win.document.close();
-    win.document.title = "\u00A0";
-    setTimeout(() => { win.print(); win.close(); }, 300);
   };
 
   const itemStyle: React.CSSProperties = { fontSize: 11, lineHeight: isShort ? 1.6 : 1.3, textAlign: "justify", hyphens: "auto", WebkitHyphens: "auto" as any, fontFamily: "Calibri, Arial, sans-serif", wordBreak: "normal", overflowWrap: "break-word", width: "100%", paddingTop: isShort ? 3 : 0, paddingBottom: isShort ? 3 : 0 };
