@@ -78,33 +78,62 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     const win = window.open("", "_blank");
     if (!win) return;
 
-    const shortCSS = isShort ? `.section { margin-bottom: 20px; } .bullet { padding-top: 3px; padding-bottom: 3px; }` : "";
+    // Detect compact mode based on content length
+    const contentLength = content.innerHTML.length;
+    const isCompact = contentLength > 3500;
 
-    // Document HTML complet avec titre espace insécable pour masquer l'en-tête d'impression
+    const compactCSS = `
+      @media print {
+        @page { margin: 0.8cm; size: A4; }
+        body { margin: 0; padding: 0.8cm; }
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: Calibri, Arial, sans-serif;
+        font-size: 10.5pt;
+        line-height: 1.2;
+        color: #1a1a1a;
+        padding: 0.8cm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      h1 { font-size: 18pt; font-weight: 700; margin-bottom: 2px; }
+      h2 { font-size: 11pt; font-weight: 700; margin-bottom: 4px; }
+      .subtitle { margin-bottom: 6px; }
+      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+      div[style*="marginBottom"] { margin-bottom: 10px !important; }
+      p[style*="paddingLeft"] { padding-top: 2px; padding-bottom: 2px; }
+    `;
+
+    const airyCSS = `
+      @media print {
+        @page { margin: 1.2cm; size: A4; }
+        body { margin: 0; padding: 1.2cm; }
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: Calibri, Arial, sans-serif;
+        font-size: 11pt;
+        line-height: 1.35;
+        color: #1a1a1a;
+        padding: 1.2cm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      h1 { font-size: 20pt; font-weight: 700; margin-bottom: 4px; }
+      h2 { font-size: 12pt; font-weight: 700; margin-bottom: 6px; }
+      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+      div[style*="marginBottom"] { margin-bottom: 16px !important; }
+      p[style*="paddingLeft"] { padding-top: 4px; padding-bottom: 4px; }
+    `;
+
     win.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>&#x00A0;</title>
   <style>
-    @media print {
-      @page { margin: 1.5cm; size: A4; }
-      body { margin: 0; padding: 0; }
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: Calibri, Arial, sans-serif;
-      font-size: 11pt;
-      line-height: ${isShort ? '1.6' : '1.3'};
-      color: #1a1a1a;
-      padding: 1.5cm;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; word-break: normal; overflow-wrap: break-word; }
-    h1 { font-size: 22pt; font-weight: 700; }
-    h2 { font-size: 12pt; font-weight: 700; }
-    ${shortCSS}
+    ${isCompact ? compactCSS : airyCSS}
   </style>
   <script>
     window.onload = function() {
