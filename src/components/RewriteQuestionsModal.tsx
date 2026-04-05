@@ -108,7 +108,7 @@ const detectQuestions = (
   // ─── P1: Critical missing info ───
 
   // Email non professionnel
-  const unprofEmails = ["hotmail", "wanadoo", "orange", "laposte", "yahoo", "aol", "free.fr", "sfr"];
+  const unprofEmails = ["hotmail", "wanadoo", "orange", "laposte", "yahoo", "free.fr", "sfr", "msn", "live.fr", "live.com"];
   if (unprofEmails.some(e => text.includes(e))) {
     questions.push({
       id: "email",
