@@ -61,7 +61,7 @@ const extractRequiredTools = (jobDesc: string): string[] => {
   while ((m = toolPatterns.exec(jobDesc)) !== null) {
     tools.add(m[1]);
   }
-  return [...tools];
+  return Array.from(tools);
 };
 
 const detectReconversion = (cvText: string, targetJob: string, jobDescription: string): boolean => {
