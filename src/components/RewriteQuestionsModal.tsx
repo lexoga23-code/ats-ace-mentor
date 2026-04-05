@@ -17,7 +17,7 @@ interface RewriteQuestionsModalProps {
   targetJob?: string;
   region?: string;
   onSubmit: (answers: Record<string, string>) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
 }
 
 /* ── helpers ─────────────────────────────────────────────── */
