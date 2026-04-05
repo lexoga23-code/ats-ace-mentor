@@ -339,6 +339,11 @@ const ResultsPanel = ({
             </div>
           </div>
 
+          {/* Section Scores — detailed criteria */}
+          {results.sectionScores && results.sectionScores.length > 0 && (
+            <SectionScores sections={results.sectionScores} />
+          )}
+
           {/* CTA — Unlock button — immediately after score */}
           {!showPaymentOptions ? (
             <button
