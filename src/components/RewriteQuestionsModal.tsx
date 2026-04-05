@@ -32,7 +32,7 @@ const extractCompanyNames = (cv: string): string[] => {
     let m: RegExpExecArray | null;
     while ((m = p.exec(cv)) !== null) names.add(m[1].trim());
   }
-  return [...names].slice(0, 3);
+  return Array.from(names).slice(0, 3);
 };
 
 const detectSector = (industry: string | undefined, cv: string): string => {
