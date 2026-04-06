@@ -341,7 +341,7 @@ const ResultsPanel = ({
 
           {/* Section Scores — detailed criteria */}
           {results.sectionScores && results.sectionScores.length > 0 && (
-            <SectionScores sections={results.sectionScores} />
+            <SectionScores sections={results.sectionScores} maxVisible={5} />
           )}
 
           {/* CTA — Unlock button — immediately after score */}
