@@ -45,6 +45,13 @@ const SectionScores = ({ sections, maxVisible }: Props) => {
             </div>
           );
         })}
+        {maxVisible && hiddenCount > 0 && (
+          <div className="flex items-center justify-center p-4 rounded-xl border-2 border-dashed border-border bg-muted/30">
+            <span className="text-sm font-semibold text-muted-foreground">
+              🔒 {hiddenCount} sections supplémentaires disponibles dans le rapport complet
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
