@@ -51,11 +51,11 @@ const ScoreCircle = ({ score }: { score: number }) => {
 
 const ScoreBar = ({ label, value, max }: { label: string; value: number; max: number }) => (
   <div>
-    <div className="flex justify-between text-xs font-bold mb-1 text-foreground">
+    <div className="flex justify-between text-sm font-bold mb-1.5 text-foreground">
       <span>{label}</span>
       <span>{value}/{max}</span>
     </div>
-    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+    <div className="h-2 bg-secondary rounded-full overflow-hidden">
       <div className="h-full bg-primary transition-all duration-1000 rounded-full" style={{ width: `${(value / max) * 100}%` }} />
     </div>
   </div>
