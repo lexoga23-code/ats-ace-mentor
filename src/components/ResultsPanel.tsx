@@ -307,7 +307,7 @@ const ResultsPanel = ({
       {!isPaid && (
         <div className="space-y-6">
           {matchPct !== null && matchPct > 0 ? (
-            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+            <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
               🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
             </p>
           ) : (
