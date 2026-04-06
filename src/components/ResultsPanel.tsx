@@ -275,7 +275,7 @@ const ResultsPanel = ({
               🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
             </p>
           ) : (
-            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+            <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
               📊 Votre CV obtient {results.score}/100 — voici comment progresser vers 80+
             </p>
           )}
