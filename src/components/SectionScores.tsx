@@ -7,12 +7,20 @@ const statusConfig = {
   fail: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", bar: "bg-destructive" },
 };
 
-const SectionScores = ({ sections }: { sections: SectionScore[] }) => {
+interface Props {
+  sections: SectionScore[];
+  maxVisible?: number;
+}
+
+const SectionScores = ({ sections, maxVisible }: Props) => {
+  const visible = maxVisible ? sections.slice(0, maxVisible) : sections;
+  const hiddenCount = maxVisible ? Math.max(sections.length - maxVisible, 5) : 0;
+
   return (
     <div className="bg-card p-8 rounded-3xl shadow-soft">
       <h3 className="text-xl font-bold mb-6 text-foreground">Score par section</h3>
       <div className="grid sm:grid-cols-2 gap-4">
-        {sections.map((section) => {
+        {visible.map((section) => {
           const config = statusConfig[section.status];
           const Icon = config.icon;
           const pct = (section.score / section.maxScore) * 100;
