@@ -51,11 +51,11 @@ const ScoreCircle = ({ score }: { score: number }) => {
 
 const ScoreBar = ({ label, value, max }: { label: string; value: number; max: number }) => (
   <div>
-    <div className="flex justify-between text-xs font-bold mb-1 text-foreground">
+    <div className="flex justify-between text-sm font-bold mb-1.5 text-foreground">
       <span>{label}</span>
       <span>{value}/{max}</span>
     </div>
-    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+    <div className="h-2 bg-secondary rounded-full overflow-hidden">
       <div className="h-full bg-primary transition-all duration-1000 rounded-full" style={{ width: `${(value / max) * 100}%` }} />
     </div>
   </div>
@@ -271,11 +271,11 @@ const ResultsPanel = ({
       {isPaid && (
         <div className="space-y-4">
           {matchPct !== null && matchPct > 0 ? (
-            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+            <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
               🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
             </p>
           ) : (
-            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+            <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
               📊 Votre CV obtient {results.score}/100 — voici comment progresser vers 80+
             </p>
           )}
@@ -307,11 +307,11 @@ const ResultsPanel = ({
       {!isPaid && (
         <div className="space-y-6">
           {matchPct !== null && matchPct > 0 ? (
-            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+            <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
               🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
             </p>
           ) : (
-            <p className="text-lg font-bold" style={{ color: "#1a365d" }}>
+            <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
               📊 Votre CV obtient {results.score}/100 — voici comment progresser vers 80+
             </p>
           )}
