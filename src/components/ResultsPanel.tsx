@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Target, Share2, Mail, Loader2, Sparkles } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
-import RewriteQuestionsModal from "./RewriteQuestionsModal";
+import { detectQuestions } from "./RewriteQuestionsModal";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
@@ -78,11 +78,14 @@ const verifyPaidStatus = async (userId: string, analysisId?: string | null): Pro
     .single();
   if (data?.is_paid) return true;
 
-  // Vérifier aussi le statut Pro
-  try {
-    const { data: subData } = await supabase.functions.invoke("check-subscription");
-    if (subData?.isPro) return true;
-  } catch { /* ignore */ }
+  // Vérifier le statut Pro directement depuis la table user_subscriptions
+  const { data: subData } = await supabase
+    .from("user_subscriptions")
+    .select("is_pro")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (subData?.is_pro) return true;
+
   return false;
 };
 
@@ -105,8 +108,13 @@ const ResultsPanel = ({
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewDone, setReviewDone] = useState(false);
-  const [showRewriteQuestions, setShowRewriteQuestions] = useState(false);
-  const [savedUserAnswers, setSavedUserAnswers] = useState<Record<string, string>>({});
+  const [inlineAnswers, setInlineAnswers] = useState<Record<string, string>>({});
+
+  // Détecter les questions contextuelles basées sur l'analyse
+  const contextualQuestions = useMemo(
+    () => detectQuestions(results, cvText, jobDescription, targetJob, region),
+    [results, cvText, jobDescription, targetJob, region],
+  );
 
   // Vérification serveur au montage pour contenu payant existant
   useEffect(() => {
@@ -148,24 +156,15 @@ const ResultsPanel = ({
     checkReview();
   }, [user, analysisId]);
 
-  // Quand isPaid devient true sans CV généré, afficher la modale de questions
-  useEffect(() => {
-    if (isPaid && !rewrittenCV && !loadingRewrite && cvText && targetJob && !showRewriteQuestions) {
-      // Afficher automatiquement la modale de questions contextuelles
-      setShowRewriteQuestions(true);
-    }
-  }, [isPaid, rewrittenCV, loadingRewrite, cvText, targetJob, showRewriteQuestions]);
 
-  const handleGenerateCV = async (userAnswers?: Record<string, string>) => {
+  const handleGenerateCV = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id, analysisId);
     if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre CV optimisé."); return; }
-    if (userAnswers) setSavedUserAnswers(userAnswers);
-    setShowRewriteQuestions(false);
     setLoadingRewrite(true);
     console.log('CV utilisé pour réécriture — longueur:', cvText.length);
     try {
-      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing, userAnswers);
+      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing, inlineAnswers);
       setRewrittenCV(text);
       onRewrittenCVChange?.(text);
     } catch (err) {
@@ -175,17 +174,13 @@ const ResultsPanel = ({
     setLoadingRewrite(false);
   };
 
-  const handleStartGenerateCV = () => {
-    setShowRewriteQuestions(true);
-  };
-
   const handleGenerateLetter = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
     const serverPaid = await verifyPaidStatus(user.id, analysisId);
     if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre lettre."); return; }
     setLoadingLetter(true);
     try {
-      const text = await generateCoverLetter(cvText, targetJob, region, jobDescription, savedUserAnswers);
+      const text = await generateCoverLetter(cvText, targetJob, region, jobDescription, inlineAnswers);
       setCoverLetter(text);
       onCoverLetterChange?.(text);
     } catch (err) {
@@ -619,25 +614,49 @@ const ResultsPanel = ({
             ) : rewrittenCV ? (
               <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} />
             ) : (
-              <button onClick={handleStartGenerateCV} disabled={loadingRewrite}
-                className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
-                style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
-                ✨ Générer mon CV optimisé
-              </button>
+              <div className="space-y-6">
+                {/* Questions contextuelles inline */}
+                {contextualQuestions.length >= 3 && (
+                  <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-200">
+                    <h4 className="text-base font-bold text-foreground mb-1">✏️ Quelques précisions pour personnaliser votre CV</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Répondez à ces questions pour un CV plus pertinent. Vous pouvez laisser vide.
+                    </p>
+                    <div className="space-y-4">
+                      {contextualQuestions.map((q) => (
+                        <div key={q.id}>
+                          <label className="block text-sm font-semibold text-foreground mb-1.5">{q.label}</label>
+                          {q.type === "textarea" ? (
+                            <textarea
+                              value={inlineAnswers[q.id] || ""}
+                              onChange={(e) => setInlineAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                              placeholder={q.placeholder}
+                              rows={3}
+                              className="w-full p-3 bg-white rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:outline-none border border-border resize-none"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={inlineAnswers[q.id] || ""}
+                              onChange={(e) => setInlineAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                              placeholder={q.placeholder}
+                              className="w-full p-3 bg-white rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:outline-none border border-border"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button onClick={handleGenerateCV} disabled={loadingRewrite}
+                  className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+                  style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
+                  ✨ Générer mon CV optimisé
+                </button>
+              </div>
             )}
           </div>
 
-          {showRewriteQuestions && (
-            <RewriteQuestionsModal
-              analysisResult={results}
-              cvText={cvText}
-              jobDescription={jobDescription}
-              targetJob={targetJob}
-              region={region}
-              onSubmit={(answers) => handleGenerateCV(answers)}
-              onCancel={() => setShowRewriteQuestions(false)}
-            />
-          )}
 
           {/* Cover Letter */}
           <div className="bg-card p-8 rounded-3xl shadow-soft">

@@ -79,10 +79,12 @@ Deno.serve(async (req) => {
         }
       } else if (productType === "pro") {
         // Mark user as pro subscriber
+        const subscriptionId = session.subscription as string || null;
         await supabase.from("user_subscriptions").upsert({
           user_id: userId,
           is_pro: true,
           stripe_customer_id: session.customer as string || null,
+          stripe_subscription_id: subscriptionId,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
       } else if (productType === "review") {
@@ -98,12 +100,14 @@ Deno.serve(async (req) => {
     console.log(`Payment recorded: ${productType} for user ${userId}, session ${session.id}`);
   }
 
-  // Handle subscription cancellation
-  if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
+  // Handle subscription created - mark user as pro
+  if (event.type === "customer.subscription.created") {
     const subscription = event.data.object as Stripe.Subscription;
     const customerId = subscription.customer as string;
 
-    if (subscription.status === "canceled" || subscription.status === "unpaid" || event.type === "customer.subscription.deleted") {
+    if (subscription.status === "active" || subscription.status === "trialing") {
+      const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+
       // Find user by stripe customer ID in user_subscriptions
       const { data: subRows } = await supabase
         .from("user_subscriptions")
@@ -113,6 +117,44 @@ Deno.serve(async (req) => {
 
       if (subRows && subRows.length > 0) {
         await supabase.from("user_subscriptions").update({
+          is_pro: true,
+          stripe_subscription_id: subscription.id,
+          subscription_end: subscriptionEnd,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", subRows[0].user_id);
+
+        console.log(`Pro subscription created for user ${subRows[0].user_id}`);
+      }
+    }
+  }
+
+  // Handle subscription updates (activation, renewal, or cancellation)
+  if (event.type === "customer.subscription.updated") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId = subscription.customer as string;
+
+    // Find user by stripe customer ID
+    const { data: subRows } = await supabase
+      .from("user_subscriptions")
+      .select("user_id")
+      .eq("stripe_customer_id", customerId)
+      .limit(1);
+
+    if (subRows && subRows.length > 0) {
+      if (subscription.status === "active" || subscription.status === "trialing") {
+        // Subscription is active - mark as pro
+        const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+        await supabase.from("user_subscriptions").update({
+          is_pro: true,
+          stripe_subscription_id: subscription.id,
+          subscription_end: subscriptionEnd,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", subRows[0].user_id);
+
+        console.log(`Pro subscription activated/renewed for user ${subRows[0].user_id}`);
+      } else if (subscription.status === "canceled" || subscription.status === "unpaid" || subscription.status === "past_due") {
+        // Subscription is no longer active
+        await supabase.from("user_subscriptions").update({
           is_pro: false,
           stripe_subscription_id: null,
           subscription_end: null,
@@ -121,6 +163,29 @@ Deno.serve(async (req) => {
 
         console.log(`Pro subscription canceled for user ${subRows[0].user_id}`);
       }
+    }
+  }
+
+  // Handle subscription deleted
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId = subscription.customer as string;
+
+    const { data: subRows } = await supabase
+      .from("user_subscriptions")
+      .select("user_id")
+      .eq("stripe_customer_id", customerId)
+      .limit(1);
+
+    if (subRows && subRows.length > 0) {
+      await supabase.from("user_subscriptions").update({
+        is_pro: false,
+        stripe_subscription_id: null,
+        subscription_end: null,
+        updated_at: new Date().toISOString(),
+      }).eq("user_id", subRows[0].user_id);
+
+      console.log(`Pro subscription deleted for user ${subRows[0].user_id}`);
     }
   }
 

@@ -46,32 +46,7 @@ const CVAnalyzer = () => {
   const uploadInProgressRef = useRef(false);  // Flag pour éviter race condition avec restauration DB
 
   /** Bug #2/#3 fix: Check server-side if user has paid for THIS SPECIFIC analysis OR has active pro subscription */
-  /** Amélioration: Cache de 60 secondes pour check-subscription */
   const checkServerPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
-    const cacheKey = "scorecv_sub_cache";
-
-    // Fonction helper pour vérifier le statut Pro avec cache
-    const checkProWithCache = async (): Promise<boolean> => {
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        try {
-          const c = JSON.parse(cached);
-          if (Date.now() - c.timestamp < 60000 && c.isPro) {
-            return true;
-          }
-        } catch { /* ignore */ }
-      }
-
-      try {
-        const { data: subData } = await supabase.functions.invoke("check-subscription");
-        if (subData) {
-          sessionStorage.setItem(cacheKey, JSON.stringify({ ...subData, timestamp: Date.now() }));
-          if (subData.isPro) return true;
-        }
-      } catch { /* ignore */ }
-      return false;
-    };
-
     // Sécurité: exiger analysisId, sinon retourner false par défaut
     if (!analysisId) {
       return false;
@@ -86,8 +61,15 @@ const CVAnalyzer = () => {
       .single();
     if (data?.is_paid) return true;
 
-    // Aussi vérifier l'abonnement Pro avec cache
-    return await checkProWithCache();
+    // Vérifier le statut Pro directement depuis la table user_subscriptions
+    const { data: subData } = await supabase
+      .from("user_subscriptions")
+      .select("is_pro")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (subData?.is_pro) return true;
+
+    return false;
   };
 
   // On mount: clean analysis data (not history or subscription cache)

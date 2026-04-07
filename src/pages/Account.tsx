@@ -28,6 +28,8 @@ const AccountInner = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [subLoading, setSubLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [canceledUntil, setCanceledUntil] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -48,37 +50,32 @@ const AccountInner = () => {
       setLoading(false);
     };
 
-    // Bug #15: Cache subscription check result
+    // Read subscription status directly from DB first for immediate display
     const checkSubscription = async () => {
-      const cacheKey = "scorecv_sub_cache";
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        try {
-          const c = JSON.parse(cached);
-          if (Date.now() - c.timestamp < 60000) {
-            setIsPro(c.isPro || false);
-            setSubscriptionEnd(c.subscriptionEnd || null);
-            setReviewRequested(c.reviewRequested || false);
-            setSubLoading(false);
-            return;
-          }
-        } catch { /* ignore */ }
-      }
-
       try {
+        // First, read directly from user_subscriptions table for immediate display
+        const { data: dbData } = await supabase
+          .from("user_subscriptions")
+          .select("is_pro, subscription_end, review_requested")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (dbData) {
+          setIsPro(dbData.is_pro || false);
+          setSubscriptionEnd(dbData.subscription_end || null);
+          setReviewRequested(dbData.review_requested || false);
+        }
+        setSubLoading(false);
+
+        // Then validate with Stripe in background (updates DB if needed)
         const { data } = await supabase.functions.invoke("check-subscription");
         if (data) {
           setIsPro(data.isPro || false);
           setSubscriptionEnd(data.subscriptionEnd || null);
           setReviewRequested(data.reviewRequested || false);
-          sessionStorage.setItem(cacheKey, JSON.stringify({
-            ...data,
-            timestamp: Date.now(),
-          }));
         }
       } catch (err) {
         console.error("Failed to check subscription:", err);
-      } finally {
         setSubLoading(false);
       }
     };
@@ -123,6 +120,27 @@ const AccountInner = () => {
       toast.error("Impossible de lancer le paiement.");
     } finally {
       setCheckoutLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!confirm("Voulez-vous vraiment annuler votre abonnement Pro ? Vous conserverez l'accès jusqu'à la fin de la période en cours.")) {
+      return;
+    }
+
+    setCancelLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-subscription");
+      if (error || !data?.success) throw new Error(data?.error || "Erreur");
+
+      setCanceledUntil(data.subscriptionEnd);
+      // Clear cache to force refresh
+      sessionStorage.removeItem("scorecv_sub_cache");
+      toast.success("Votre abonnement a été annulé.");
+    } catch (err) {
+      toast.error("Impossible d'annuler l'abonnement. Veuillez réessayer.");
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -261,22 +279,43 @@ const AccountInner = () => {
               </h2>
               {isPro ? (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                    <p className="font-bold text-foreground">Plan Pro — actif</p>
-                    {subscriptionEnd && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-FR")}
+                  {canceledUntil ? (
+                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                      <p className="font-bold text-amber-800">Abonnement annulé</p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        Vous conservez l'accès Pro jusqu'au {new Date(canceledUntil).toLocaleDateString("fr-FR")}
                       </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                      <p className="font-bold text-foreground">Plan Pro — actif</p>
+                      {subscriptionEnd && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-FR")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleManageSubscription}
+                      disabled={portalLoading}
+                      className="flex-1 py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Gérer
+                    </button>
+                    {!canceledUntil && (
+                      <button
+                        onClick={handleCancelSubscription}
+                        disabled={cancelLoading}
+                        className="flex-1 py-3 bg-destructive/10 text-destructive rounded-xl font-bold hover:bg-destructive/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {cancelLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        Se désabonner
+                      </button>
                     )}
                   </div>
-                  <button
-                    onClick={handleManageSubscription}
-                    disabled={portalLoading}
-                    className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    Gérer mon abonnement
-                  </button>
                 </div>
               ) : (
                 <div className="space-y-3">

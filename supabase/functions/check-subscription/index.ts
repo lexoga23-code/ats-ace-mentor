@@ -27,15 +27,38 @@ Deno.serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("Not authenticated");
 
+    // First, read existing subscription status from DB (source of truth set by webhooks)
+    const { data: existingData } = await supabaseClient
+      .from("user_subscriptions")
+      .select("is_pro, subscription_end, review_requested, stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    let isPro = existingData?.is_pro ?? false;
+    let subscriptionEnd: string | null = existingData?.subscription_end ?? null;
+    const reviewRequested = existingData?.review_requested ?? false;
+
+    // If already Pro from DB, return immediately (trust webhook data)
+    if (isPro && subscriptionEnd) {
+      const endDate = new Date(subscriptionEnd);
+      if (endDate > new Date()) {
+        return new Response(JSON.stringify({
+          isPro,
+          subscriptionEnd,
+          reviewRequested,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Otherwise, verify with Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
     // Check Stripe for active subscription
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-
-    let isPro = false;
-    let subscriptionEnd: string | null = null;
 
     if (customers.data.length > 0) {
       const customerId = customers.data[0].id;
@@ -59,7 +82,9 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
       } else {
-        // No active subscription — mark as not pro
+        // No active subscription in Stripe — mark as not pro
+        isPro = false;
+        subscriptionEnd = null;
         await supabaseClient.from("user_subscriptions").upsert({
           user_id: user.id,
           is_pro: false,
@@ -70,18 +95,12 @@ Deno.serve(async (req) => {
         }, { onConflict: "user_id" });
       }
     }
-
-    // Check review requested
-    const { data: subData } = await supabaseClient
-      .from("user_subscriptions")
-      .select("review_requested")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // If no Stripe customer found, keep the existing DB status (could be set by webhook)
 
     return new Response(JSON.stringify({
       isPro,
       subscriptionEnd,
-      reviewRequested: subData?.review_requested ?? false,
+      reviewRequested,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

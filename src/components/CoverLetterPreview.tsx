@@ -26,8 +26,27 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
     .spacer { height: 16px; }
     .date-line { text-align: left !important; margin-top: 8px; margin-bottom: 16px; }
     @media print {
-      @page { margin: 1.5cm; size: A4; }
-      body { margin: 0; padding: 60px; }
+      @page { margin: 0; size: A4; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 297mm;
+        max-height: 297mm;
+        overflow: hidden;
+      }
+      body {
+        padding: 1.2cm;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+      p {
+        page-break-inside: avoid;
+        page-break-after: avoid;
+        margin-bottom: 8px;
+      }
+      .objet { margin: 10px 0; }
+      .spacer { height: 10px; }
+      .date-line { margin-top: 6px; margin-bottom: 10px; }
     }
   </style>
   <script>

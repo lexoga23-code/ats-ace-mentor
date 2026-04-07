@@ -52,6 +52,10 @@ const PaymentSuccess = () => {
       }
 
       localStorage.setItem("scorecv_paid", "true");
+      // Clear subscription cache so Account page fetches fresh data
+      if (productType === "pro") {
+        sessionStorage.removeItem("scorecv_sub_cache");
+      }
       setStatus("done");
 
       setTimeout(() => {

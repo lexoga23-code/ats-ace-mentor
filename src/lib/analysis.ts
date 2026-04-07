@@ -201,73 +201,244 @@ export const rewriteCV = async (
     ? `\n\nL'utilisateur a fourni ces informations complémentaires : ${Object.entries(userAnswers).filter(([,v]) => v.trim()).map(([k,v]) => `${k}: ${v}`).join("; ")}. Intègre-les naturellement dans le CV réécrit sans les copier mot pour mot. Si une adresse email professionnelle est fournie, remplace l'ancienne. Si des chiffres sont fournis, intègre-les dans les expériences concernées. Si des compétences supplémentaires sont mentionnées, ajoute-les dans la section compétences.`
     : "";
 
-  const prompt = `Tu es un expert en rédaction de CV pour le marché ${country}. Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants UNIQUEMENT s'ils correspondent à des compétences réelles du candidat : ${missingKeywords.join(", ")}.
+  const prompt = `Tu es un expert en rédaction de CV optimisés pour les ATS (Applicant Tracking Systems) sur le marché ${country}. Tu combines une double expertise :
+Expertise technique ATS : tu maîtrises le fonctionnement interne des principaux ATS (Workday, Taleo, Greenhouse, Lever, SmartRecruiter, SAP SuccessFactors, iCIMS) — leurs algorithmes de parsing, de matching sémantique et de scoring.
+Expertise recrutement ${country} : tu connais les conventions du CV ${region === "CH" ? "suisse" : "français"}, les attentes des recruteurs ${region === "CH" ? "en Suisse romande" : "en France"}, la culture professionnelle et les spécificités réglementaires.
+Ton objectif n'est jamais de "tromper" un ATS, mais d'aligner le CV du candidat avec le langage de l'offre tout en mettant en valeur ses réalisations réelles. Le CV ne doit JAMAIS ressembler à une sortie d'IA : varier les verbes d'action, éviter les formulations génériques, intégrer des détails spécifiques au parcours du candidat.
 
-⛔ RÈGLE ABSOLUE #1 — INTERDICTION TOTALE D'INVENTER ⛔
-- Il est STRICTEMENT INTERDIT d'ajouter toute compétence, logiciel, certification, outil, langue ou expérience qui n'est pas EXPLICITEMENT mentionné dans le CV original ci-dessous
-- AVANT d'écrire chaque compétence ou outil, VÉRIFIE qu'il apparaît MOT POUR MOT dans le CV original
-- Si un mot-clé manquant (${missingKeywords.join(", ")}) n'existe PAS dans le CV original, NE PAS l'ajouter — même s'il est demandé
-- Exemples INTERDITS : ajouter "Python" si absent du CV, ajouter "Salesforce" si absent, inventer des certifications, ajouter des langues non mentionnées
-- N'ajoute AUCUN chiffre qui n'existe pas déjà dans le CV original — ne jamais inventer de statistiques ou résultats
-- Cette règle est NON NÉGOCIABLE — une seule invention = échec total
+Réécris ce CV pour le poste de ${job} en intégrant ces mots-clés manquants UNIQUEMENT s'ils correspondent à des compétences réelles du candidat : ${missingKeywords.join(", ")}.
 
-RÈGLE CRITIQUE N°2 — TITRE POUR LES RECONVERSIONS :
-- Ne JAMAIS écrire "en reconversion" dans le titre du CV
-- Utiliser le titre EXACT du poste visé comme titre principal
-- Ajouter un sous-titre valorisant les compétences transférables, format : "Titre du poste | Expertise [domaine transférable]"
-- Exemple : "Chargée de Recrutement | Expertise Marketing & Digital"
-- Valoriser les compétences transférables sans mentionner la reconversion explicitement
+---
+RÈGLE ABSOLUE N°1 — INTERDICTION TOTALE D'INVENTER
+Il est STRICTEMENT INTERDIT d'ajouter toute compétence, logiciel, certification, outil, langue ou expérience absente du CV original
+AVANT d'écrire chaque compétence ou outil, VÉRIFIE qu'il apparaît MOT POUR MOT dans le CV original
+Si un mot-clé manquant n'existe PAS dans le CV original, NE PAS l'ajouter — même s'il est demandé
+N'ajoute AUCUN chiffre absent du CV original — ne jamais inventer de statistiques ou résultats
+DONNÉES DE CONTACT : si une information est absente (email, téléphone, adresse, ville), laisser le champ VIDE — ne jamais inventer ni compléter
+Cette règle est NON NÉGOCIABLE — une seule invention = échec total
+---
+RÈGLE ABSOLUE N°2 — TITRE ET RECONVERSION
+Utiliser le titre EXACT de l'offre d'emploi comme titre principal du CV (jamais de synonyme)
+Ne JAMAIS écrire "en reconversion" dans le titre
+Pour les reconversions : "Titre du poste | Expertise [domaine transférable]"
+Ajouter un sous-titre valorisant les compétences transférables si le profil est en reconversion
+---
+RÈGLE ABSOLUE N°3 — TEMPS VERBAL
+L'infinitif est la convention dominante du CV ${region === "CH" ? "suisse" : "français"}. Il est plus concis et plus universel (pas de problème de reconnaissance ATS avec les temps conjugués). Recommandé par Indeed France, Randstad, TopCV, APEC.
+Toutes les puces d'expérience OBLIGATOIREMENT à l'INFINITIF
+✅ "Gérer", "Assurer", "Développer", "Piloter", "Concevoir"
+❌ JAMAIS : "Gérait", "Assurait", "Réalisait", "J'ai géré", "Géré", "Réalisé"
+Alternative acceptable : nom d'action ("Mise en place de…", "Pilotage de…") — mais NE JAMAIS mélanger infinitif et nom d'action dans une même section
+---
+RÈGLE ABSOLUE N°4 — TITRES DE SECTIONS
+INTERDICTION ABSOLUE d'écrire les titres avec des lettres espacées comme "P R O F I L" ou "E X P É R I E N C E"
+Les ATS lisent chaque lettre comme un mot séparé
+Écrire les titres normalement en majuscules : "PROFIL PROFESSIONNEL", "EXPÉRIENCE PROFESSIONNELLE", "FORMATION", "COMPÉTENCES", "LANGUES"
+Utiliser UNIQUEMENT des intitulés standards reconnus par les ATS :
+✅ Reconnu par tous les ATS    ❌ Non reconnu
+Expérience professionnelle    Mon parcours
+Formation    Mon cursus académique
+Compétences    Ce que je sais faire
+Langues    Mes atouts linguistiques
+Certifications    Mes badges
+Profil professionnel    Ma philosophie
+---
+CONTEXTE ATS — CE QUE TU DOIS SAVOIR
+Adoption en France
+75 % des grandes entreprises françaises utilisent un ATS (APEC 2025)
+~75 % des CV sont écartés automatiquement avant d'atteindre un recruteur humain
+Les TPE et start-ups recrutent souvent sans ATS : un humain lira directement le CV
+ATS dominants et leurs spécificités
+Taleo (Oracle) : ne reconnaît QUE les mots-clés exacts — pas d'abréviations, pas de variations de temps verbal, pas de pluriels
+Greenhouse : utilise la fréquence des mots — ne reconnaît pas les abréviations ni les temps verbaux différents
+SmartRecruiter : ne reconnaît pas les temps verbaux, abréviations ou acronymes
+Workday : NLP sémantique avancé mais les recruteurs cherchent aussi par mots-clés exacts
+SAP SuccessFactors : très répandu dans les grands groupes français (CAC 40, industrie)
+Ce que les ATS NE savent PAS faire
+Lire les tableaux, colonnes multiples, zones de texte flottantes
+Lire le texte dans les en-têtes/pieds de page
+Interpréter les jauges graphiques de compétences
+Reconnaître les abréviations non mentionnées dans l'offre (MBA ≠ "Master of Business Administration" pour Greenhouse/Taleo)
+Reconnaître les variations de temps verbal (Taleo, Workday, SmartRecruiter)
+Lire les logos, icônes, drapeaux, images
+---
+LES 10 CRITÈRES D'ÉVALUATION (à optimiser dans cet ordre)
+1. Lisibilité ATS
+Une seule colonne — 61 % des ATS ignorent complètement la colonne de droite
+Aucun tableau, zone de texte flottante, en-tête/pied de page contenant des infos critiques
+Aucune jauge graphique, icône, logo, drapeau (invisibles pour les ATS)
+Puces standards : • ou -
+Polices standards : Arial, Calibri, Helvetica, Times New Roman (10-12pt)
+Structure ATS : une colonne, pas de tableau, texte pur
+2. Mots-clés secteur
+Reproduire les formulations EXACTES de l'offre — jamais de synonymes si l'offre dit "gestion de projet Agile", ne pas écrire "pilotage de projet en méthode souple"
+Inclure à la fois l'acronyme ET la forme longue : "Search Engine Optimization (SEO)" — car certains ATS ne reconnaissent que l'un ou l'autre
+Viser 10 à 20 mots-clés stratégiques extraits de l'offre
+Objectif : ≥ 75 % des termes clés de l'offre présents dans le CV
+Placer les mots-clés dans : titre, profil, compétences ET puces d'expérience
+Ne jamais répéter un terme plus de 3-4 fois (keyword stuffing détecté et pénalisé par les ATS modernes)
+Inclure des synonymes et variantes si l'espace le permet : "gestion de projet", "chef de projet", "coordination de projet"
+3. Pertinence du poste
+Adapter et reformuler les expériences existantes pour mettre en valeur les compétences transférables vers le poste visé
+Les 3 premières puces de chaque poste = les seules lues en détail par les recruteurs
+Placer les réalisations les plus pertinentes ET les mots-clés prioritaires en premier
+Si le poste visé est différent du profil, reformuler uniquement les missions existantes — ne rien inventer
+4. Impact chiffré
+Structure obligatoire de chaque puce : Verbe d'action (infinitif) + Contexte spécifique + Résultat quantifié
+Si le CV original contient des chiffres → les mettre en valeur.
+Si aucun chiffre n'est disponible → formuler avec des éléments qualitatifs concrets (type de projet, contexte, résultat observable). Ne JAMAIS inventer de chiffres.
+Exemples :
+Profil RH :
+❌ "En charge du recrutement"
+✅ "Piloter le recrutement de 85 collaborateurs/an sur 12 métiers, réduisant le délai moyen d'embauche de 45 à 28 jours via l'optimisation du processus sur Workday"
+Profil Marketing :
+❌ "Responsable de la stratégie marketing digital"
+✅ "Élaborer et déployer la stratégie marketing digital (SEO, SEA, Social Ads) sur un budget annuel de 350 K€, augmentant le trafic organique de 120 % en 12 mois"
+Profil Tech :
+❌ "Développement d'applications web"
+✅ "Développer 4 applications web en React.js et Node.js pour une base de 15 000 utilisateurs actifs, réduisant le temps de chargement de 40 %"
+Profil Junior / Stage :
+❌ "Aide à la gestion des réseaux sociaux"
+✅ "Créer et publier 60 contenus LinkedIn et Instagram en 4 mois, contribuant à une croissance de +35 % de l'audience"
+Profil sans chiffres disponibles :
+❌ "Responsable de la gestion des comptes clients"
+✅ "Gérer un portefeuille de comptes clients grands groupes en assurant le suivi contractuel et la relation commerciale sur le long terme"
+5. Parcours chronologique
+Ordre antéchronologique obligatoire (poste le plus récent en premier)
+Format de dates cohérent partout : MM/AAAA – MM/AAAA
+Pour calculer les années d'expérience : additionner toutes les périodes d'emploi en utilisant l'année actuelle pour les postes "aujourd'hui" / "présent" / "actuel" — ne jamais estimer
+Pour les gaps > 1 an : créer une entrée positive (formation, freelance, projet, bénévolat)
+Pour les gaps de quelques mois : utiliser le format "Année – Année" sans les mois
+6. Structure du CV
+Respecter cet ordre exact :
+Profil classique (expérimenté) :
+EN-TÊTE : NOM PRÉNOM en majuscules | email | téléphone | ville | LinkedIn si disponible — tout sur UNE SEULE LIGNE séparée par des |
+TITRE DU CV (= intitulé exact du poste visé)
+PROFIL PROFESSIONNEL (3-4 lignes)
+COMPÉTENCES (liste structurée par catégories)
+EXPÉRIENCE PROFESSIONNELLE (antéchronologique)
+FORMATION
+LANGUES / CERTIFICATIONS
+Profil junior / reconversion :
+EN-TÊTE
+TITRE DU CV
+PROFIL PROFESSIONNEL orienté objectif
+FORMATION (en premier si diplôme récent ou prestigieux)
+COMPÉTENCES
+EXPÉRIENCE PROFESSIONNELLE (stages, alternances, projets)
+PROJETS PERSONNELS / ASSOCIATIFS (si pertinents)
+LANGUES / CERTIFICATIONS
+Longueur :
+CV original = 1 page → CV réécrit = 1 page (maximum 3-4 puces par poste, supprimer redondances, garder uniquement les 10 dernières années)
+10-15 ans d'expérience → 2 pages acceptées
+Senior (15+ ans) → 2 pages, postes anciens résumés en 1-2 lignes
+7. Coordonnées
+Email non professionnel (hotmail, wanadoo, orange, laposte, yahoo, free, sfr) → ajouter une note de recommandation de le remplacer par une adresse Gmail prénom.nom
+Gmail → NE JAMAIS signaler comme problème
+Ville obligatoire dans l'en-tête
+Si une information est absente du CV original → laisser VIDE, ne jamais inventer
+8. Profil professionnel
+Doit mentionner le secteur spécifique du poste visé
+Doit inclure les années d'expérience calculées précisément
+Doit contenir 2-3 mots-clés prioritaires de l'offre
+Doit être différenciant — impossible à copier-coller pour un autre candidat
+❌ Jamais générique : "Professionnel motivé et dynamique cherchant un poste stimulant"
+✅ Toujours spécifique : "DAF expérimentée spécialisée dans la distribution, 15 ans d'expérience en pilotage financier de structures de 40-50 M€, expertise en consolidation et transformation digitale finance"
+9. Compétences techniques
+Lister uniquement les compétences présentes dans le CV original
+Ajouter les formes longues des acronymes : "SAP FI/CO (Finance et Contrôle de Gestion)"
+Structurer par catégories : outils, méthodes, certifications, logiciels
+Intégrer les mots-clés manquants de l'offre UNIQUEMENT s'ils existent dans le CV original
+LANGUES : n'inclure une langue que si elle est explicitement demandée dans l'offre OU si le niveau est B2 minimum — supprimer "notions", "scolaire", niveau A1/A2 si non pertinent pour le poste
+10. Orthographe et typographie française
+Espace insécable avant : ? ! : ; « »
+Guillemets français : « » (pas "")
+Pas de majuscule après les deux-points dans une liste
+Vérifier la cohérence des majuscules dans les intitulés de poste
+Faute sur un mot-clé = zéro match ATS ("managment" ne matchera jamais "management")
+---
+MOTS ET EXPRESSIONS INTERDITS
+Bannir absolument dans tout le CV :
+"dynamique", "rigoureux", "motivé", "passionné", "fort de", "animé par",
+"convaincu que", "au sein de", "dans le cadre de", "vision globale",
+"enjeux", "problématique", "synergie", "valeur ajoutée",
+"contribuer au développement", "m'épanouir", "challenge", "je me permets",
+"proactif", "orienté résultats", "esprit d'équipe", "sens des responsabilités"
+---
+GESTION DES CAS PARTICULIERS
+Profil junior (< 3 ans)
+Formation en premier si diplôme récent
+Valoriser : stages, alternances, projets académiques, projets personnels, associatif
+Titre : "Titre du poste – Jeune diplômé(e)"
+3-4 puces par expérience, 15-25 mots par puce
+Quantifier même les petites réalisations : "Organiser un événement de 200 participants" vaut mieux que "Organisation d'événements"
+Profil senior (10+ ans)
+2 pages acceptées
+Postes anciens (> 10 ans) : résumés en 1-2 lignes
+Focus sur : budget géré, effectifs managés, CA piloté, scope international
+4-5 puces pour postes récents, 2-3 pour anciens
+Exemple : "Piloter un plan de transformation digitale de 4,5 M€, générant 12 % de gains de productivité sur 18 mois"
+Reconversion
+Titre = nouveau métier visé (jamais l'ancien, jamais "en reconversion")
+Reformuler les missions passées en termes du nouveau métier
+Exemple enseignant → chef de projet : "Concevoir et animer des programmes pédagogiques pour 150 élèves/an, développant des compétences directement transférables : planification, coordination d'équipe, suivi d'indicateurs de performance"
+Gaps dans le parcours
+Ne jamais mentir sur les dates
+Gap court (< 6 mois) : format "Année – Année" sans les mois
+Gap long (> 1 an) : créer une entrée positive : "2021 – 2022 : Formation intensive en développement web (Le Wagon, Paris)"
+---
+LISTE DE VERBES D'ACTION FRANÇAIS (PAR CATÉGORIE)
+Leadership : Piloter, Diriger, Superviser, Coordonner, Encadrer, Mener, Fédérer, Orchestrer, Structurer, Impulser
+Réalisation : Concevoir, Développer, Mettre en place, Déployer, Lancer, Créer, Implémenter, Bâtir, Industrialiser, Automatiser
+Optimisation : Optimiser, Améliorer, Réduire, Rationaliser, Fiabiliser, Accélérer, Simplifier, Moderniser, Restructurer, Refondre
+Analyse : Analyser, Évaluer, Auditer, Diagnostiquer, Cartographier, Modéliser, Mesurer, Identifier, Investiguer, Synthétiser
+Communication : Présenter, Négocier, Convaincre, Rédiger, Former, Animer, Conseiller, Accompagner, Promouvoir, Vulgariser
+Résultats : Augmenter, Générer, Atteindre, Dépasser, Accroître, Doubler, Tripler, Sécuriser, Rentabiliser, Garantir
+${region === "CH" ? `---
+RÈGLES SPÉCIFIQUES SUISSE ROMANDE
+- Utiliser le vocabulaire suisse : école professionnelle (pas lycée professionnel), maître d'enseignement professionnel (pas professeur), secondaire II, DGEP, CFC, formation duale, maturité professionnelle, LPP, AVS, CCT
+- Dans le CV réécrit, ne jamais laisser "lycée professionnel" ou "Professeur" si contexte suisse
+- Signaler si l'email est non professionnel (laposte.net, hotmail, yahoo, orange) et recommander Gmail` : ""}
+---
+INFORMATIONS COMPLÉMENTAIRES FOURNIES PAR LE CANDIDAT
+Le candidat a répondu à des questions contextuelles avant la génération. Ces réponses sont précieuses et doivent être intégrées naturellement dans le CV :
+${answersBlock}
+Règles d'utilisation des réponses :
+Si le candidat a fourni des chiffres (taille d'équipe, budget, volume) → les intégrer dans les puces d'expérience concernées
+Si le candidat a précisé son niveau de langue → mettre à jour la section Langues avec ce niveau exact
+Si le candidat a listé des outils ou logiciels → les ajouter dans Compétences UNIQUEMENT s'ils sont cohérents avec le CV original
+Si le candidat a exprimé une motivation particulière → l'intégrer dans le Profil professionnel
+Si le candidat n'a pas répondu à une question → ignorer silencieusement, ne pas laisser de placeholder
+---
+AUTO-ÉVALUATION AVANT GÉNÉRATION FINALE
+Avant de produire le CV final, effectue cette évaluation interne silencieuse (ne pas l'afficher à l'utilisateur) :
+Note le CV que tu t'apprêtes à générer sur les 10 critères (1 à 5) :
+1. Lisibilité ATS
+2. Mots-clés secteur (≥ 75% de l'offre couverts ?)
+3. Pertinence du poste
+4. Impact chiffré (puces avec verbe + contexte + résultat)
+5. Parcours chronologique
+6. Structure du CV
+7. Coordonnées (complètes, sans invention)
+8. Profil professionnel (spécifique, pas générique)
+9. Compétences techniques (sans invention)
+10. Orthographe et typographie
+Règle de correction automatique :
+Si un critère est noté 3/5 ou moins → corriger avant de générer
+Si le score total est inférieur à 40/50 → retravailler les sections problématiques
+Ne générer le CV final que si le score total atteint ≥ 42/50
+Cette auto-évaluation est un processus interne — seul le CV final corrigé est retourné à l'utilisateur.
+---
+RAPPEL FINAL AVANT DE RÉPONDRE
+Avant de soumettre ta réponse, vérifie ces 5 points :
+As-tu écrit une compétence, un outil ou une certification absent du CV original ? → SUPPRIME-LE
+Chaque puce commence-t-elle par un verbe à l'INFINITIF ? → Sinon, corrige
+Le titre du CV est-il le titre EXACT de l'offre ? → Sinon, corrige
+Les coordonnées sont-elles complètes sans aucune invention ? → Sinon, laisse vide
+Un mot interdit est-il présent ? → SUPPRIME-LE
+Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.
 
-RÈGLES SILENCIEUSES — applique sans mentionner dans le CV :
-- Utilise le titre EXACT de l'offre comme titre du CV (pas de synonyme)
-- Assure que chaque mot requis de l'offre apparaît dans au moins 2 sections différentes du CV, SEULEMENT si le candidat possède réellement cette compétence
-- Utilise le vocabulaire EXACT de l'offre — jamais de synonymes
-- Ne jamais inventer d'expériences — reformuler uniquement ce qui existe déjà
-
-Règles absolues :
-- Ne jamais inventer d'expériences, de postes, de compétences, de logiciels ou de formations qui ne sont pas dans le CV original
-- Ne jamais couper des mots en fin de ligne
-- Structure ATS : une colonne, pas de tableau, texte pur
-- Ordre chronologique inverse obligatoire
-- Le CV doit tenir sur UNE SEULE PAGE pour moins de 10 ans d'expérience. Pour les profils 10-15 ans : 2 pages maximum
-- Pour tenir sur une page : maximum 3-4 puces par poste, supprimer les informations redondantes, garder uniquement les 10 dernières années d'expérience, synthétiser la formation en 2-3 lignes
-- INTERDICTION ABSOLUE d'écrire les titres de sections avec des lettres espacées comme "P R O F I L" ou "E X P É R I E N C E". Les ATS lisent chaque lettre comme un mot séparé. Écrire les titres normalement en majuscules : "PROFIL PROFESSIONNEL", "EXPÉRIENCE PROFESSIONNELLE", "FORMATION", "COMPÉTENCES", "LANGUES"
-${region === "CH" ? "- Si pays = Suisse : utiliser école professionnelle, maître d'enseignement, secondaire II, DGEP, CFC\n- Si email non professionnel détecté : ajouter une note [Recommandation : remplacer par une adresse Gmail prénom.nom]" : ""}
-- Verbes d'action au début de chaque puce : conçu, développé, formé, géré, optimisé, coordonné
-- Si le poste visé est différent du profil du candidat, adapter et reformuler uniquement les expériences existantes pour mettre en valeur les compétences transférables
-- Reformuler les expériences existantes avec le vocabulaire du secteur visé sans rien inventer
-- Mettre les coordonnées complètes dans l'en-tête
-- Structurer chaque expérience avec intitulé | entreprise | dates sur une ligne puis 3-4 puces maximum
-
-STRUCTURE OBLIGATOIRE DU CV — respecter cet ordre exact :
-
-1. EN-TÊTE :
-   - NOM PRÉNOM en majuscules sur la première ligne (sera affiché en 20-24pt gras)
-   - Sur la ligne suivante, sur UNE SEULE LIGNE séparée par des | : email | téléphone | ville | LinkedIn si disponible
-   - Ne jamais mettre les coordonnées dans la section Profil
-
-2. PROFIL PROFESSIONNEL
-   - 3-4 lignes percutantes qui répondent directement à l'offre
-
-3. EXPÉRIENCE PROFESSIONNELLE
-   - Chaque poste sur UNE SEULE LIGNE : Intitulé du poste | Entreprise, Ville | Dates (MM/AAAA - MM/AAAA)
-   - Puis 3-4 puces commençant par • et un verbe d'action
-   - Ne jamais surligner ou colorer les intitulés de postes
-
-4. FORMATION
-   - Diplômes avec dates
-
-5. COMPÉTENCES
-   - Compétences techniques et outils
-
-6. LANGUES (si pertinent)
-
-⛔ RAPPEL FINAL AVANT DE RÉPONDRE ⛔
-Relis le CV original une dernière fois. Si tu as écrit une compétence, un outil, un logiciel ou une certification qui N'APPARAÎT PAS dans le CV original ci-dessous, SUPPRIME-LE immédiatement de ta réponse.
-
-Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.${answersBlock}
-
-CV ORIGINAL À RÉÉCRIRE (ne rien inventer qui n'est pas présent ici) : ${cvText.substring(0, 2000)}`;
+CV ORIGINAL À RÉÉCRIRE (ne rien inventer qui n'est pas présent ici) : ${cvText.substring(0, 2500)}`;
 
   return callAnthropic(prompt, 2500, 0.3);
 };
@@ -292,59 +463,239 @@ export const generateCoverLetter = async (
 
   const today = new Date().toLocaleDateString(region === "CH" ? 'fr-CH' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const prompt = `Tu es un expert en recrutement ${country}. Rédige une lettre de motivation professionnelle tenant sur UNE SEULE PAGE, entre 300 et 400 mots, 4 paragraphes de corps, respectant strictement les normes françaises et suisses, pour le poste de ${job}.
+  const prompt = `Tu es un rédacteur expert en lettres de motivation pour le marché de l'emploi ${country}. Tu génères des lettres prêtes à envoyer, sans aucun placeholder, crochet [xxx] ou champ à compléter.
 
-Règles absolues :
-- La lettre doit faire entre 300 et 400 mots — c'est OBLIGATOIRE. Compte les mots avant de finaliser.
-- Ton : professionnel, direct et humain — jamais robotique
-- Ne jamais inventer d'éléments non présents dans le CV
-- Adapter le vocabulaire au secteur visé sans créer de fausses expériences
-- Jamais de formule creuse comme "je suis une personne motivée et dynamique"
-- Chaque phrase doit apporter une information concrète sur le candidat ou sa motivation pour ce poste précis
-- Pour calculer les années d'expérience, additionne toutes les périodes d'emploi présentes dans le CV en utilisant l'année actuelle (${new Date().getFullYear()}) pour les postes marqués "aujourd'hui" ou "présent" ou "actuel". Ne jamais estimer — calcule précisément.
-${region === "CH" ? `- Ne jamais écrire "j'ai décidé de m'installer en Suisse" — trop hésitant. Écrire plutôt "Installé en Suisse depuis [date], je souhaite contribuer au système éducatif vaudois"
-- Mentionner la connaissance ou la volonté d'apprendre le système local (DGEP, secondaire II, formation duale)` : ""}
+Rédige une lettre de motivation pour le poste de ${job}.
 
-STRUCTURE OBLIGATOIRE :
-
-En-tête expéditeur (haut gauche) :
-- [NOM COMPLET EN MAJUSCULES]
-- [Adresse ou Ville]
-- [Téléphone]
-- [Email]
-
-(ligne vide)
-
-Destinataire (aligné à droite) :
-${offerDetails ? `- Extraire le nom de l'entreprise/établissement depuis l'offre d'emploi ci-dessous. Si l'adresse complète n'est pas trouvée dans l'offre, NE PAS mettre de placeholder entre crochets [xxx]. À la place, écrire uniquement le nom de l'entreprise sur une ligne et laisser la ligne d'adresse vide. Ne JAMAIS écrire "[Adresse de l'entreprise]" ou "[Code postal, Ville]" dans le document final.` : `- Écrire uniquement le nom de l'entreprise si connu, sinon écrire "Entreprise destinataire" sans crochets ni placeholders.
-- NE PAS écrire de placeholders entre crochets comme [Nom], [Adresse], [Code postal]. Laisser la ligne vide si l'information n'est pas disponible.`}
-- ${region === "CH" ? "Lausanne" : "Paris"}, le ${today}
-
-(ligne vide)
-
-Objet : Candidature au poste de ${job}
-
-(ligne vide)
-
-Madame, Monsieur,
-
-Paragraphe 1 — Accroche OBLIGATOIRE : Le premier paragraphe doit obligatoirement commencer par une phrase qui exprime l'enthousiasme et cite explicitement le nom exact du poste et le nom exact de l'entreprise/établissement tirés de l'offre d'emploi. Format : "C'est avec enthousiasme que je vous présente ma candidature pour le poste de [titre exact du poste] au sein de [nom exact de l'entreprise]." Si l'offre d'emploi n'est pas fournie, utiliser le titre du poste saisi par l'utilisateur. Ne jamais commencer par "Je me permets de..." ou "Suite à votre annonce..." — trop bateau. Puis expliquer pourquoi CE poste dans CETTE structure intéresse le candidat — basé sur des éléments réels de l'offre.
-
-Paragraphe 2 — Valeur ajoutée : 2-3 réalisations concrètes et chiffrées tirées du CV original qui démontrent les compétences pour CE poste. Ne jamais inventer.
-
-Paragraphe 3 — Exemple concret différenciant : Commencer par "Ainsi, lors de mon expérience chez [entreprise réelle du CV], j'ai [action concrète avec résultat si disponible dans le CV]." Ce paragraphe doit contenir UN exemple spécifique et détaillé d'une réalisation tirée du CV original — jamais inventé. Si le CV ne contient pas de chiffres, formuler avec des éléments qualitatifs concrets (type de projet, contexte, résultat observable).
-
-Paragraphe 4 — Motivation : lien entre le parcours du candidat et le projet de l'entreprise/établissement.${region === "CH" ? " Mentionner la connaissance ou la volonté d'apprendre le système local." : ""}
-
-Dans l'attente de vous rencontrer, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
-
-[Prénom NOM]
-
-CV : ${cvText.substring(0, 1500)}
-Offre : ${offerDetails || "Non précisée"}
-${userAnswers && Object.values(userAnswers).some(v => v.trim()) ? `\nInformations complémentaires fournies par le candidat : ${Object.entries(userAnswers).filter(([,v]) => v.trim()).map(([k,v]) => `${k}: ${v}`).join("; ")}. Intègre-les naturellement dans la lettre. Si une motivation de reconversion est fournie, utilise-la dans le 1er paragraphe.` : ""}
-
-Retourne UNIQUEMENT la lettre, prête à envoyer, avec la structure ci-dessus. Ne JAMAIS inclure de placeholders entre crochets [xxx] dans le résultat final.`;
+---
+PHILOSOPHIE GÉNÉRALE
+Ta lettre doit donner l'impression qu'un humain l'a écrite en y consacrant 45 minutes : personnelle, concrète, légèrement imparfaite dans sa fluidité (pas robotiquement parfaite). Le recruteur doit sentir une voix, pas un algorithme.
+Principe fondamental : la lettre n'est PAS un résumé du CV. C'est un argumentaire qui relie le parcours du candidat aux besoins spécifiques de l'entreprise.
+---
+FORMAT ET LONGUEUR
+LONGUEUR CIBLE : 200–280 mots (≈ demi-page).
+53 % des candidats français visent la demi-page (monCVparfait 2025)
+France Travail recommande une lettre lisible en 30 secondes
+Maximum absolu : 350 mots. Minimum : 180 mots.
+Compter les mots AVANT de finaliser — c'est obligatoire.
+MISE EN PAGE :
+Coordonnées candidat en haut à gauche (prénom, nom, adresse si disponible, téléphone, email)
+Coordonnées entreprise en haut à droite (nom de l'entreprise — si l'adresse est inconnue, laisser la ligne vide sans placeholder)
+Lieu et date à droite : « ${region === "CH" ? "Lausanne" : "Paris"}, le ${today} »
+Objet : une ligne, précis → « Objet : Candidature au poste de ${job} »
+Salutation d'ouverture
+3 paragraphes courts (4-6 phrases chacun max)
+Formule de conclusion + politesse
+Signature (Prénom NOM)
+TYPOGRAPHIE FRANÇAISE OBLIGATOIRE :
+Espace insécable avant : ; ? ! « »
+Guillemets français « … » (jamais "...")
+M. (pas Mr. ni Mr) pour Monsieur
+Mme (pas Melle ni Mademoiselle — supprimé depuis 2012)
+Pas d'écriture inclusive avec points médians (sauf si l'offre l'utilise)
+Majuscule de déférence : Madame la Directrice, Monsieur le Responsable
+---
+STRUCTURE : VOUS → MOI → NOUS
+SALUTATION
+Si nom connu : « Madame Martin, » ou « Monsieur Dupont, »
+Si poste connu sans nom : « Madame la Directrice des ressources humaines, »
+Par défaut : « Madame, Monsieur, »
+JAMAIS : « Cher Monsieur » / « Chère Madame » (trop familier)
+JAMAIS : « Bonjour » (pas assez formel)
+PARAGRAPHE 1 — ACCROCHE + VOUS (3-4 phrases)
+Objectif : capter l'attention + montrer qu'on a compris l'entreprise.
+TECHNIQUE D'ACCROCHE — Choisir UN format parmi :
+a) Le fait concret : commencer par une réalisation du candidat qui résonne avec le poste
+→ « En réduisant de 20 % les délais de livraison dans mon équipe actuelle, j'ai compris à quel point la logistique pouvait être un levier stratégique — c'est ce qui m'attire dans le poste de ${job} chez [Entreprise]. »
+b) Le lien authentique : une connexion réelle avec l'entreprise
+→ « J'ai découvert [Entreprise] en utilisant votre [produit/service], et c'est cette expérience qui m'a donné envie de contribuer à [aspect précis]. »
+c) Le constat sectoriel : une observation pertinente sur le secteur
+→ « Le secteur [X] traverse [enjeu précis]. Votre approche [détail précis] m'a convaincu que c'est ici que je veux apporter mes compétences. »
+INTERDIT en accroche :
+« Actuellement en recherche active… »
+« Fort(e) de X années d'expérience… »
+« Votre entreprise, leader dans son secteur… »
+« C'est avec un grand intérêt que… »
+« Je me permets de vous adresser ma candidature… »
+« C'est avec enthousiasme que je vous présente ma candidature » (trop bateau)
+Toute phrase qui pourrait s'appliquer à n'importe quel candidat/entreprise
+Enchaîner avec 1-2 phrases montrant ce qui attire chez CETTE entreprise en particulier. Utiliser des éléments provenant de l'offre d'emploi.
+PARAGRAPHE 2 — MOI (4-6 phrases)
+Objectif : prouver sa valeur par des faits issus uniquement du CV du candidat.
+RÈGLE CRITIQUE : Les chiffres viennent UNIQUEMENT du CV du candidat, JAMAIS de l'offre d'emploi.
+✅ « J'ai accompagné 150 patients par mois dans mon poste actuel »
+❌ « Vos 30 000 patients annuels m'impressionnent » (chiffre de l'offre réutilisé — erreur grave)
+Structure interne :
+Compétence clé #1 + preuve factuelle (chiffre, résultat, projet)
+Compétence clé #2 + preuve factuelle
+Qualité transversale démontrée par un exemple concret (pas déclarée)
+INTERDIT :
+Lister des qualités sans preuve (« rigoureux, dynamique, motivé »)
+Paraphraser le CV ligne par ligne
+Raconter sa carrière chronologiquement
+Utiliser des chiffres ou statistiques provenant de l'offre d'emploi
+PARAGRAPHE 3 — NOUS (2-3 phrases MAXIMUM)
+Objectif : projection concrète dans le poste + valeur ajoutée pour l'entreprise.
+Ce paragraphe doit rester COURT et SIMPLE. C'est la source principale de formulations bizarres et pompeux quand il est trop développé.
+Contenu :
+UNE phrase de projection concrète (ce que le candidat apportera)
+UNE phrase montrant l'alignement mutuel
+Exemples :
+→ « Rejoindre votre équipe me permettrait de mettre cette expertise au service de [objectif précis], tout en développant mes compétences en [domaine]. »
+→ « Mon expérience en [X] et votre ambition de [Y] forment une combinaison que je souhaite mettre à l'épreuve. »
+INTERDIT :
+« M'épanouir professionnellement au sein de votre structure »
+« Contribuer à la réussite de vos projets ambitieux »
+« Participer activement au développement de votre entreprise »
+« Votre établissement de référence, reconnu pour son excellence »
+Toute phrase creuse de projection sans ancrage concret
+Citer les chiffres ou statistiques de l'offre comme si c'était un compliment
+CONCLUSION (2-3 phrases)
+Disponibilité + proposition d'action concrète
+→ « Je suis disponible dès le [date si fournie] et serais ravi(e) d'échanger avec vous sur la manière dont je peux contribuer à [mission précise]. »
+→ Si pas de date : « Je reste à votre disposition pour un entretien à votre convenance. »
+Formule de politesse
+FORMULES DE POLITESSE RECOMMANDÉES :
+✅ « Je vous prie d'agréer, Madame, Monsieur, mes sincères salutations. »
+✅ « Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées. »
+✅ « Veuillez agréer, Madame, Monsieur, l'expression de mes salutations distinguées. »
+FORMULES INTERDITES :
+❌ « Veuillez agréer mes respectueux hommages » (désuet)
+❌ « Agréez l'expression de ma haute considération » (pompeux)
+❌ « Cordialement » (trop informel, réservé aux emails)
+❌ « Dans l'attente d'une réponse rapide » (impoli)
+❌ « Dans l'espoir que ma candidature retiendra votre attention » (trop passif)
+RÈGLE : la civilité dans la formule de fin DOIT correspondre à celle de la salutation d'ouverture.
+---
+MOTS-CLÉS — INTÉGRATION NATURELLE
+Intégrer 5-8 mots-clés de l'offre dans des phrases qui décrivent des ACTIONS ou RÉSULTATS du candidat. Maximum 1 mot-clé par phrase.
+✅ BONNE intégration :
+« J'ai piloté la migration vers SAP S/4HANA pour une équipe de 12 personnes, livrant le projet avec deux semaines d'avance. »
+❌ MAUVAISE intégration (keyword stuffing) :
+« Mes compétences en gestion de projet, SAP, leadership, migration et conduite du changement font de moi le candidat idéal. »
+RÈGLE : si un mot-clé correspond à une compétence que le candidat possède dans son CV → l'utiliser. Si absent du CV → NE PAS l'inventer.
+---
+LISTE NOIRE — EXPRESSIONS ABSOLUMENT INTERDITES
+Mots signaux IA (détectés par 68 % des recruteurs — Hellowork 2025)
+« Fort(e) de » / « Riche de »
+« Animé(e) par » / « Porté(e) par »
+« Passionné(e) par » (sauf si le candidat l'a dit verbatim)
+« Vision globale des enjeux »
+« M'épanouir professionnellement »
+« Solide » (solide expérience, solide motivation — tic ChatGPT)
+« Paysage » (paysage numérique, paysage concurrentiel)
+« Je suis fermement persuadé(e) que »
+« Je suis convaincu(e) que mon profil saura… »
+« Profondément motivé(e) »
+« Dans un monde en constante évolution »
+« Faire partie de cette aventure »
+« Cette opportunité correspond parfaitement à »
+« Actuellement en recherche active »
+« Cette approche collaborative m'a permis d'acquérir une vision globale »
+Connecteurs IA à éviter
+« De plus, » (en début de phrase — signature ChatGPT)
+« En outre, »
+« Par ailleurs, » (si répété)
+« Il convient de noter que »
+« Force est de constater que »
+Expressions pompeux/vides
+« Votre entreprise, reconnue dans son secteur… »
+« Je suis motivé(e) et dynamique »
+« Mon profil polyvalent »
+« Mes qualités relationnelles »
+« Ma rigueur et mon sens de l'organisation »
+→ Ces qualités doivent être PROUVÉES par un fait, jamais déclarées
+Formulations à remplacer
+❌ Interdit    ✅ Alternative
+« Fort de 5 ans d'expérience »    « Depuis 5 ans, je [verbe d'action] + [résultat] »
+« Animé par la volonté de »    « Ce qui me motive dans ce poste, c'est [fait précis] »
+« Vision globale des enjeux »    « J'ai piloté [projet concret] qui m'a confronté à [enjeu réel] »
+« Je suis convaincu que »    « Mon expérience en [X] m'a montré que »
+« De plus, »    « J'ai aussi » / « Par exemple, » / supprimer le connecteur
+« Passionné(e) par le digital »    « Je code en Python depuis 3 ans et j'ai lancé [projet] »
+« C'est avec enthousiasme que »    Commencer directement par un fait ou une réalisation
+---
+UTILISATION DES INFORMATIONS COMPLÉMENTAIRES DU CANDIDAT
+Le candidat a répondu à des questions avant la génération. Voici comment utiliser chaque type de réponse :
+${userAnswers && Object.values(userAnswers).some(v => v.trim()) ? `Informations fournies par le candidat : ${Object.entries(userAnswers).filter(([,v]) => v.trim()).map(([k,v]) => `${k}: ${v}`).join("; ")}` : "Aucune information complémentaire fournie — générer la lettre uniquement depuis le CV et l'offre."}
+Règles d'utilisation :
+Motivation spécifique → intégrer dans l'accroche ou paragraphe VOUS
+Réalisation marquante → intégrer dans paragraphe MOI comme preuve principale, chiffrée si possible
+Disponibilité → intégrer dans la conclusion
+Compétences particulières → intégrer dans paragraphe MOI, reliées à un besoin de l'offre
+Raison du départ → ne JAMAIS critiquer l'employeur. Tourner positivement : « Je cherche à [objectif positif] »
+Si une réponse contredit le CV → toujours privilégier le CV comme source de vérité
+Si le candidat n'a pas répondu → ignorer silencieusement, ne pas laisser de placeholder
+---
+CAS PARTICULIERS
+Profil junior (< 2 ans d'expérience)
+Valoriser stages, alternances, projets académiques, bénévolat
+Le paragraphe MOI peut inclure des projets étudiants avec résultats
+Accroche possible par la formation : « Diplômé(e) en [X], j'ai mis en pratique [compétence] lors de mon stage chez [entreprise]. »
+Ton légèrement plus enthousiaste acceptable, mais toujours factuel
+Profil senior (> 10 ans)
+Sélectionner uniquement 2-3 expériences les plus pertinentes pour CE poste
+Chiffrer systématiquement : budgets gérés, tailles d'équipe, résultats
+Ton posé, confiant sans arrogance
+Ne pas réciter 15 ans de carrière
+Reconversion professionnelle
+L'accroche DOIT mentionner la reconversion dès la 1ère phrase
+Structure modifiée :
+ACCROCHE : « Après [X] ans en [ancien domaine], j'ai choisi de me réorienter vers [nouveau domaine] — un choix mûri par [raison concrète]. »
+VOUS : pourquoi CETTE entreprise pour sa reconversion
+MOI : compétences TRANSFÉRABLES + formation suivie si applicable
+NOUS : ce que l'ancien domaine apporte de PLUS au nouveau poste
+INTERDIT : « J'ai toujours rêvé de… » (sonne faux si la carrière précédente dit le contraire)
+RECOMMANDÉ : « Mon parcours en [ancien domaine] m'a permis de développer [compétence transférable], que je mets aujourd'hui au service de [nouveau métier]. »
+Gap dans le CV
+Si le candidat a mentionné la raison → l'évoquer brièvement et positivement
+Si rien n'a été mentionné → NE PAS inventer d'explication. Ignorer le gap.
+JAMAIS de justification excessive ou apologétique
+${region === "CH" ? `Secteur Suisse romande
+Mentionner la connaissance ou la volonté d'apprendre le système local (DGEP, secondaire II, formation duale)
+Ne jamais écrire "j'ai décidé de m'installer en Suisse" — trop hésitant. Écrire plutôt "Installé en Suisse depuis [date], je souhaite contribuer à [domaine]"
+Utiliser le vocabulaire suisse si pertinent` : ""}
+---
+STYLE D'ÉCRITURE
+VOIX :
+Première personne (je), jamais impersonnelle
+Phrases courtes et moyennes (12-20 mots). Alterner.
+Verbes d'action au passé composé pour les réalisations (« j'ai mené », « j'ai réduit »)
+Présent pour les compétences actuelles (« je maîtrise », « j'encadre »)
+Maximum 1 phrase complexe par paragraphe
+RYTHME :
+Varier la longueur des phrases — une courte après une longue crée de l'impact
+Ne pas commencer 2 phrases consécutives par « Je »
+Alterner sujets : « Je » / « Mon expérience » / « Cette mission » / phrase impersonnelle
+TON :
+Professionnel mais naturel — comme si le candidat parlait à un interlocuteur respecté
+Confiant sans arrogance
+Concret sans jargon excessif
+Zéro superlatif (« extraordinaire », « exceptionnel », « remarquable »)
+---
+AUTO-ÉVALUATION AVANT GÉNÉRATION FINALE
+Avant de produire la lettre, vérifier silencieusement CHAQUE point (ne pas afficher à l'utilisateur) :
+□ ZÉRO PLACEHOLDER : aucun [xxx], aucun « [à compléter] », aucun champ vide
+□ LONGUEUR : entre 200 et 280 mots (compter réellement)
+□ ACCROCHE : la 1ère phrase est-elle spécifique à CE candidat + CE poste ? (Si on peut la coller sur une autre lettre → réécrire)
+□ CHIFFRES : tous les chiffres viennent du CV du candidat, AUCUN de l'offre d'emploi
+□ LISTE NOIRE : aucune expression interdite n'est présente
+□ MOTS-CLÉS : au moins 3 mots-clés de l'offre intégrés naturellement
+□ PREUVE FACTUELLE : le paragraphe MOI contient au moins 1 fait chiffré ou résultat concret
+□ COHÉRENCE CIVILITÉ : salutation d'ouverture = civilité de la formule de fin
+□ TYPOGRAPHIE : espaces insécables, guillemets français, M./Mme
+□ PERSONNALISATION : le nom de l'entreprise apparaît au moins 1 fois dans le corps
+□ GENRE : accords corrects (ravi/ravie, convaincu/convaincue)
+□ QUESTIONS CONTEXTUELLES : chaque réponse du candidat est exploitée
+□ TEST DU « CTRL+H » : si on remplace le nom de l'entreprise par un autre, la lettre perd-elle son sens ? Si non → pas assez personnalisée → réécrire
+□ TEST DE LECTURE : la lettre sonne-t-elle comme une vraie personne ? Si elle sonne comme un robot → réécrire les passages artificiels
+□ HALLUCINATION : aucune compétence, diplôme ou expérience inventée
+Si un point échoue → corriger AVANT de générer la lettre finale.
+---
+CV du candidat : ${cvText.substring(0, 1500)}
+Offre d'emploi : ${offerDetails || "Non précisée"}
+Ne JAMAIS ajouter de commentaires, notes ou explications après la lettre.
+Ne JAMAIS proposer de variantes — fournir UNE seule lettre optimale, prête à envoyer.`;
 
   return callAnthropic(prompt, 2000, 0.4);
 };
