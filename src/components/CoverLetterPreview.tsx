@@ -7,6 +7,125 @@ interface CoverLetterPreviewProps {
   onChange: (text: string) => void;
 }
 
+interface ParsedLetter {
+  sender: string[];
+  recipient: string[];
+  placeDate: string;
+  object: string;
+  salutation: string;
+  body: string[];
+  closing: string;
+  signature: string[];
+}
+
+const parseLetter = (letter: string): ParsedLetter => {
+  const lines = letter.split("\n");
+  const result: ParsedLetter = {
+    sender: [],
+    recipient: [],
+    placeDate: "",
+    object: "",
+    salutation: "",
+    body: [],
+    closing: "",
+    signature: [],
+  };
+
+  let section: "sender" | "recipient" | "body" | "signature" = "sender";
+  let foundObject = false;
+  let foundSalutation = false;
+  let bodyParagraphs: string[] = [];
+  let currentParagraph = "";
+
+  const isDateLine = (line: string) =>
+    /^[A-Za-zÀ-ÿ\-\s]+,\s*le\s+\d{1,2}/i.test(line.trim());
+
+  const isObjectLine = (line: string) =>
+    line.trim().toLowerCase().startsWith("objet");
+
+  const isSalutation = (line: string) => {
+    const t = line.trim();
+    return t.startsWith("Madame") || t.startsWith("Monsieur") || t.startsWith("Cher") || t.startsWith("Chère");
+  };
+
+  const isClosingFormula = (line: string) => {
+    const t = line.trim().toLowerCase();
+    return t.includes("agréer") || t.includes("salutations") || t.includes("sincères") || t.includes("distinguées") || t.includes("votre disposition");
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Empty line handling
+    if (!trimmed) {
+      if (section === "sender" && result.sender.length > 0) {
+        section = "recipient";
+      } else if (section === "body" && currentParagraph) {
+        bodyParagraphs.push(currentParagraph.trim());
+        currentParagraph = "";
+      }
+      continue;
+    }
+
+    // Date line detection (e.g., "Paris, le 7 avril 2026")
+    if (isDateLine(trimmed) && !foundObject) {
+      result.placeDate = trimmed;
+      section = "recipient";
+      continue;
+    }
+
+    // Object line
+    if (isObjectLine(trimmed)) {
+      result.object = trimmed;
+      foundObject = true;
+      section = "body";
+      continue;
+    }
+
+    // Salutation
+    if (isSalutation(trimmed) && foundObject && !foundSalutation) {
+      result.salutation = trimmed;
+      foundSalutation = true;
+      continue;
+    }
+
+    // Section-based assignment
+    if (section === "sender") {
+      result.sender.push(trimmed);
+    } else if (section === "recipient" && !foundObject) {
+      // Check if this could be recipient info (short lines, before object)
+      if (trimmed.length < 80 && !isDateLine(trimmed)) {
+        result.recipient.push(trimmed);
+      }
+    } else if (section === "body" || foundSalutation) {
+      // Check for closing formula
+      if (isClosingFormula(trimmed)) {
+        if (currentParagraph) {
+          bodyParagraphs.push(currentParagraph.trim());
+          currentParagraph = "";
+        }
+        result.closing = trimmed;
+        section = "signature";
+      } else if (section === "signature") {
+        result.signature.push(trimmed);
+      } else {
+        // Accumulate body text
+        currentParagraph += (currentParagraph ? " " : "") + trimmed;
+      }
+    }
+  }
+
+  // Push any remaining paragraph
+  if (currentParagraph) {
+    bodyParagraphs.push(currentParagraph.trim());
+  }
+
+  result.body = bodyParagraphs;
+
+  return result;
+};
+
 const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
   const [editing, setEditing] = useState(false);
 
@@ -17,36 +136,82 @@ const CoverLetterPreview = ({ letter, onChange }: CoverLetterPreviewProps) => {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>&#x00A0;</title>
+  <title>Lettre de motivation</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a1a; padding: 60px; max-width: 700px; margin: 0 auto; font-size: 13px; line-height: 1.8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
-    .objet { font-weight: 700; text-decoration: underline; margin: 16px 0; }
-    .spacer { height: 16px; }
-    .date-line { text-align: left !important; margin-top: 8px; margin-bottom: 16px; }
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+    html, body {
+      font-family: Arial, Calibri, sans-serif;
+      font-size: 11pt;
+      line-height: 1.15;
+      color: #000;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      padding: 0;
+      max-width: 21cm;
+      min-height: calc(29.7cm - 4cm);
+      max-height: calc(29.7cm - 4cm);
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.2em;
+    }
+    .sender {
+      text-align: left;
+      font-size: 10pt;
+    }
+    .sender p {
+      margin: 0;
+      line-height: 1.3;
+    }
+    .recipient-block {
+      text-align: right;
+      font-size: 10pt;
+    }
+    .recipient-block p {
+      margin: 0;
+      line-height: 1.3;
+    }
+    .place-date {
+      text-align: right;
+      margin-top: 0.6em;
+      font-size: 10pt;
+    }
+    .object {
+      font-weight: bold;
+      margin: 1.2em 0 0.8em 0;
+    }
+    .salutation {
+      margin-bottom: 0.8em;
+    }
+    .body-paragraph {
+      text-align: justify;
+      margin-bottom: 8px;
+      text-indent: 0;
+    }
+    .closing {
+      margin-top: 0.8em;
+      margin-bottom: 1em;
+    }
+    .signature {
+      margin-top: 0.8em;
+    }
+    .signature p {
+      margin: 0;
+      line-height: 1.3;
+    }
     @media print {
-      @page { margin: 0; size: A4; }
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 297mm;
-        max-height: 297mm;
-        overflow: hidden;
-      }
       body {
-        padding: 1.2cm;
-        font-size: 11px;
-        line-height: 1.5;
+        padding: 0;
       }
-      p {
-        page-break-inside: avoid;
-        page-break-after: avoid;
-        margin-bottom: 8px;
-      }
-      .objet { margin: 10px 0; }
-      .spacer { height: 10px; }
-      .date-line { margin-top: 6px; margin-bottom: 10px; }
     }
   </style>
   <script>
@@ -64,18 +229,58 @@ ${renderLetterHTML()}
   };
 
   const renderLetterHTML = () => {
-    return letter.split("\n").map(line => {
-      const trimmed = line.trim();
-      if (!trimmed) return '<div class="spacer"></div>';
-      if (trimmed.toLowerCase().startsWith("objet")) return `<p class="objet">${trimmed}</p>`;
-      // Date line (contains "le" + date pattern) — left aligned per French/Swiss norms
-      const isDateLine = /,\s*le\s+\d{1,2}\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}/i.test(trimmed);
-      if (isDateLine) return `<p class="date-line">${trimmed}</p>`;
-      return `<p>${trimmed}</p>`;
-    }).join("");
-  };
+    const parsed = parseLetter(letter);
 
-  const lines = letter.split("\n");
+    let html = "";
+
+    // Header with sender (left) and recipient (right)
+    html += '<div class="header">';
+    html += '<div class="sender">';
+    parsed.sender.forEach(line => {
+      html += `<p>${line}</p>`;
+    });
+    html += '</div>';
+    html += '<div class="recipient-block">';
+    parsed.recipient.forEach(line => {
+      html += `<p>${line}</p>`;
+    });
+    if (parsed.placeDate) {
+      html += `<p class="place-date">${parsed.placeDate}</p>`;
+    }
+    html += '</div>';
+    html += '</div>';
+
+    // Object
+    if (parsed.object) {
+      html += `<p class="object">${parsed.object}</p>`;
+    }
+
+    // Salutation
+    if (parsed.salutation) {
+      html += `<p class="salutation">${parsed.salutation}</p>`;
+    }
+
+    // Body paragraphs
+    parsed.body.forEach(para => {
+      html += `<p class="body-paragraph">${para}</p>`;
+    });
+
+    // Closing
+    if (parsed.closing) {
+      html += `<p class="closing">${parsed.closing}</p>`;
+    }
+
+    // Signature
+    if (parsed.signature.length > 0) {
+      html += '<div class="signature">';
+      parsed.signature.forEach(line => {
+        html += `<p>${line}</p>`;
+      });
+      html += '</div>';
+    }
+
+    return html;
+  };
 
   if (editing) {
     return (
@@ -96,6 +301,7 @@ ${renderLetterHTML()}
 
   // Detect placeholders like [xxx] in the letter
   const hasPlaceholders = /\[[^\]]{2,}\]/.test(letter);
+  const parsed = parseLetter(letter);
 
   return (
     <div className="space-y-4">
@@ -111,34 +317,58 @@ ${renderLetterHTML()}
         </button>
       </div>
 
-      {/* Professional letter rendering */}
-      <div className="bg-white rounded-2xl shadow-soft border border-border p-10 max-w-[700px] mx-auto" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-        {lines.map((line, i) => {
-          const trimmed = line.trim();
-          if (!trimmed) return <div key={i} style={{ height: 16 }} />;
-          if (trimmed.toLowerCase().startsWith("objet")) {
-            return <p key={i} style={{ fontWeight: 700, textDecoration: "underline", fontSize: 13, margin: "12px 0" }}>{trimmed}</p>;
-          }
-          // Detect date line (contains "le" + date pattern like "2 avril 2026") — always left aligned per French/Swiss norms
-          const isDateLine = /,\s*le\s+\d{1,2}\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}/i.test(trimmed);
-          if (isDateLine) {
-            return <p key={i} style={{ fontSize: 12, lineHeight: 1.6, color: "#444", textAlign: "left", marginTop: 8, marginBottom: 16 }}>{trimmed}</p>;
-          }
-          // First few lines = sender info (left aligned, small)
-          if (i < 5 && trimmed.length < 60) {
-            return <p key={i} style={{ fontSize: 12, lineHeight: 1.6, color: "#444" }}>{trimmed}</p>;
-          }
-          // Detect recipient block (lines 6-9 area, after blank, NOT a date line)
-          if (i >= 5 && i < 10 && trimmed.length < 60 && !trimmed.startsWith("Madame")) {
-            return <p key={i} style={{ fontSize: 12, lineHeight: 1.6, color: "#444", textAlign: "right" }}>{trimmed}</p>;
-          }
-          // Salutation
-          if (trimmed.startsWith("Madame") || trimmed.startsWith("Monsieur")) {
-            return <p key={i} style={{ fontSize: 13, lineHeight: 1.8, marginTop: 8 }}>{trimmed}</p>;
-          }
-          // Body paragraphs
-          return <p key={i} style={{ fontSize: 13, lineHeight: 1.8, textAlign: "justify" }}>{trimmed}</p>;
-        })}
+      {/* Professional letter rendering - preview */}
+      <div
+        className="bg-white rounded-2xl shadow-soft border border-border p-10 max-w-[700px] mx-auto"
+        style={{ fontFamily: "Arial, Calibri, sans-serif", fontSize: "11pt", lineHeight: 1.15 }}
+      >
+        {/* Header: sender left, recipient right */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.2em" }}>
+          {/* Sender - left */}
+          <div style={{ textAlign: "left" }}>
+            {parsed.sender.map((line, i) => (
+              <p key={`sender-${i}`} style={{ margin: 0, lineHeight: 1.3, fontSize: "10pt", color: "#333" }}>{line}</p>
+            ))}
+          </div>
+          {/* Recipient - right */}
+          <div style={{ textAlign: "right" }}>
+            {parsed.recipient.map((line, i) => (
+              <p key={`recipient-${i}`} style={{ margin: 0, lineHeight: 1.3, fontSize: "10pt", color: "#333" }}>{line}</p>
+            ))}
+            {parsed.placeDate && (
+              <p style={{ margin: 0, marginTop: "0.6em", lineHeight: 1.3, fontSize: "10pt", color: "#333" }}>{parsed.placeDate}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Object */}
+        {parsed.object && (
+          <p style={{ fontWeight: "bold", margin: "1.2em 0 0.8em 0", fontSize: "11pt" }}>{parsed.object}</p>
+        )}
+
+        {/* Salutation */}
+        {parsed.salutation && (
+          <p style={{ marginBottom: "0.8em", fontSize: "11pt" }}>{parsed.salutation}</p>
+        )}
+
+        {/* Body paragraphs */}
+        {parsed.body.map((para, i) => (
+          <p key={`body-${i}`} style={{ textAlign: "justify", marginBottom: "8px", fontSize: "11pt", lineHeight: 1.15 }}>{para}</p>
+        ))}
+
+        {/* Closing */}
+        {parsed.closing && (
+          <p style={{ marginTop: "0.8em", marginBottom: "1em", fontSize: "11pt" }}>{parsed.closing}</p>
+        )}
+
+        {/* Signature */}
+        {parsed.signature.length > 0 && (
+          <div style={{ marginTop: "0.8em" }}>
+            {parsed.signature.map((line, i) => (
+              <p key={`sig-${i}`} style={{ margin: 0, lineHeight: 1.3, fontSize: "11pt" }}>{line}</p>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Export buttons */}

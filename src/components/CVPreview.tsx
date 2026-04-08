@@ -79,52 +79,77 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
     if (!win) return;
 
     // Detect compact mode based on content length
+    // Ultra-compact if very long content (reduce to 9.5pt to fit 1 page)
     const contentLength = content.innerHTML.length;
+    const isUltraCompact = contentLength > 5000;
     const isCompact = contentLength > 3500;
 
-    const compactCSS = `
+    const ultraCompactCSS = `
       @media print {
-        @page { margin: 0.8cm; size: A4; }
-        body { margin: 0; padding: 0.8cm; }
+        @page { margin: 1.5cm; size: A4; }
+        body { margin: 0; padding: 1.5cm; }
       }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
-        font-family: Calibri, Arial, sans-serif;
-        font-size: 10.5pt;
-        line-height: 1.2;
+        font-family: Arial, Calibri, sans-serif;
+        font-size: 9.5pt;
+        line-height: 1.1;
         color: #1a1a1a;
-        padding: 0.8cm;
+        padding: 1.5cm;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      h1 { font-size: 18pt; font-weight: 700; margin-bottom: 2px; }
-      h2 { font-size: 11pt; font-weight: 700; margin-bottom: 4px; }
-      .subtitle { margin-bottom: 6px; }
+      h1 { font-size: 14pt; font-weight: 700; margin-bottom: 2px; }
+      h2 { font-size: 10pt; font-weight: 700; text-transform: uppercase; margin-bottom: 3px; }
+      .subtitle { margin-bottom: 4px; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
-      div[style*="marginBottom"] { margin-bottom: 10px !important; }
-      p[style*="paddingLeft"] { padding-top: 2px; padding-bottom: 2px; }
+      div[style*="marginBottom"] { margin-bottom: 4px !important; }
+      p[style*="paddingLeft"] { padding-top: 1px; padding-bottom: 1px; }
+    `;
+
+    const compactCSS = `
+      @media print {
+        @page { margin: 1.5cm; size: A4; }
+        body { margin: 0; padding: 1.5cm; }
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: Arial, Calibri, sans-serif;
+        font-size: 10pt;
+        line-height: 1.1;
+        color: #1a1a1a;
+        padding: 1.5cm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      h1 { font-size: 16pt; font-weight: 700; margin-bottom: 2px; }
+      h2 { font-size: 11pt; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+      .subtitle { margin-bottom: 4px; }
+      p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+      div[style*="marginBottom"] { margin-bottom: 6px !important; }
+      p[style*="paddingLeft"] { padding-top: 1px; padding-bottom: 1px; }
     `;
 
     const airyCSS = `
       @media print {
-        @page { margin: 1.2cm; size: A4; }
-        body { margin: 0; padding: 1.2cm; }
+        @page { margin: 1.5cm; size: A4; }
+        body { margin: 0; padding: 1.5cm; }
       }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
-        font-family: Calibri, Arial, sans-serif;
-        font-size: 11pt;
-        line-height: 1.35;
+        font-family: Arial, Calibri, sans-serif;
+        font-size: 10pt;
+        line-height: 1.1;
         color: #1a1a1a;
-        padding: 1.2cm;
+        padding: 1.5cm;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      h1 { font-size: 20pt; font-weight: 700; margin-bottom: 4px; }
-      h2 { font-size: 12pt; font-weight: 700; margin-bottom: 6px; }
+      h1 { font-size: 16pt; font-weight: 700; margin-bottom: 2px; }
+      h2 { font-size: 11pt; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
       p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
-      div[style*="marginBottom"] { margin-bottom: 16px !important; }
-      p[style*="paddingLeft"] { padding-top: 4px; padding-bottom: 4px; }
+      div[style*="marginBottom"] { margin-bottom: 6px !important; }
+      p[style*="paddingLeft"] { padding-top: 2px; padding-bottom: 2px; }
     `;
 
     win.document.write(`<!DOCTYPE html>
@@ -133,7 +158,7 @@ const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   <meta charset="UTF-8">
   <title>&#x00A0;</title>
   <style>
-    ${isCompact ? compactCSS : airyCSS}
+    ${isUltraCompact ? ultraCompactCSS : (isCompact ? compactCSS : airyCSS)}
   </style>
   <script>
     window.onload = function() {
