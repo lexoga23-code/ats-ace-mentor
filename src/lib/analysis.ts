@@ -462,11 +462,11 @@ CV original = 1 page → CV réécrit = 1 page (maximum 3-4 puces par poste, sup
 10-15 ans d'expérience → 2 pages acceptées
 Senior (15+ ans) → 2 pages, postes anciens résumés en 1-2 lignes
 7. Coordonnées
-Email non professionnel (hotmail, wanadoo, orange, laposte, yahoo, free, sfr) → conserver tel quel dans le CV, ne JAMAIS ajouter de note ou recommandation dans le CV généré
+⛔ EMAIL NON PROFESSIONNEL (hotmail, wanadoo, orange, laposte, yahoo, free, sfr) : NE RIEN ÉCRIRE dans le CV à ce sujet. AUCUNE note, AUCUN commentaire, AUCUNE recommandation. Conserver l'email tel quel sans aucun texte additionnel. L'information sera signalée ailleurs dans le rapport ATS.
 Gmail → NE JAMAIS signaler comme problème
 Ville obligatoire dans l'en-tête
 Si une information est absente du CV original → laisser VIDE, ne jamais inventer
-RÈGLE CRITIQUE : Le CV généré ne doit contenir AUCUNE note, recommandation, commentaire ou conseil — uniquement le contenu du CV lui-même
+⛔ RÈGLE CRITIQUE : Le CV généré ne doit contenir AUCUNE note, recommandation, commentaire ou conseil — uniquement le contenu du CV lui-même. Toute note ajoutée après le CV = BUG CRITIQUE.
 8. Profil professionnel
 Doit mentionner le secteur spécifique du poste visé
 Doit inclure les années d'expérience calculées précisément
@@ -570,6 +570,9 @@ CONTRAINTE DE LONGUEUR ABSOLUE : le CV réécrit ne doit pas dépasser 450 mots 
 2. Supprimer les postes de plus de 10 ans d'ancienneté
 3. Synthétiser la formation en 1-2 lignes
 4. Supprimer les centres d'intérêt
+---
+⛔ RÈGLE ABSOLUE : retourner UNIQUEMENT le CV réécrit. AUCUN commentaire, note, recommandation ou texte explicatif avant ou après le document. Aucune phrase du type "Note importante", "Remarque", "Conseil". Toute note = bug critique.
+---
 Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.
 
 CV ORIGINAL À RÉÉCRIRE (ne rien inventer qui n'est pas présent ici) : ${cvText.substring(0, 2500)}`;
@@ -827,6 +830,10 @@ Avant de produire la lettre, vérifier silencieusement CHAQUE point (ne pas affi
 Si un point échoue → corriger AVANT de générer la lettre finale.
 ---
 CONTRAINTE DE LONGUEUR ABSOLUE : la lettre doit faire entre 200 et 280 mots dans le corps (hors en-tête et formule de politesse). Compter les mots avant de finaliser. Si tu dépasses 280 mots → supprimer des phrases dans le paragraphe 3 (NOUS) en priorité, puis dans le paragraphe 2 (MOI).
+---
+⛔ EMAIL NON PROFESSIONNEL : si l'email du candidat est non professionnel (hotmail, wanadoo, orange, laposte, yahoo, free, sfr), NE RIEN ÉCRIRE à ce sujet dans la lettre. AUCUNE note, AUCUN commentaire, AUCUNE recommandation. L'information sera signalée ailleurs.
+---
+⛔ RÈGLE ABSOLUE : retourner UNIQUEMENT la lettre de motivation. AUCUN commentaire, note, recommandation ou texte explicatif avant ou après le document. Aucune phrase du type "Note importante", "Remarque", "Conseil". Toute note = bug critique.
 ---
 CV du candidat : ${cvText.substring(0, 1500)}
 Offre d'emploi : ${offerDetails || "Non précisée"}
