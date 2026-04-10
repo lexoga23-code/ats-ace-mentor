@@ -37,20 +37,7 @@ Deno.serve(async (req) => {
     let isPro = existingData?.is_pro ?? false;
     let subscriptionEnd: string | null = existingData?.subscription_end ?? null;
     const reviewRequested = existingData?.review_requested ?? false;
-
-    // If already Pro from DB, return immediately (trust webhook data)
-    if (isPro && subscriptionEnd) {
-      const endDate = new Date(subscriptionEnd);
-      if (endDate > new Date()) {
-        return new Response(JSON.stringify({
-          isPro,
-          subscriptionEnd,
-          reviewRequested,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+    let cancelAtPeriodEnd = false;
 
     // Otherwise, verify with Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -62,22 +49,25 @@ Deno.serve(async (req) => {
 
     if (customers.data.length > 0) {
       const customerId = customers.data[0].id;
-      const subscriptions = await stripe.subscriptions.list({
+      // Also check subscriptions that are active but set to cancel at period end
+      const allSubs = await stripe.subscriptions.list({
         customer: customerId,
-        status: "active",
-        limit: 1,
+        limit: 5,
       });
 
-      if (subscriptions.data.length > 0) {
+      const activeSub = allSubs.data.find(s => s.status === "active");
+
+      if (activeSub) {
         isPro = true;
-        subscriptionEnd = new Date(subscriptions.data[0].current_period_end * 1000).toISOString();
+        subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
+        cancelAtPeriodEnd = activeSub.cancel_at_period_end === true;
 
         // Upsert user_subscriptions table
         await supabaseClient.from("user_subscriptions").upsert({
           user_id: user.id,
           is_pro: true,
           stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptions.data[0].id,
+          stripe_subscription_id: activeSub.id,
           subscription_end: subscriptionEnd,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
@@ -101,6 +91,7 @@ Deno.serve(async (req) => {
       isPro,
       subscriptionEnd,
       reviewRequested,
+      cancelAtPeriodEnd,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
