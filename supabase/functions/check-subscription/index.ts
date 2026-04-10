@@ -49,13 +49,18 @@ Deno.serve(async (req) => {
 
     if (customers.data.length > 0) {
       const customerId = customers.data[0].id;
-      const subscriptions = await stripe.subscriptions.list({
+      // Also check subscriptions that are active but set to cancel at period end
+      const allSubs = await stripe.subscriptions.list({
         customer: customerId,
-        status: "active",
-        limit: 1,
+        limit: 5,
       });
 
-      if (subscriptions.data.length > 0) {
+      const activeSub = allSubs.data.find(s => s.status === "active");
+
+      if (activeSub) {
+        isPro = true;
+        subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
+        cancelAtPeriodEnd = activeSub.cancel_at_period_end === true;
         isPro = true;
         subscriptionEnd = new Date(subscriptions.data[0].current_period_end * 1000).toISOString();
 
