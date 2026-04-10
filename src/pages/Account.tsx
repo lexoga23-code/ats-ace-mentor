@@ -158,33 +158,8 @@ const AccountInner = () => {
     navigate("/#optimiser");
   };
 
-  const handleViewAnalysis = async (analysisId: string) => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("user_analyses")
-      .select("*")
-      .eq("id", analysisId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!data) {
-      toast.error("Impossible de charger cette analyse.");
-      return;
-    }
-
-    localStorage.setItem("scorecv_restore_analysis", JSON.stringify({
-      id: data.id,
-      cvText: data.cv_text,
-      targetJob: data.target_job,
-      jobDescription: data.job_description || "",
-      industry: data.industry || "",
-      results: data.results,
-      isPaid: data.is_paid,
-      rewrittenCV: data.rewritten_cv || "",
-      coverLetter: data.cover_letter || "",
-      score: data.score,
-    }));
-    navigate("/#optimiser");
+  const handleViewAnalysis = (analysisId: string) => {
+    navigate(`/analyse/${analysisId}`);
   };
 
   const handleDeleteAnalysis = async (e: React.MouseEvent, analysisId: string) => {

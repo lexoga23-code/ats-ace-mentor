@@ -8,6 +8,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import SharedReportPage from "./pages/SharedReport.tsx";
+import AnalysisReport from "./pages/AnalysisReport.tsx";
 import PaymentSuccess from "./pages/PaymentSuccess.tsx";
 import Auth from "./pages/Auth.tsx";
 import Account from "./pages/Account.tsx";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/compte" element={<Account />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/analyse/:id" element={<AnalysisReport />} />
             <Route path="/rapport/:id" element={<SharedReportPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
