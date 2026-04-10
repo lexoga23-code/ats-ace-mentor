@@ -59,8 +59,10 @@ Deno.serve(async (req) => {
 
       if (activeSub) {
         isPro = true;
-        const periodEnd = activeSub.current_period_end;
-        console.log("Active sub found:", JSON.stringify({ id: activeSub.id, current_period_end: periodEnd, cancel_at_period_end: activeSub.cancel_at_period_end }));
+        // In newer Stripe API versions, current_period_end may be at item level
+        const periodEnd = activeSub.current_period_end ?? activeSub.items?.data?.[0]?.current_period_end;
+        const cancelAt = activeSub.cancel_at;
+        console.log("Active sub found:", JSON.stringify({ id: activeSub.id, current_period_end: periodEnd, cancel_at_period_end: activeSub.cancel_at_period_end, cancel_at: cancelAt }));
         if (periodEnd) {
           subscriptionEnd = new Date(periodEnd * 1000).toISOString();
         }
