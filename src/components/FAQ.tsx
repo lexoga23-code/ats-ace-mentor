@@ -23,12 +23,8 @@ const FAQ_ITEMS = [
     a: "24h ouvrées après paiement. Vous recevez un rapport PDF personnalisé + un échange email de suivi inclus.",
   },
   {
-    q: "Et si je ne suis pas satisfait ?",
-    a: "Pas de remboursement, mais notre analyse est sérieuse et garantie. Chaque rapport est personnalisé par notre IA ou nos experts.",
-  },
-  {
     q: "Comment annuler l'abonnement Pro ?",
-    a: "Via le portail Stripe self-service. Le lien est dans votre email de confirmation. Annulation à tout moment.",
+    a: "Rendez-vous dans « Mon compte » puis cliquez sur le bouton « Gérer ». Vous pourrez annuler votre abonnement à tout moment.",
   },
   {
     q: "Quels formats de CV sont acceptés ?",
