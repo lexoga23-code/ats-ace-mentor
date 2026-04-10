@@ -58,8 +58,8 @@ const Pricing = () => {
       features: ["Réécriture IA complète", "Checklist 10 critères", "Lettre de motivation", "Export PDF & DOCX"],
       cta: "Obtenir le rapport complet",
       productType: "report" as const,
-      featured: true,
-      style: "bg-card border-2 border-primary",
+      featured: false,
+      style: "bg-card",
     },
     {
       name: "Pro",
@@ -68,8 +68,8 @@ const Pricing = () => {
       features: ["Analyses illimitées", "Tous les designs", "Support prioritaire"],
       cta: "S'abonner au Pro",
       productType: "pro" as const,
-      featured: false,
-      style: "bg-card",
+      featured: true,
+      style: "bg-card border-2 border-primary",
     },
     {
       name: "Expert Humain",
