@@ -59,7 +59,11 @@ Deno.serve(async (req) => {
 
       if (activeSub) {
         isPro = true;
-        subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
+        const periodEnd = activeSub.current_period_end;
+        console.log("Active sub found:", JSON.stringify({ id: activeSub.id, current_period_end: periodEnd, cancel_at_period_end: activeSub.cancel_at_period_end }));
+        if (periodEnd) {
+          subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+        }
         cancelAtPeriodEnd = activeSub.cancel_at_period_end === true;
 
         // Upsert user_subscriptions table
