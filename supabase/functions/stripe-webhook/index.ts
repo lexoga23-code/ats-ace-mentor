@@ -7,6 +7,110 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
+const FROM_EMAIL = "ScoreCV <bonjour@scorecv.eu>";
+const ADMIN_EMAIL = "gael.laclautre@gmail.com";
+
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY not set, skipping email");
+    return;
+  }
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, html }),
+    });
+    const result = await res.json();
+    console.log(`Email sent to ${to}:`, JSON.stringify(result));
+  } catch (err) {
+    console.error(`Failed to send email to ${to}:`, err.message);
+  }
+}
+
+function reportEmail(name: string) {
+  return {
+    subject: "Votre rapport ScoreCV est prêt ! 📄",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #6366f1;">Rapport débloqué ! 🎉</h1>
+        <p>Bonjour ${name},</p>
+        <p>Votre paiement de 4€ a bien été reçu. Votre rapport complet est maintenant accessible :</p>
+        <ul>
+          <li>✍️ CV réécrit et optimisé ATS</li>
+          <li>📝 Lettre de motivation personnalisée</li>
+          <li>✅ Checklist complète</li>
+          <li>📥 Export PDF & Word</li>
+        </ul>
+        <p>
+          <a href="https://ats-ace-mentor.lovable.app/#optimiser"
+             style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+            Voir mon rapport →
+          </a>
+        </p>
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">Une question ? Répondez à cet email.<br/>L'équipe ScoreCV</p>
+      </div>
+    `,
+  };
+}
+
+function proEmail(name: string) {
+  return {
+    subject: "Abonnement Pro activé ! 🚀",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #6366f1;">Bienvenue en Pro, ${name} ! 🚀</h1>
+        <p>Votre abonnement Pro est maintenant actif. Vous avez accès à :</p>
+        <ul>
+          <li>♾️ Analyses illimitées</li>
+          <li>🎨 Tous les designs de CV</li>
+          <li>📥 Export illimité PDF & Word</li>
+        </ul>
+        <p>Pour gérer votre abonnement, rendez-vous dans <strong>Mon compte</strong>.</p>
+        <p>
+          <a href="https://ats-ace-mentor.lovable.app/account"
+             style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+            Mon compte →
+          </a>
+        </p>
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">L'équipe ScoreCV</p>
+      </div>
+    `,
+  };
+}
+
+function reviewNotificationEmail(userName: string, userEmail: string) {
+  return {
+    subject: `Nouvelle demande de relecture de ${userName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #6366f1;">Nouvelle relecture demandée 📋</h1>
+        <p><strong>Utilisateur :</strong> ${userName}</p>
+        <p><strong>Email :</strong> ${userEmail}</p>
+        <p>Connecte-toi au dashboard pour traiter cette demande sous 24h ouvrées.</p>
+      </div>
+    `,
+  };
+}
+
+function reviewConfirmEmail(name: string) {
+  return {
+    subject: "Demande de relecture reçue ! ✅",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #6366f1;">Demande reçue, ${name} ! ✅</h1>
+        <p>Nous avons bien reçu votre demande de relecture de votre CV et lettre de motivation.</p>
+        <p>Vous recevrez votre rapport PDF personnalisé sous <strong>24h ouvrées</strong>. Un échange email de suivi est inclus.</p>
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">L'équipe ScoreCV — bonjour@scorecv.eu</p>
+      </div>
+    `,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -60,6 +164,22 @@ Deno.serve(async (req) => {
       completed_at: new Date().toISOString(),
     }, { onConflict: "session_id" });
 
+    // Get user profile for email
+    let userName = "there";
+    let userEmail = email;
+    if (userId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", userId)
+        .limit(1)
+        .single();
+      if (profile) {
+        userName = profile.full_name || "there";
+        userEmail = profile.email || email;
+      }
+    }
+
     if (userId) {
       if (productType === "report") {
         // Mark latest unpaid analysis as paid
@@ -77,6 +197,12 @@ Deno.serve(async (req) => {
             .update({ is_paid: true })
             .eq("id", analyses[0].id);
         }
+
+        // Send report email to user
+        if (userEmail) {
+          const { subject, html } = reportEmail(userName);
+          await sendEmail(userEmail, subject, html);
+        }
       } else if (productType === "pro") {
         // Mark user as pro subscriber
         const subscriptionId = session.subscription as string || null;
@@ -87,6 +213,12 @@ Deno.serve(async (req) => {
           stripe_subscription_id: subscriptionId,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
+
+        // Send pro welcome email
+        if (userEmail) {
+          const { subject, html } = proEmail(userName);
+          await sendEmail(userEmail, subject, html);
+        }
       } else if (productType === "review") {
         // Mark review requested
         await supabase.from("user_subscriptions").upsert({
@@ -94,6 +226,16 @@ Deno.serve(async (req) => {
           review_requested: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
+
+        // Send confirmation to user
+        if (userEmail) {
+          const { subject, html } = reviewConfirmEmail(userName);
+          await sendEmail(userEmail, subject, html);
+        }
+
+        // Send notification to admin
+        const { subject: adminSubject, html: adminHtml } = reviewNotificationEmail(userName, userEmail || "inconnu");
+        await sendEmail(ADMIN_EMAIL, adminSubject, adminHtml);
       }
     }
 
@@ -108,7 +250,6 @@ Deno.serve(async (req) => {
     if (subscription.status === "active" || subscription.status === "trialing") {
       const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
 
-      // Find user by stripe customer ID in user_subscriptions
       const { data: subRows } = await supabase
         .from("user_subscriptions")
         .select("user_id")
@@ -128,12 +269,11 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Handle subscription updates (activation, renewal, or cancellation)
+  // Handle subscription updates
   if (event.type === "customer.subscription.updated") {
     const subscription = event.data.object as Stripe.Subscription;
     const customerId = subscription.customer as string;
 
-    // Find user by stripe customer ID
     const { data: subRows } = await supabase
       .from("user_subscriptions")
       .select("user_id")
@@ -142,7 +282,6 @@ Deno.serve(async (req) => {
 
     if (subRows && subRows.length > 0) {
       if (subscription.status === "active" || subscription.status === "trialing") {
-        // Subscription is active - mark as pro
         const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
         await supabase.from("user_subscriptions").update({
           is_pro: true,
@@ -153,7 +292,6 @@ Deno.serve(async (req) => {
 
         console.log(`Pro subscription activated/renewed for user ${subRows[0].user_id}`);
       } else if (subscription.status === "canceled" || subscription.status === "unpaid" || subscription.status === "past_due") {
-        // Subscription is no longer active
         await supabase.from("user_subscriptions").update({
           is_pro: false,
           stripe_subscription_id: null,
