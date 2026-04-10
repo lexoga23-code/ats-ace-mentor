@@ -68,7 +68,6 @@ Deno.serve(async (req) => {
         } else if (cancelAt) {
           subscriptionEnd = new Date(cancelAt * 1000).toISOString();
         }
-        }
         cancelAtPeriodEnd = activeSub.cancel_at_period_end === true;
 
         // Upsert user_subscriptions table
