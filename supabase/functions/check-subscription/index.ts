@@ -37,20 +37,7 @@ Deno.serve(async (req) => {
     let isPro = existingData?.is_pro ?? false;
     let subscriptionEnd: string | null = existingData?.subscription_end ?? null;
     const reviewRequested = existingData?.review_requested ?? false;
-
-    // If already Pro from DB, return immediately (trust webhook data)
-    if (isPro && subscriptionEnd) {
-      const endDate = new Date(subscriptionEnd);
-      if (endDate > new Date()) {
-        return new Response(JSON.stringify({
-          isPro,
-          subscriptionEnd,
-          reviewRequested,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+    let cancelAtPeriodEnd = false;
 
     // Otherwise, verify with Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
