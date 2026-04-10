@@ -28,8 +28,7 @@ const AccountInner = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [subLoading, setSubLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(false);
-  const [canceledUntil, setCanceledUntil] = useState<string | null>(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
