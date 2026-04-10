@@ -8,6 +8,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import SharedReportPage from "./pages/SharedReport.tsx";
+import AnalysisReport from "./pages/AnalysisReport.tsx";
 import PaymentSuccess from "./pages/PaymentSuccess.tsx";
 import Auth from "./pages/Auth.tsx";
 import Account from "./pages/Account.tsx";
