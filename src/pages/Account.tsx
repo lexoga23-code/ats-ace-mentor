@@ -122,26 +122,6 @@ const AccountInner = () => {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!confirm("Voulez-vous vraiment annuler votre abonnement Pro ? Vous conserverez l'accès jusqu'à la fin de la période en cours.")) {
-      return;
-    }
-
-    setCancelLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("cancel-subscription");
-      if (error || !data?.success) throw new Error(data?.error || "Erreur");
-
-      setCanceledUntil(data.subscriptionEnd);
-      // Clear cache to force refresh
-      sessionStorage.removeItem("scorecv_sub_cache");
-      toast.success("Votre abonnement a été annulé.");
-    } catch (err) {
-      toast.error("Impossible d'annuler l'abonnement. Veuillez réessayer.");
-    } finally {
-      setCancelLoading(false);
-    }
-  };
 
   const handleNewAnalysis = () => {
     localStorage.setItem("scorecv_reset", "true");
