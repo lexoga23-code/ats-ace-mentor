@@ -120,6 +120,7 @@ Deno.serve(async (req) => {
           is_pro: true,
           stripe_subscription_id: subscription.id,
           subscription_end: subscriptionEnd,
+          cancel_at_period_end: false,
           updated_at: new Date().toISOString(),
         }).eq("user_id", subRows[0].user_id);
 
@@ -144,20 +145,23 @@ Deno.serve(async (req) => {
       if (subscription.status === "active" || subscription.status === "trialing") {
         // Subscription is active - mark as pro
         const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
         await supabase.from("user_subscriptions").update({
           is_pro: true,
           stripe_subscription_id: subscription.id,
           subscription_end: subscriptionEnd,
+          cancel_at_period_end: cancelAtPeriodEnd,
           updated_at: new Date().toISOString(),
         }).eq("user_id", subRows[0].user_id);
 
-        console.log(`Pro subscription activated/renewed for user ${subRows[0].user_id}`);
+        console.log(`Pro subscription activated/renewed for user ${subRows[0].user_id}, cancel_at_period_end: ${cancelAtPeriodEnd}`);
       } else if (subscription.status === "canceled" || subscription.status === "unpaid" || subscription.status === "past_due") {
         // Subscription is no longer active
         await supabase.from("user_subscriptions").update({
           is_pro: false,
           stripe_subscription_id: null,
           subscription_end: null,
+          cancel_at_period_end: false,
           updated_at: new Date().toISOString(),
         }).eq("user_id", subRows[0].user_id);
 
@@ -182,6 +186,7 @@ Deno.serve(async (req) => {
         is_pro: false,
         stripe_subscription_id: null,
         subscription_end: null,
+        cancel_at_period_end: false,
         updated_at: new Date().toISOString(),
       }).eq("user_id", subRows[0].user_id);
 

@@ -30,12 +30,13 @@ Deno.serve(async (req) => {
     // First, read existing subscription status from DB (source of truth set by webhooks)
     const { data: existingData } = await supabaseClient
       .from("user_subscriptions")
-      .select("is_pro, subscription_end, review_requested, stripe_customer_id")
+      .select("is_pro, subscription_end, review_requested, stripe_customer_id, cancel_at_period_end")
       .eq("user_id", user.id)
       .maybeSingle();
 
     let isPro = existingData?.is_pro ?? false;
     let subscriptionEnd: string | null = existingData?.subscription_end ?? null;
+    let cancelAtPeriodEnd = existingData?.cancel_at_period_end ?? false;
     const reviewRequested = existingData?.review_requested ?? false;
 
     // If already Pro from DB, return immediately (trust webhook data)
@@ -45,6 +46,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({
           isPro,
           subscriptionEnd,
+          cancelAtPeriodEnd,
           reviewRequested,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -69,28 +71,33 @@ Deno.serve(async (req) => {
       });
 
       if (subscriptions.data.length > 0) {
+        const sub = subscriptions.data[0];
         isPro = true;
-        subscriptionEnd = new Date(subscriptions.data[0].current_period_end * 1000).toISOString();
+        subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
+        cancelAtPeriodEnd = sub.cancel_at_period_end || false;
 
         // Upsert user_subscriptions table
         await supabaseClient.from("user_subscriptions").upsert({
           user_id: user.id,
           is_pro: true,
           stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptions.data[0].id,
+          stripe_subscription_id: sub.id,
           subscription_end: subscriptionEnd,
+          cancel_at_period_end: cancelAtPeriodEnd,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
       } else {
         // No active subscription in Stripe — mark as not pro
         isPro = false;
         subscriptionEnd = null;
+        cancelAtPeriodEnd = false;
         await supabaseClient.from("user_subscriptions").upsert({
           user_id: user.id,
           is_pro: false,
           stripe_customer_id: customerId,
           stripe_subscription_id: null,
           subscription_end: null,
+          cancel_at_period_end: false,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
       }
@@ -100,6 +107,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       isPro,
       subscriptionEnd,
+      cancelAtPeriodEnd,
       reviewRequested,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

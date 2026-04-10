@@ -1,8 +1,11 @@
 import { useState, useRef } from "react";
-import { AlertTriangle, Download, Check, FileText } from "lucide-react";
+import { AlertTriangle, Download, Check, FileText, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { exportCVToDocx } from "@/lib/docxExport";
+import { parseCVJson, cvJsonToText, downloadPDF } from "@/lib/pdfExport";
+import type { CVJsonData } from "@/lib/analysis";
+import { toast } from "sonner";
 
 const TEMPLATES = [
   { id: "classic", name: "Classique", desc: "Une colonne, sobre", ats: true },
@@ -67,10 +70,33 @@ const parseCV = (text: string) => {
 const CVPreview = ({ cvText, onChange }: CVPreviewProps) => {
   const [template, setTemplate] = useState<TemplateId>("classic");
   const [color, setColor] = useState(PALETTES[0].hex);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
-  const parsed = parseCV(cvText);
-  const wordCount = cvText.split(/\s+/).filter(Boolean).length;
+
+  // Tente de parser le texte comme JSON
+  const cvJsonData = parseCVJson(cvText);
+  const displayText = cvJsonData ? cvJsonToText(cvJsonData) : cvText;
+  const parsed = parseCV(displayText);
+  const wordCount = displayText.split(/\s+/).filter(Boolean).length;
   const isShort = wordCount < 400;
+
+  // Handler pour télécharger le PDF ATS via l'edge function
+  const handleDownloadATSPdf = async () => {
+    if (!cvJsonData) {
+      toast.error("Format JSON requis pour le PDF ATS");
+      return;
+    }
+    setIsPdfLoading(true);
+    try {
+      await downloadPDF(cvJsonData);
+      toast.success("PDF téléchargé avec succès");
+    } catch (error) {
+      console.error("Erreur téléchargement PDF:", error);
+      toast.error("Erreur lors du téléchargement du PDF");
+    } finally {
+      setIsPdfLoading(false);
+    }
+  };
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -382,13 +408,33 @@ ${content.innerHTML}
         </div>
 
         {/* Download buttons */}
-        <div className="flex gap-3">
-          <button onClick={handlePrint} className="flex-1 py-3 bg-foreground text-background rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
-            <Download className="w-4 h-4" /> PDF
-          </button>
-          <button onClick={() => exportCVToDocx(cvText)} className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
-            <FileText className="w-4 h-4" /> Word (.docx)
-          </button>
+        <div className="flex flex-col gap-3">
+          {/* Bouton PDF ATS principal - visible uniquement si JSON disponible */}
+          {cvJsonData && (
+            <button
+              onClick={handleDownloadATSPdf}
+              disabled={isPdfLoading}
+              className="w-full py-3 bg-gradient-to-r from-teal-600 to-purple-600 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isPdfLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Génération...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" /> Télécharger mon CV (PDF ATS)
+                </>
+              )}
+            </button>
+          )}
+          <div className="flex gap-3">
+            <button onClick={handlePrint} className="flex-1 py-3 bg-foreground text-background rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
+              <Download className="w-4 h-4" /> PDF (impression)
+            </button>
+            <button onClick={() => exportCVToDocx(displayText)} className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
+              <FileText className="w-4 h-4" /> Word (.docx)
+            </button>
+          </div>
         </div>
       </div>
     </TooltipProvider>

@@ -318,46 +318,6 @@ Rapport COMPLET (mode "full") : inclure tous les champs, corrections complètes,
   return JSON.parse(cleaned);
 };
 
-export interface CVJsonData {
-  meta: { lang: string; format: string };
-  header: {
-    name: string;
-    phone: string | null;
-    email: string | null;
-    linkedin: string | null;
-    location: string | null;
-    photo: boolean;
-  };
-  profil: string;
-  competences_cles: string[];
-  experience: Array<{
-    entreprise: string;
-    lieu: string | null;
-    poste: string;
-    periode: string;
-    bullets: string[];
-  }>;
-  formation: Array<{
-    diplome: string;
-    etablissement: string;
-    annee: string;
-    detail: string | null;
-  }>;
-  competences_techniques: Array<{
-    categorie: string;
-    items: string;
-  }>;
-  langues: Array<{
-    langue: string;
-    niveau: string;
-  }>;
-  certifications: Array<{
-    nom: string;
-    organisme: string | null;
-    annee: string | null;
-  }>;
-}
-
 export const rewriteCV = async (
   cvText: string,
   job: string,
@@ -370,55 +330,7 @@ export const rewriteCV = async (
     ? `\n\nL'utilisateur a fourni ces informations complémentaires : ${Object.entries(userAnswers).filter(([,v]) => v.trim()).map(([k,v]) => `${k}: ${v}`).join("; ")}. Intègre-les naturellement dans le CV réécrit sans les copier mot pour mot. Si une adresse email professionnelle est fournie, remplace l'ancienne. Si des chiffres sont fournis, intègre-les dans les expériences concernées. Si des compétences supplémentaires sont mentionnées, ajoute-les dans la section compétences.`
     : "";
 
-  const jsonFormatInstruction = `Retourne UNIQUEMENT un JSON valide sans markdown ni texte autour, au format suivant :
-{
-  "meta": {"lang": "fr", "format": "a4"},
-  "header": {
-    "name": "Prénom NOM",
-    "phone": "+33 6 XX XX XX XX",
-    "email": "email@example.com",
-    "linkedin": null,
-    "location": "Ville, Pays",
-    "photo": false
-  },
-  "profil": "3-4 lignes de résumé professionnel...",
-  "competences_cles": ["Compétence 1", "Compétence 2", "..."],
-  "experience": [
-    {
-      "entreprise": "Nom Entreprise",
-      "lieu": "Ville",
-      "poste": "Titre du poste",
-      "periode": "MM/AAAA - MM/AAAA",
-      "bullets": ["Réalisation 1 à l'infinitif...", "Réalisation 2..."]
-    }
-  ],
-  "formation": [
-    {
-      "diplome": "Nom du diplôme",
-      "etablissement": "Nom école/université",
-      "annee": "AAAA",
-      "detail": null
-    }
-  ],
-  "competences_techniques": [
-    {"categorie": "Catégorie", "items": "Liste des compétences séparées par virgules"}
-  ],
-  "langues": [
-    {"langue": "Français", "niveau": "Natif"}
-  ],
-  "certifications": []
-}
-
-RÈGLES JSON CRITIQUES :
-- Utiliser des guillemets doubles " pour toutes les clés et valeurs string
-- null pour les valeurs absentes (pas de chaîne vide)
-- Tableaux vides [] si aucun élément
-- Pas de virgule après le dernier élément d'un tableau ou objet
-- Le JSON doit être parsable directement par JSON.parse()
-
-`;
-
-  const prompt = `${jsonFormatInstruction}Tu es un expert en rédaction de CV optimisés pour les ATS (Applicant Tracking Systems) sur le marché ${country}. Tu combines une double expertise :
+  const prompt = `Tu es un expert en rédaction de CV optimisés pour les ATS (Applicant Tracking Systems) sur le marché ${country}. Tu combines une double expertise :
 Expertise technique ATS : tu maîtrises le fonctionnement interne des principaux ATS (Workday, Taleo, Greenhouse, Lever, SmartRecruiter, SAP SuccessFactors, iCIMS) — leurs algorithmes de parsing, de matching sémantique et de scoring.
 Expertise recrutement ${country} : tu connais les conventions du CV ${region === "CH" ? "suisse" : "français"}, les attentes des recruteurs ${region === "CH" ? "en Suisse romande" : "en France"}, la culture professionnelle et les spécificités réglementaires.
 Ton objectif n'est jamais de "tromper" un ATS, mais d'aligner le CV du candidat avec le langage de l'offre tout en mettant en valeur ses réalisations réelles. Le CV ne doit JAMAIS ressembler à une sortie d'IA : varier les verbes d'action, éviter les formulations génériques, intégrer des détails spécifiques au parcours du candidat.
@@ -659,15 +571,13 @@ CONTRAINTE DE LONGUEUR ABSOLUE : le CV réécrit ne doit pas dépasser 450 mots 
 3. Synthétiser la formation en 1-2 lignes
 4. Supprimer les centres d'intérêt
 ---
-⛔ RÈGLE ABSOLUE : retourner UNIQUEMENT le JSON du CV. AUCUN commentaire, note, recommandation ou texte explicatif avant ou après le JSON. Aucune phrase du type "Note importante", "Remarque", "Conseil". Toute note = bug critique.
+⛔ RÈGLE ABSOLUE : retourner UNIQUEMENT le CV réécrit. AUCUN commentaire, note, recommandation ou texte explicatif avant ou après le document. Aucune phrase du type "Note importante", "Remarque", "Conseil". Toute note = bug critique.
 ---
-Retourne UNIQUEMENT le JSON du CV réécrit, sans blocs markdown.
+Retourne UNIQUEMENT le CV réécrit en texte structuré, prêt à être mis en forme.
 
 CV ORIGINAL À RÉÉCRIRE (ne rien inventer qui n'est pas présent ici) : ${cvText.substring(0, 2500)}`;
 
-  const text = await callAnthropic(prompt, 3000, 0.3);
-  const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
-  return cleaned;
+  return callAnthropic(prompt, 2500, 0.3);
 };
 
 export const rewriteSelection = async (

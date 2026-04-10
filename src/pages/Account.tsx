@@ -28,8 +28,7 @@ const AccountInner = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [subLoading, setSubLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(false);
-  const [canceledUntil, setCanceledUntil] = useState<string | null>(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -56,7 +55,7 @@ const AccountInner = () => {
         // First, read directly from user_subscriptions table for immediate display
         const { data: dbData } = await supabase
           .from("user_subscriptions")
-          .select("is_pro, subscription_end, review_requested")
+          .select("is_pro, subscription_end, review_requested, cancel_at_period_end")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -64,6 +63,7 @@ const AccountInner = () => {
           setIsPro(dbData.is_pro || false);
           setSubscriptionEnd(dbData.subscription_end || null);
           setReviewRequested(dbData.review_requested || false);
+          setCancelAtPeriodEnd(dbData.cancel_at_period_end || false);
         }
         setSubLoading(false);
 
@@ -73,6 +73,7 @@ const AccountInner = () => {
           setIsPro(data.isPro || false);
           setSubscriptionEnd(data.subscriptionEnd || null);
           setReviewRequested(data.reviewRequested || false);
+          setCancelAtPeriodEnd(data.cancelAtPeriodEnd || false);
         }
       } catch (err) {
         console.error("Failed to check subscription:", err);
@@ -120,27 +121,6 @@ const AccountInner = () => {
       toast.error("Impossible de lancer le paiement.");
     } finally {
       setCheckoutLoading(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!confirm("Voulez-vous vraiment annuler votre abonnement Pro ? Vous conserverez l'accès jusqu'à la fin de la période en cours.")) {
-      return;
-    }
-
-    setCancelLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("cancel-subscription");
-      if (error || !data?.success) throw new Error(data?.error || "Erreur");
-
-      setCanceledUntil(data.subscriptionEnd);
-      // Clear cache to force refresh
-      sessionStorage.removeItem("scorecv_sub_cache");
-      toast.success("Votre abonnement a été annulé.");
-    } catch (err) {
-      toast.error("Impossible d'annuler l'abonnement. Veuillez réessayer.");
-    } finally {
-      setCancelLoading(false);
     }
   };
 
@@ -279,56 +259,41 @@ const AccountInner = () => {
               </h2>
               {isPro ? (
                 <div className="space-y-4">
-                  {canceledUntil ? (
-                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                      <p className="font-bold text-amber-800">Abonnement annulé</p>
-                      <p className="text-sm text-amber-700 mt-1">
-                        Vous conservez l'accès Pro jusqu'au {new Date(canceledUntil).toLocaleDateString("fr-FR")}
+                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                    {cancelAtPeriodEnd && subscriptionEnd ? (
+                      <p className="font-bold text-foreground">
+                        Plan Pro — Actif jusqu'au {new Date(subscriptionEnd).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                       </p>
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <p className="font-bold text-foreground">Plan Pro — actif</p>
-                      {subscriptionEnd && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-FR")}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleManageSubscription}
-                      disabled={portalLoading}
-                      className="flex-1 py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      Gérer
-                    </button>
-                    {!canceledUntil && (
-                      <button
-                        onClick={handleCancelSubscription}
-                        disabled={cancelLoading}
-                        className="flex-1 py-3 bg-destructive/10 text-destructive rounded-xl font-bold hover:bg-destructive/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {cancelLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        Se désabonner
-                      </button>
+                    ) : (
+                      <>
+                        <p className="font-bold text-foreground">Plan Pro — Actif</p>
+                        {subscriptionEnd && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    className="w-full py-3 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Gérer
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Vous n'avez pas d'abonnement Pro actif.
-                  </p>
+                  <p className="font-bold text-foreground">Plan gratuit</p>
                   <button
                     onClick={handleSubscribePro}
                     disabled={checkoutLoading}
                     className="py-3 px-6 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    Abonnement Pro — {prices.pro}{currency}/mois
+                    Passer au Pro — {prices.pro}{currency}/mois
                   </button>
                 </div>
               )}
