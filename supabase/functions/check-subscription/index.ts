@@ -65,6 +65,9 @@ Deno.serve(async (req) => {
         console.log("Active sub found:", JSON.stringify({ id: activeSub.id, current_period_end: periodEnd, cancel_at_period_end: activeSub.cancel_at_period_end, cancel_at: cancelAt }));
         if (periodEnd) {
           subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+        } else if (cancelAt) {
+          subscriptionEnd = new Date(cancelAt * 1000).toISOString();
+        }
         }
         cancelAtPeriodEnd = activeSub.cancel_at_period_end === true;
 
