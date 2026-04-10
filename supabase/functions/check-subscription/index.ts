@@ -61,15 +61,13 @@ Deno.serve(async (req) => {
         isPro = true;
         subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
         cancelAtPeriodEnd = activeSub.cancel_at_period_end === true;
-        isPro = true;
-        subscriptionEnd = new Date(subscriptions.data[0].current_period_end * 1000).toISOString();
 
         // Upsert user_subscriptions table
         await supabaseClient.from("user_subscriptions").upsert({
           user_id: user.id,
           is_pro: true,
           stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptions.data[0].id,
+          stripe_subscription_id: activeSub.id,
           subscription_end: subscriptionEnd,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
@@ -93,6 +91,7 @@ Deno.serve(async (req) => {
       isPro,
       subscriptionEnd,
       reviewRequested,
+      cancelAtPeriodEnd,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
