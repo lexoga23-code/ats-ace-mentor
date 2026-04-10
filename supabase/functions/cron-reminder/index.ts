@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: "ATS Ace Mentor <onboarding@resend.dev>",
+          from: "ScoreCV <bonjour@scorecv.eu>",
           to: [profile.email],
           subject: "Votre CV attend son analyse ! 📄",
           html: `
