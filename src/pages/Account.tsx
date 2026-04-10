@@ -72,6 +72,7 @@ const AccountInner = () => {
           setIsPro(data.isPro || false);
           setSubscriptionEnd(data.subscriptionEnd || null);
           setReviewRequested(data.reviewRequested || false);
+          setCancelAtPeriodEnd(data.cancelAtPeriodEnd || false);
         }
       } catch (err) {
         console.error("Failed to check subscription:", err);
