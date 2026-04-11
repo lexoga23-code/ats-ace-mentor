@@ -1,29 +1,21 @@
-import { useState, useEffect } from "react";
+interface LoadingOverlayProps {
+  progress?: number; // 0-100, real progress from parent
+  stepLabel?: string;
+}
 
-const STEPS = [
-  { label: "Extraction du contenu…", duration: 2000 },
-  { label: "Analyse du format ATS…", duration: 3000 },
-  { label: "Vérification des mots-clés…", duration: 3000 },
-  { label: "Évaluation de la lisibilité…", duration: 2500 },
-  { label: "Génération du rapport…", duration: 2000 },
-];
+const LoadingOverlay = ({ progress = 0, stepLabel }: LoadingOverlayProps) => {
+  const displayProgress = Math.min(Math.round(progress), 100);
 
-const LoadingOverlay = () => {
-  const [step, setStep] = useState(0);
+  const defaultLabel =
+    progress < 30
+      ? "Analyse du CV en cours…"
+      : progress < 60
+        ? "Calcul du score ATS…"
+        : progress < 85
+          ? "Génération du rapport…"
+          : "Finalisation…";
 
-  useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    let elapsed = 0;
-    STEPS.forEach((s, i) => {
-      if (i > 0) {
-        elapsed += STEPS[i - 1].duration;
-        timers.push(setTimeout(() => setStep(i), elapsed));
-      }
-    });
-    return () => timers.forEach(clearTimeout);
-  }, []);
-
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const label = stepLabel || defaultLabel;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60">
@@ -34,25 +26,25 @@ const LoadingOverlay = () => {
             <circle
               cx="48" cy="48" r="42" strokeWidth="6" fill="transparent"
               strokeDasharray="264"
-              strokeDashoffset={264 - (264 * progress) / 100}
+              strokeDashoffset={264 - (264 * displayProgress) / 100}
               className="stroke-primary transition-all duration-700 ease-out"
               strokeLinecap="round"
             />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-foreground">
-            {Math.round(progress)}%
+            {displayProgress}%
           </span>
         </div>
 
         <div>
           <h3 className="text-xl font-bold text-foreground mb-2">Analyse en cours</h3>
-          <p className="text-primary font-medium text-sm">{STEPS[step].label}</p>
+          <p className="text-primary font-medium text-sm">{label}</p>
         </div>
 
         <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
           <div
             className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${displayProgress}%` }}
           />
         </div>
 
