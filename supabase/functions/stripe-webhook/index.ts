@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     }, { onConflict: "session_id" });
 
     // Get user profile for email
-    let userName = "there";
+    let userName = "";
     let userEmail = email;
     if (userId) {
       const { data: profile } = await supabase
@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
         .limit(1)
         .single();
       if (profile) {
-        userName = profile.full_name || "there";
+        userName = profile.full_name || "";
         userEmail = profile.email || email;
       }
     }
