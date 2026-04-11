@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { sendWelcomeEmail } from "@/lib/emailService";
+
 import { RegionProvider } from "@/contexts/RegionContext";
 import Navbar from "@/components/Navbar";
 
@@ -38,8 +38,6 @@ const AuthInner = () => {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         toast.success("Compte créé ! Vous êtes connecté.");
-        const name = email.split("@")[0];
-        sendWelcomeEmail(name, email);
       }
     } catch (err: any) {
       toast.error(err.message || "Erreur d'authentification");
