@@ -35,6 +35,7 @@ const CVAnalyzer = () => {
   const [industry, setIndustry] = useState("");
   const [customIndustry, setCustomIndustry] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [rewrittenCV, setRewrittenCV] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
@@ -364,11 +365,14 @@ const CVAnalyzer = () => {
 
     hardResetCVAndLetter();
     setLoading(true);
+    setLoadingProgress(5);
     justAnalyzedRef.current = true;
 
     try {
       const effectiveIndustry = industry === "Autre" ? (customIndustry || "Non précisé") : (industry || "Non précisé");
+      setLoadingProgress(15);
       const result = await analyzeCV(cvText, targetJob, region, effectiveIndustry, jobDescription);
+      setLoadingProgress(55);
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);
@@ -376,6 +380,7 @@ const CVAnalyzer = () => {
       result.score = Math.min(result.score, 100);
       if (!result.sectionScores) result.sectionScores = [];
 
+      setLoadingProgress(70);
       setResults(result);
       saveState(result);
 
@@ -392,6 +397,7 @@ const CVAnalyzer = () => {
 
       // For new analyses, isPaid starts as false — must pay first
       let currentPaid = false;
+      setLoadingProgress(80);
       if (user) {
         // Insert analysis first
         const { data: inserted } = await supabase.from("user_analyses").insert({
@@ -417,9 +423,11 @@ const CVAnalyzer = () => {
 
       // Only generate rewritten CV if server confirms paid
       if (currentPaid) {
+        setLoadingProgress(90);
         const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
         setRewrittenCV(rewritten);
       }
+      setLoadingProgress(100);
     } catch (err) {
       console.error(err);
       const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de l'analyse";
