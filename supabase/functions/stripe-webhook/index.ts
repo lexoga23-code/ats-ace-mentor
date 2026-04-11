@@ -205,8 +205,9 @@ Deno.serve(async (req) => {
         }
 
         // Send report email to user
+        const paidAnalysisId = analyses && analyses.length > 0 ? analyses[0].id : undefined;
         if (userEmail) {
-          const { subject, html } = reportEmail(userName);
+          const { subject, html } = reportEmail(userName, paidAnalysisId);
           await sendEmail(userEmail, subject, html);
         }
       } else if (productType === "pro") {
