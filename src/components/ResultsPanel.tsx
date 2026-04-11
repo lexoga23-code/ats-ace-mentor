@@ -407,10 +407,10 @@ const ResultsPanel = ({
               <h3 className="text-xl font-bold mb-4 text-foreground">🔍 Problèmes prioritaires détectés</h3>
               <div className="space-y-3">
                 {topProblems.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3 text-base">
+                  <div key={i} className="flex items-start gap-3" style={{ fontSize: "15px" }}>
                     <span className="mt-0.5">{item.status === "fail" ? "🔴" : "🟠"}</span>
                     <span className="text-foreground font-medium">{item.label}</span>
-                    <span className="text-muted-foreground">— {item.detail}</span>
+                    <span className="text-foreground">— {item.detail}</span>
                   </div>
                 ))}
               </div>
@@ -424,8 +424,8 @@ const ResultsPanel = ({
                   <div className="mt-4 pt-4 flex items-center gap-3" style={{ borderTop: "1px dashed #cbd5e0" }}>
                     <span style={{ fontSize: "22px", flexShrink: 0 }}>🔒</span>
                     <div>
-                      <p className="font-bold text-base" style={{ color: "#1a365d" }}>+{lockedCount} problèmes détectés</p>
-                      <p className="text-sm" style={{ color: "#8899AA" }}>{lockedTitles ? `${lockedTitles}…` : "Analyse complète disponible dans le rapport payant…"}</p>
+                      <p className="font-bold" style={{ color: "#1a365d", fontSize: "15px" }}>+{lockedCount} problèmes détectés</p>
+                      <p className="text-foreground" style={{ fontSize: "15px" }}>{lockedTitles ? `${lockedTitles}…` : "Analyse complète disponible dans le rapport payant…"}</p>
                     </div>
                   </div>
                 );
@@ -446,13 +446,13 @@ const ResultsPanel = ({
             return (
               <div className="bg-card p-8 shadow-soft flex items-center gap-5" style={{ borderRadius: "16px" }}>
                 <div className="flex-shrink-0 text-center">
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Taux de rappel estimé</p>
+                  <p className="font-medium text-foreground mb-1" style={{ fontSize: "15px" }}>Taux de rappel estimé</p>
                   <p className="text-3xl font-bold" style={{ color: rateColor }}>{rate}</p>
                 </div>
                 <div className="flex-shrink-0" style={{ width: "1px", height: "44px", background: "#e8edff" }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-base text-muted-foreground">{rateMsg}</p>
-                  <p className="text-base text-muted-foreground mt-1">
+                  <p className="text-foreground" style={{ fontSize: "15px" }}>{rateMsg}</p>
+                  <p className="text-foreground mt-1" style={{ fontSize: "15px" }}>
                     Les profils avec un score supérieur à 80 atteignent en moyenne{" "}
                     <span className="font-bold" style={{ color: "#16a34a" }}>~35% de taux de rappel</span>.
                   </p>
@@ -469,19 +469,19 @@ const ResultsPanel = ({
               </h3>
               <div className="flex flex-wrap gap-2">
                 {results.keywordsMissing.slice(0, 5).map((kw, i) => (
-                  <span key={i} className="px-3 py-1.5 rounded-full text-sm font-bold bg-destructive/10 text-destructive">
+                  <span key={i} className="px-3 py-1.5 rounded-full font-bold bg-destructive/10 text-destructive" style={{ fontSize: "15px" }}>
                     {kw}
                   </span>
                 ))}
                 {results.keywordsMissing.length > 5 && (
-                  <span className="px-3 py-1.5 rounded-full text-sm font-bold bg-secondary text-muted-foreground">
+                  <span className="px-3 py-1.5 rounded-full font-bold bg-secondary text-foreground" style={{ fontSize: "15px" }}>
                     +{results.keywordsMissing.length - 5} autres
                   </span>
                 )}
               </div>
               {/* Le saviez-vous */}
               <div style={{ marginTop: "16px", background: "#FFFBE6", border: "1px solid #FDE68A", borderRadius: "10px", padding: "14px 18px" }}>
-                <p className="text-sm" style={{ color: "#555" }}>
+                <p className="text-foreground" style={{ fontSize: "15px" }}>
                   <strong>💡 Le saviez-vous ?</strong> Les mots-clés manquants sont la première cause de rejet par les logiciels ATS, responsables de 75% des éliminations automatiques. Seul 1 CV sur 4 passe ces filtres.
                 </p>
               </div>
