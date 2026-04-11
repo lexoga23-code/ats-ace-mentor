@@ -151,16 +151,25 @@ const CVAnalyzer = () => {
   // Fonction pour gérer la détection de paiement
   const handlePaymentDetected = async () => {
     if (localStorage.getItem("scorecv_paid") !== "true") return;
-    localStorage.removeItem("scorecv_paid");
 
+    // Récupérer l'analysis_id depuis localStorage (stocké par PaymentSuccess)
+    const storedAnalysisId = localStorage.getItem("scorecv_analysis_id");
+
+    console.log("[CVAnalyzer] Payment detected, analysis_id:", storedAnalysisId, "user:", user?.id);
+
+    // NE PAS nettoyer ici — attendre que user soit chargé et la restauration réussie
     if (!user) {
-      toast.success("✓ Paiement confirmé — connectez-vous pour voir votre rapport");
+      // Ne pas nettoyer, on réessaiera quand user sera chargé via useEffect
+      console.log("[CVAnalyzer] User not loaded yet, will retry...");
       return;
     }
 
-    // Si currentAnalysisId est null, chercher la dernière analyse payée en DB
-    let analysisIdToUse = currentAnalysisId;
+    // Utiliser l'ID stocké en priorité, sinon fallback sur currentAnalysisId
+    let analysisIdToUse = storedAnalysisId || currentAnalysisId;
+
+    // Fallback: chercher la dernière analyse payée en DB
     if (!analysisIdToUse) {
+      console.log("[CVAnalyzer] No analysis_id found, searching in DB...");
       const { data: latestPaid } = await supabase
         .from("user_analyses")
         .select("id")
@@ -172,12 +181,11 @@ const CVAnalyzer = () => {
 
       if (latestPaid) {
         analysisIdToUse = latestPaid.id;
-        setCurrentAnalysisId(latestPaid.id);
       }
     }
 
+    // Dernier fallback: chercher la plus récente
     if (!analysisIdToUse) {
-      // Aucune analyse payée trouvée — chercher la plus récente
       const { data: latest } = await supabase
         .from("user_analyses")
         .select("id")
@@ -188,7 +196,6 @@ const CVAnalyzer = () => {
 
       if (latest) {
         analysisIdToUse = latest.id;
-        setCurrentAnalysisId(latest.id);
       }
     }
 
@@ -197,23 +204,33 @@ const CVAnalyzer = () => {
       return;
     }
 
+    console.log("[CVAnalyzer] Using analysis_id:", analysisIdToUse);
+
     // Vérifier le paiement côté serveur
     const serverPaid = await checkServerPaidStatus(user.id, analysisIdToUse);
     if (!serverPaid) {
+      console.error("[CVAnalyzer] Server says not paid for analysis:", analysisIdToUse);
       toast.error("Le paiement n'a pas pu être vérifié. Contactez-nous si le problème persiste.");
       return;
     }
 
-    // Récupérer les données complètes de l'analyse
-    const { data } = await supabase
+    // Récupérer les données complètes de l'analyse depuis la DB
+    const { data, error } = await supabase
       .from("user_analyses")
       .select("*")
       .eq("id", analysisIdToUse)
       .eq("user_id", user.id)
       .single();
 
+    if (error) {
+      console.error("[CVAnalyzer] Error fetching analysis:", error);
+      toast.error("Erreur lors du chargement de l'analyse.");
+      return;
+    }
+
     if (data) {
-      // Restaurer l'état complet
+      console.log("[CVAnalyzer] Restoring analysis data...");
+      // Restaurer l'état complet depuis la DB
       setCvText(data.cv_text || "");
       setTargetJob(data.target_job || "");
       setJobDescription(data.job_description || "");
@@ -229,6 +246,10 @@ const CVAnalyzer = () => {
         setCoverLetter(data.cover_letter);
       }
 
+      // Nettoyer SEULEMENT après restauration réussie
+      localStorage.removeItem("scorecv_paid");
+      localStorage.removeItem("scorecv_analysis_id");
+
       // Scroll automatique vers le rapport complet
       setTimeout(() => {
         document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -238,14 +259,32 @@ const CVAnalyzer = () => {
     }
   };
 
-  // Vérifier le paiement au montage et au focus (même onglet)
+  // Vérifier le paiement quand user devient disponible (après hard redirect depuis PaymentSuccess)
   useEffect(() => {
-    // Check on mount
-    handlePaymentDetected();
-    // Check on focus (when returning from payment page in same tab)
-    window.addEventListener("focus", handlePaymentDetected);
-    return () => window.removeEventListener("focus", handlePaymentDetected);
-  }, [user, currentAnalysisId, cvText, targetJob, results, region]);
+    // Attendre que user soit chargé avant de tenter la restauration
+    if (!user) return;
+
+    const timer = setTimeout(() => {
+      if (localStorage.getItem("scorecv_paid") === "true") {
+        console.log("[CVAnalyzer] User loaded, checking payment flag...");
+        handlePaymentDetected();
+      }
+    }, 300); // 300ms pour laisser auth et composant se stabiliser
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Déclencher quand user devient disponible
+
+  // Vérifier au focus (retour d'un autre onglet)
+  useEffect(() => {
+    const onFocus = () => {
+      if (localStorage.getItem("scorecv_paid") === "true") {
+        handlePaymentDetected();
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Dépend de user pour pouvoir restaurer
 
   // Storage event listener for cross-tab payment detection
   useEffect(() => {
@@ -257,7 +296,8 @@ const CVAnalyzer = () => {
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, [user, region, currentAnalysisId, cvText, targetJob, results]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Dépend de user pour pouvoir restaurer
 
   // On mount: check for session_id in URL (return from Stripe same-tab redirect)
   useEffect(() => {

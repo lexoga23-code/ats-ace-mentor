@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { productType, region, successUrl, cancelUrl } = await req.json();
+    const { productType, region, successUrl, cancelUrl, analysisId } = await req.json();
 
     // Validate inputs
     const type = productType || "report";
@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
         user_id: user.id,
         product_type: type,
         region: reg,
+        analysis_id: analysisId || "",
       },
     });
 

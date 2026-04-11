@@ -202,8 +202,16 @@ const ResultsPanel = ({
     try {
       localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      // Stocker l'analysis_id pour le récupérer après paiement
+      if (analysisId) {
+        sessionStorage.setItem("scorecv_pending_analysis_id", analysisId);
+      }
+      // Passer analysisId dans l'URL de success ET dans le body pour les metadata Stripe
+      const successUrl = analysisId
+        ? `${window.location.origin}/payment-success?product=${productType}&analysis_id=${analysisId}`
+        : `${window.location.origin}/payment-success?product=${productType}`;
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { productType, region, successUrl: `${window.location.origin}/payment-success?product=${productType}`, cancelUrl: `${window.location.origin}/#optimiser` },
+        body: { productType, region, analysisId, successUrl, cancelUrl: `${window.location.origin}/#optimiser` },
       });
       if (error || !data?.url) throw new Error("Impossible de créer la session de paiement");
       window.open(data.url, '_blank');
@@ -224,8 +232,15 @@ const ResultsPanel = ({
         user_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "",
         analysis_id: analysisId || null, status: "pending",
       } as any);
+      // Stocker l'analysis_id pour le récupérer après paiement
+      if (analysisId) {
+        sessionStorage.setItem("scorecv_pending_analysis_id", analysisId);
+      }
+      const successUrl = analysisId
+        ? `${window.location.origin}/payment-success?product=review&analysis_id=${analysisId}`
+        : `${window.location.origin}/payment-success?product=review`;
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { productType: "review", region, successUrl: `${window.location.origin}/payment-success?product=review`, cancelUrl: `${window.location.origin}/#optimiser` },
+        body: { productType: "review", region, analysisId, successUrl, cancelUrl: `${window.location.origin}/#optimiser` },
       });
       if (error || !data?.url) throw new Error("Impossible de créer la session");
       window.open(data.url, '_blank');
@@ -242,8 +257,9 @@ const ResultsPanel = ({
   const hasJobDescription = !!(jobDescription && jobDescription.length >= 50);
   const matchPct = hasJobDescription ? (results.matchScore ?? null) : null;
 
-  // Sort problems by priority for free mode - top 3
-  const topProblems = results.checklist
+  // Top 3 problèmes pour le rapport gratuit
+  // Priorité à top_problemes (retourné par Claude), fallback sur checklist filtrée
+  const topProblemsFromChecklist = results.checklist
     .filter(c => c.status === "fail" || c.status === "warn")
     .sort((a, b) => {
       if (a.status === "fail" && b.status !== "fail") return -1;
@@ -251,6 +267,16 @@ const ResultsPanel = ({
       return 0;
     })
     .slice(0, 3);
+
+  const hasTopProblemes = results.top_problemes && results.top_problemes.length > 0;
+  const topProblems = hasTopProblemes ? results.top_problemes : topProblemsFromChecklist;
+
+  // Mots-clés manquants pour le rapport gratuit
+  // Priorité à mots_cles_manquants_free, fallback sur keywordsMissing
+  const hasFreeKeywords = results.mots_cles_manquants_free && results.mots_cles_manquants_free.length > 0;
+  const freeKeywords = hasFreeKeywords
+    ? results.mots_cles_manquants_free
+    : results.keywordsMissing.slice(0, 5).map(k => ({ mot: k, importance: "haute" as const, present_dans_offre: true }));
 
   // Separate suggestions by category
   const manualSuggestions = results.suggestions.filter(s => s.category === "manual").slice(0, 3);
@@ -303,11 +329,11 @@ const ResultsPanel = ({
         <div className="space-y-6">
           {matchPct !== null && matchPct > 0 ? (
             <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
-              🎯 Votre profil correspond à {matchPct}% de l'offre — {totalPossibleGain} points peuvent être gagnés
+              🎯 Votre profil correspond à {matchPct}% de l'offre — {results.score_potentiel ? `score potentiel : ${results.score_potentiel}/100` : `${totalPossibleGain} points peuvent être gagnés`}
             </p>
           ) : (
             <p className="text-xl md:text-2xl font-bold" style={{ color: "#1a365d" }}>
-              📊 Votre CV obtient {results.score}/100 — voici comment progresser vers 80+
+              📊 Votre CV obtient {results.score}/100 {results.score_potentiel ? `→ potentiel ${results.score_potentiel}/100` : "— voici comment progresser vers 80+"}
             </p>
           )}
 
@@ -340,6 +366,11 @@ const ResultsPanel = ({
           )}
 
           {/* CTA — Unlock button — immediately after score */}
+          {results.message_upsell && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
+              <p className="text-sm text-amber-800 font-medium">{results.message_upsell}</p>
+            </div>
+          )}
           {!showPaymentOptions ? (
             <button
               onClick={() => setShowPaymentOptions(true)}
@@ -406,13 +437,28 @@ const ResultsPanel = ({
             <div className="bg-card p-8 rounded-3xl shadow-soft">
               <h3 className="text-xl font-bold mb-4 text-foreground">🔍 Problèmes prioritaires détectés</h3>
               <div className="space-y-3">
-                {topProblems.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3" style={{ fontSize: "15px" }}>
-                    <span className="mt-0.5">{item.status === "fail" ? "🔴" : "🟠"}</span>
-                    <span className="text-foreground font-medium">{item.label}</span>
-                    <span className="text-foreground">— {item.detail}</span>
-                  </div>
-                ))}
+                {hasTopProblemes ? (
+                  // Format top_problemes (retourné par Claude)
+                  (topProblems as typeof results.top_problemes)!.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3" style={{ fontSize: "15px" }}>
+                      <span className="mt-0.5">🔴</span>
+                      <div>
+                        <span className="text-foreground font-medium">{item.titre}</span>
+                        <span className="text-foreground"> — {item.detail}</span>
+                        {item.impact && <span className="text-destructive ml-1">({item.impact})</span>}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // Fallback: format checklist
+                  (topProblems as typeof topProblemsFromChecklist).map((item, i) => (
+                    <div key={i} className="flex items-start gap-3" style={{ fontSize: "15px" }}>
+                      <span className="mt-0.5">{item.status === "fail" ? "🔴" : "🟠"}</span>
+                      <span className="text-foreground font-medium">{item.label}</span>
+                      <span className="text-foreground">— {item.detail}</span>
+                    </div>
+                  ))
+                )}
               </div>
               {/* +N problèmes verrouillés — intégré dans le même encadré */}
               {(() => {
@@ -462,15 +508,15 @@ const ResultsPanel = ({
           })()}
 
           {/* Missing keywords - max 5 */}
-          {results.keywordsMissing.length > 0 && (
+          {freeKeywords.length > 0 && (
             <div className="bg-card p-8 rounded-3xl shadow-soft">
               <h3 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
                 ❌ Mots-clés manquants
               </h3>
               <div className="flex flex-wrap gap-2">
-                {results.keywordsMissing.slice(0, 5).map((kw, i) => (
-                  <span key={i} className="px-3 py-1.5 rounded-full font-bold bg-destructive/10 text-destructive" style={{ fontSize: "15px" }}>
-                    {kw}
+                {freeKeywords.map((kw, i) => (
+                  <span key={i} className={`px-3 py-1.5 rounded-full font-bold ${kw.importance === "haute" ? "bg-destructive/10 text-destructive" : "bg-amber-50 text-amber-700"}`} style={{ fontSize: "15px" }}>
+                    {kw.mot}
                   </span>
                 ))}
                 {results.keywordsMissing.length > 5 && (

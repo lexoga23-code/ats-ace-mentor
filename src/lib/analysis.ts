@@ -24,6 +24,11 @@ export interface AnalysisResult {
   keywordsMissing: string[];
   keywordsSuggested: string[];
   suggestions: Array<{ title: string; text: string; priority: "high" | "medium" | "low"; impact?: string; category?: "manual" | "auto" | "ats" | "human" }>;
+  // Champs pour le rapport gratuit
+  top_problemes?: Array<{ titre: string; detail: string; impact: string; teaser_correction: string }>;
+  mots_cles_manquants_free?: Array<{ mot: string; importance: string; present_dans_offre: boolean }>;
+  message_upsell?: string;
+  score_potentiel?: number;
 }
 
 const callAnthropic = async (prompt: string, maxTokens = 1500, temperature = 0.3): Promise<string> => {
@@ -307,15 +312,76 @@ Vérifier silencieusement avant de retourner le JSON :
 □ PAS DE CONSEIL DE FORMATION : aucune suggestion de se former, certifier ou apprendre
 ---
 JSON À RETOURNER
-Retourne UNIQUEMENT un JSON valide sans markdown ni texte autour.
-CHAMPS SELON LE MODE :
-Rapport GRATUIT (mode "free") : inclure score, score_potentiel, scoreDetails, sectionScores, verdict, checklist (labels seulement, corrections masquées), keywordsMissing (5 max sans correction), top_problemes, mots_cles_manquants_free, message_upsell. NE PAS inclure : suggestions détaillées, corrections complètes.
-Rapport COMPLET (mode "full") : inclure tous les champs, corrections complètes, suggestions (manual + auto), score_potentiel. NE PAS inclure : top_problemes, mots_cles_manquants_free, message_upsell.
-{"score":0,${jobDescription ? '"matchScore":0,' : ''}"scoreDetails":{"format":0,"keywords":0,"experience":0,"readability":0},"sectionScores":[{"name":"Coordonnées","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Profil professionnel","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Expérience","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Formation","score":0,"maxScore":10,"status":"ok","feedback":""},{"name":"Compétences","score":0,"maxScore":10,"status":"ok","feedback":""}],"verdict":"✅ Fait précis du CV\\n⚠️ Problème concret avec solution\\n💡 Conseil spécifique au poste et pays","checklist":[{"label":"","status":"ok","detail":"","correction":"","impact":""}],"keywordsFound":[],"keywordsMissing":[],"keywordsSuggested":[],"suggestions":[{"title":"","text":"","priority":"high","impact":"+X pts","category":"manual"},{"title":"","text":"","priority":"high","impact":"+X pts","category":"auto"}],"top_problemes":[{"titre":"","detail":"","impact":"","teaser_correction":""},{"titre":"","detail":"","impact":"","teaser_correction":""},{"titre":"","detail":"","impact":"","teaser_correction":""}],"mots_cles_manquants_free":[{"mot":"","importance":"haute","present_dans_offre":true}],"message_upsell":"","score_potentiel":0}`;
+Retourne UNIQUEMENT un JSON valide sans markdown ni texte autour. NE PAS retourner de champs vides.
+
+STRUCTURE OBLIGATOIRE DU JSON :
+{
+  "score": nombre (0-100, somme des 4 sous-scores),
+  ${jobDescription ? '"matchScore": nombre (0-100, pourcentage de correspondance CV/offre),' : ''}
+  "scoreDetails": {
+    "format": nombre (0-20),
+    "keywords": nombre (0-35),
+    "experience": nombre (0-25),
+    "readability": nombre (0-20)
+  },
+  "sectionScores": [
+    {"name": "Coordonnées", "score": nombre, "maxScore": 10, "status": "ok"|"warn"|"fail", "feedback": "texte descriptif"},
+    {"name": "Profil professionnel", "score": nombre, "maxScore": 10, "status": "ok"|"warn"|"fail", "feedback": "texte descriptif"},
+    {"name": "Expérience", "score": nombre, "maxScore": 10, "status": "ok"|"warn"|"fail", "feedback": "texte descriptif"},
+    {"name": "Formation", "score": nombre, "maxScore": 10, "status": "ok"|"warn"|"fail", "feedback": "texte descriptif"},
+    {"name": "Compétences", "score": nombre, "maxScore": 10, "status": "ok"|"warn"|"fail", "feedback": "texte descriptif"}
+  ],
+  "verdict": "✅ [fait positif concret du CV]\\n⚠️ [problème principal avec solution]\\n💡 [conseil spécifique au poste]",
+  "checklist": [
+    // EXACTEMENT 10 objets, un par critère d'analyse (1-10), CHAQUE objet DOIT avoir :
+    {"label": "Nom du critère analysé", "status": "ok"|"warn"|"fail", "detail": "Explication détaillée", "correction": "Action corrective si status != ok", "impact": "+X pts si corrigé"}
+    // status DOIT refléter l'analyse réelle : "fail" si problème majeur, "warn" si amélioration possible, "ok" si correct
+  ],
+  "keywordsFound": ["mot1", "mot2", ...], // Mots-clés de l'offre TROUVÉS dans le CV
+  "keywordsMissing": ["mot1", "mot2", ...], // Mots-clés de l'offre ABSENTS du CV (max 8)
+  "keywordsSuggested": ["mot1", "mot2", ...], // Formulations suggérées (max 6)
+  "suggestions": [
+    {"title": "Titre court", "text": "Description de l'action", "priority": "high"|"medium"|"low", "impact": "+X pts", "category": "manual"|"auto"}
+    // "manual" = action à faire par l'utilisateur, "auto" = corrigé dans le CV réécrit
+  ],
+  "top_problemes": [
+    {"titre": "Problème 1", "detail": "Impact concret", "impact": "-X pts", "teaser_correction": "Ce que le rapport complet corrige"},
+    {"titre": "Problème 2", "detail": "Impact concret", "impact": "-X pts", "teaser_correction": "Ce que le rapport complet corrige"},
+    {"titre": "Problème 3", "detail": "Impact concret", "impact": "-X pts", "teaser_correction": "Ce que le rapport complet corrige"}
+  ],
+  "mots_cles_manquants_free": [
+    {"mot": "mot-clé", "importance": "haute"|"moyenne", "present_dans_offre": true}
+    // Max 5 mots-clés pour le rapport gratuit
+  ],
+  "message_upsell": "Message incitatif personnalisé pour débloquer le rapport complet",
+  "score_potentiel": nombre (score atteignable après optimisation, entre score actuel et 95)
+}
+
+RÈGLES CRITIQUES :
+- La checklist DOIT contenir EXACTEMENT 10 critères avec des labels descriptifs réels (pas de chaînes vides)
+- Chaque critère de la checklist DOIT avoir un status basé sur l'ANALYSE RÉELLE ("fail" ou "warn" si problème détecté, "ok" sinon)
+- keywordsFound et keywordsMissing DOIVENT être remplis en analysant l'offre d'emploi vs le CV
+- NE JAMAIS retourner de tableaux vides [] si des éléments existent
+- NE JAMAIS retourner de chaînes vides "" pour les labels ou descriptions`;
 
   const text = await callAnthropic(prompt, 2500, 0.3);
   const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
-  return JSON.parse(cleaned);
+  const parsed = JSON.parse(cleaned);
+  console.log("[ANALYSE] Champs retournés par Claude:", {
+    checklist_length: parsed.checklist?.length,
+    checklist_statuses: parsed.checklist?.map((c: any) => c.status),
+    checklist_labels: parsed.checklist?.map((c: any) => c.label?.substring(0, 30)),
+    top_problemes_length: parsed.top_problemes?.length,
+    top_problemes_titres: parsed.top_problemes?.map((p: any) => p.titre?.substring(0, 30)),
+    mots_cles_free_length: parsed.mots_cles_manquants_free?.length,
+    mots_cles_free: parsed.mots_cles_manquants_free?.map((m: any) => m.mot),
+    keywordsFound_length: parsed.keywordsFound?.length,
+    keywordsMissing_length: parsed.keywordsMissing?.length,
+    keywordsMissing: parsed.keywordsMissing?.slice(0, 5),
+    score_potentiel: parsed.score_potentiel,
+    message_upsell: parsed.message_upsell ? parsed.message_upsell.substring(0, 50) + "..." : "absent"
+  });
+  return parsed;
 };
 
 export const rewriteCV = async (

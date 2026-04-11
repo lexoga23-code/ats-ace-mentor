@@ -1,17 +1,17 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { sendPaymentConfirmEmail, sendReviewRequestEmail, sendProWelcomeEmail } from "@/lib/emailService";
 
 const PaymentSuccess = () => {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<"loading" | "done">("loading");
   const hasRun = useRef(false);
 
   const productType = searchParams.get("product") || "report";
+  const analysisIdFromUrl = searchParams.get("analysis_id");
 
   useEffect(() => {
     if (authLoading) return;
@@ -19,56 +19,94 @@ const PaymentSuccess = () => {
     hasRun.current = true;
 
     const markPaid = async () => {
-      if (user) {
-        if (productType === "report") {
-          // Mark user's latest unpaid analysis as paid
-          const { data: analyses } = await supabase
-            .from("user_analyses")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("is_paid", false)
-            .order("created_at", { ascending: false })
-            .limit(1);
+      let analysisIdToMark = analysisIdFromUrl;
 
-          if (analyses && analyses.length > 0) {
-            await supabase
+      // Fallback: récupérer depuis sessionStorage si pas dans l'URL
+      if (!analysisIdToMark) {
+        analysisIdToMark = sessionStorage.getItem("scorecv_pending_analysis_id");
+      }
+
+      if (user) {
+        try {
+          if (productType === "report" && analysisIdToMark) {
+            // Marquer l'analyse SPÉCIFIQUE comme payée
+            const { error } = await supabase
               .from("user_analyses")
               .update({ is_paid: true })
-              .eq("id", analyses[0].id);
-          }
-        }
+              .eq("id", analysisIdToMark)
+              .eq("user_id", user.id);
 
-        // Send appropriate email
-        if (user.email) {
-          const name = user.user_metadata?.full_name || user.email.split("@")[0];
-          if (productType === "report") {
-            sendPaymentConfirmEmail(name, user.email);
-          } else if (productType === "pro") {
-            sendProWelcomeEmail(name, user.email);
-          } else if (productType === "review") {
-            sendReviewRequestEmail(name, user.email);
+            if (error) {
+              console.error("[PaymentSuccess] Error marking analysis as paid:", error);
+            } else {
+              console.log("[PaymentSuccess] Analysis marked as paid:", analysisIdToMark);
+            }
+          } else if (productType === "report" && !analysisIdToMark) {
+            // Fallback: marquer la dernière analyse non payée (cas legacy)
+            console.warn("[PaymentSuccess] No analysis_id found, falling back to latest unpaid");
+            const { data: analyses } = await supabase
+              .from("user_analyses")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("is_paid", false)
+              .order("created_at", { ascending: false })
+              .limit(1);
+
+            if (analyses && analyses.length > 0) {
+              analysisIdToMark = analyses[0].id;
+              await supabase
+                .from("user_analyses")
+                .update({ is_paid: true })
+                .eq("id", analyses[0].id);
+            }
           }
+
+          // Send appropriate email
+          if (user.email) {
+            const name = user.user_metadata?.full_name || user.email.split("@")[0];
+            if (productType === "report") {
+              sendPaymentConfirmEmail(name, user.email);
+            } else if (productType === "pro") {
+              sendProWelcomeEmail(name, user.email);
+            } else if (productType === "review") {
+              sendReviewRequestEmail(name, user.email);
+            }
+          }
+        } catch (err) {
+          console.error("[PaymentSuccess] Error in markPaid:", err);
         }
       }
 
+      // Stocker les flags pour CVAnalyzer
       localStorage.setItem("scorecv_paid", "true");
+      if (analysisIdToMark) {
+        localStorage.setItem("scorecv_analysis_id", analysisIdToMark);
+      }
+
       // Clear subscription cache so Account page fetches fresh data
       if (productType === "pro") {
         sessionStorage.removeItem("scorecv_sub_cache");
       }
+
+      // Nettoyer sessionStorage
+      sessionStorage.removeItem("scorecv_pending_analysis_id");
+
       setStatus("done");
 
+      // Délai puis redirect
       setTimeout(() => {
         if (window.opener) {
+          // Nouvel onglet ouvert par window.open — fermer et laisser l'onglet parent détecter le paiement
           window.close();
         } else {
-          navigate("/#optimiser");
+          // Même onglet — hard redirect (pas React Router) pour forcer le remontage
+          window.location.href = "/#optimiser";
         }
       }, 2000);
     };
 
     markPaid();
-  }, [user, authLoading, navigate, productType]);
+  }, [user, authLoading, productType, analysisIdFromUrl]);
 
   const messages: Record<string, { title: string; subtitle: string }> = {
     report: {
@@ -100,7 +138,7 @@ const PaymentSuccess = () => {
             if (window.opener) {
               window.close();
             } else {
-              navigate("/#optimiser");
+              window.location.href = "/#optimiser";
             }
           }}
           className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-all"
