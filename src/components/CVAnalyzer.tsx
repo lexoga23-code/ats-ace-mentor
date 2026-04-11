@@ -551,7 +551,7 @@ const CVAnalyzer = () => {
           </div>
         </div>
 
-        {(loading || restoringPaid) && <LoadingOverlay />}
+        {(loading || restoringPaid) && <LoadingOverlay progress={loadingProgress} />}
 
         <div ref={resultsRef} id="results-panel">
           {results && (
