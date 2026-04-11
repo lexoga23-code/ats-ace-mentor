@@ -35,9 +35,20 @@ const AuthInner = () => {
         if (error) throw error;
         toast.success("Connexion réussie !");
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         toast.success("Compte créé ! Vous êtes connecté.");
+        // Trigger welcome email via auth-webhook edge function
+        if (data.user) {
+          supabase.functions.invoke("auth-webhook", {
+            body: {
+              record: {
+                email: data.user.email,
+                full_name: data.user.user_metadata?.full_name || email.split("@")[0],
+              },
+            },
+          }).catch((err) => console.warn("Welcome email failed:", err));
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "Erreur d'authentification");
