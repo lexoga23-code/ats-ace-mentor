@@ -32,13 +32,17 @@ async function sendEmail(to: string, subject: string, html: string) {
   }
 }
 
-function reportEmail(name: string) {
+function reportEmail(name: string, analysisId?: string) {
+  const greeting = name ? `Bonjour ${name},` : "Bonjour,";
+  const reportUrl = analysisId
+    ? `https://ats-ace-mentor.lovable.app/analyse/${analysisId}`
+    : "https://ats-ace-mentor.lovable.app/compte";
   return {
     subject: "Votre rapport ScoreCV est prêt ! 📄",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #6366f1;">Rapport débloqué ! 🎉</h1>
-        <p>Bonjour ${name},</p>
+        <p>${greeting}</p>
         <p>Votre paiement de 4€ a bien été reçu. Votre rapport complet est maintenant accessible :</p>
         <ul>
           <li>✍️ CV réécrit et optimisé ATS</li>
@@ -47,7 +51,7 @@ function reportEmail(name: string) {
           <li>📥 Export PDF & Word</li>
         </ul>
         <p>
-          <a href="https://ats-ace-mentor.lovable.app/#optimiser"
+          <a href="${reportUrl}"
              style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
             Voir mon rapport →
           </a>
@@ -59,11 +63,12 @@ function reportEmail(name: string) {
 }
 
 function proEmail(name: string) {
+  const greeting = name ? `Bienvenue en Pro, ${name} ! 🚀` : "Bienvenue en Pro ! 🚀";
   return {
     subject: "Abonnement Pro activé ! 🚀",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #6366f1;">Bienvenue en Pro, ${name} ! 🚀</h1>
+        <h1 style="color: #6366f1;">${greeting}</h1>
         <p>Votre abonnement Pro est maintenant actif. Vous avez accès à :</p>
         <ul>
           <li>♾️ Analyses illimitées</li>
@@ -98,11 +103,12 @@ function reviewNotificationEmail(userName: string, userEmail: string) {
 }
 
 function reviewConfirmEmail(name: string) {
+  const heading = name ? `Demande reçue, ${name} ! ✅` : "Demande reçue ! ✅";
   return {
     subject: "Demande de relecture reçue ! ✅",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #6366f1;">Demande reçue, ${name} ! ✅</h1>
+        <h1 style="color: #6366f1;">${heading}</h1>
         <p>Nous avons bien reçu votre demande de relecture de votre CV et lettre de motivation.</p>
         <p>Vous recevrez votre rapport PDF personnalisé sous <strong>24h ouvrées</strong>. Un échange email de suivi est inclus.</p>
         <p style="color: #666; font-size: 14px; margin-top: 30px;">L'équipe ScoreCV — bonjour@scorecv.eu</p>
