@@ -403,11 +403,11 @@ const ResultsPanel = ({
 
           {/* Top 3 priority problems */}
           {topProblems.length > 0 && (
-            <div className="bg-card p-6 rounded-3xl shadow-soft">
-              <h3 className="text-base font-bold mb-3 text-foreground">🔍 Problèmes prioritaires détectés</h3>
-              <div className="space-y-2">
+            <div className="bg-card p-8 rounded-3xl shadow-soft">
+              <h3 className="text-xl font-bold mb-4 text-foreground">🔍 Problèmes prioritaires détectés</h3>
+              <div className="space-y-3">
                 {topProblems.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm">
+                  <div key={i} className="flex items-start gap-3 text-base">
                     <span className="mt-0.5">{item.status === "fail" ? "🔴" : "🟠"}</span>
                     <span className="text-foreground font-medium">{item.label}</span>
                     <span className="text-muted-foreground">— {item.detail}</span>
@@ -424,8 +424,8 @@ const ResultsPanel = ({
                   <div className="mt-4 pt-4 flex items-center gap-3" style={{ borderTop: "1px dashed #cbd5e0" }}>
                     <span style={{ fontSize: "22px", flexShrink: 0 }}>🔒</span>
                     <div>
-                      <p className="font-bold" style={{ fontSize: "13px", color: "#1a365d" }}>+{lockedCount} problèmes détectés</p>
-                      <p style={{ fontSize: "12px", color: "#8899AA" }}>{lockedTitles ? `${lockedTitles}…` : "Analyse complète disponible dans le rapport payant…"}</p>
+                      <p className="font-bold text-base" style={{ color: "#1a365d" }}>+{lockedCount} problèmes détectés</p>
+                      <p className="text-sm" style={{ color: "#8899AA" }}>{lockedTitles ? `${lockedTitles}…` : "Analyse complète disponible dans le rapport payant…"}</p>
                     </div>
                   </div>
                 );
@@ -444,15 +444,15 @@ const ResultsPanel = ({
               ? "Votre CV passe certains filtres mais se retrouve en bas de pile face aux profils mieux optimisés. Vous êtes visible, mais rarement prioritaire."
               : "Votre CV est filtré par la plupart des logiciels de recrutement avant d'être lu.";
             return (
-              <div className="bg-card p-5 shadow-soft flex items-center gap-4" style={{ borderRadius: "12px" }}>
+              <div className="bg-card p-8 shadow-soft flex items-center gap-5" style={{ borderRadius: "16px" }}>
                 <div className="flex-shrink-0 text-center">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Taux de rappel estimé</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Taux de rappel estimé</p>
                   <p className="text-3xl font-bold" style={{ color: rateColor }}>{rate}</p>
                 </div>
                 <div className="flex-shrink-0" style={{ width: "1px", height: "44px", background: "#e8edff" }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-muted-foreground">{rateMsg}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-base text-muted-foreground">{rateMsg}</p>
+                  <p className="text-base text-muted-foreground mt-1">
                     Les profils avec un score supérieur à 80 atteignent en moyenne{" "}
                     <span className="font-bold" style={{ color: "#16a34a" }}>~35% de taux de rappel</span>.
                   </p>
@@ -463,25 +463,25 @@ const ResultsPanel = ({
 
           {/* Missing keywords - max 5 */}
           {results.keywordsMissing.length > 0 && (
-            <div className="bg-card p-6 rounded-3xl shadow-soft">
-              <h3 className="text-base font-bold mb-3 text-foreground flex items-center gap-2">
+            <div className="bg-card p-8 rounded-3xl shadow-soft">
+              <h3 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
                 ❌ Mots-clés manquants
               </h3>
               <div className="flex flex-wrap gap-2">
                 {results.keywordsMissing.slice(0, 5).map((kw, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive">
+                  <span key={i} className="px-3 py-1.5 rounded-full text-sm font-bold bg-destructive/10 text-destructive">
                     {kw}
                   </span>
                 ))}
                 {results.keywordsMissing.length > 5 && (
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-secondary text-muted-foreground">
+                  <span className="px-3 py-1.5 rounded-full text-sm font-bold bg-secondary text-muted-foreground">
                     +{results.keywordsMissing.length - 5} autres
                   </span>
                 )}
               </div>
               {/* Le saviez-vous */}
-              <div style={{ marginTop: "14px", background: "#FFFBE6", border: "1px solid #FDE68A", borderRadius: "8px", padding: "10px 14px" }}>
-                <p style={{ fontSize: "12px", color: "#555" }}>
+              <div style={{ marginTop: "16px", background: "#FFFBE6", border: "1px solid #FDE68A", borderRadius: "10px", padding: "14px 18px" }}>
+                <p className="text-sm" style={{ color: "#555" }}>
                   <strong>💡 Le saviez-vous ?</strong> Les mots-clés manquants sont la première cause de rejet par les logiciels ATS, responsables de 75% des éliminations automatiques. Seul 1 CV sur 4 passe ces filtres.
                 </p>
               </div>
