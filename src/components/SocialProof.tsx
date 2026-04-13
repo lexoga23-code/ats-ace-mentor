@@ -43,13 +43,7 @@ const SocialProof = () => {
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           {TESTIMONIALS.map((t) => (
             <div key={t.name} className="bg-card p-6 rounded-2xl shadow-soft">
-              <div className="flex gap-0.5 mb-3">
-                {Array.from({ length: t.rating }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground mb-4 italic">"{t.text}"</p>
-              <div className="flex items-center gap-3 mt-4">
+              <div className="flex items-center gap-3 mb-4">
                 <img
                   src={t.photo}
                   alt={t.name}
@@ -60,6 +54,12 @@ const SocialProof = () => {
                   <p className="text-xs text-muted-foreground">{t.role}</p>
                 </div>
               </div>
+              <div className="flex gap-0.5 mb-3">
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground italic">"{t.text}"</p>
             </div>
           ))}
         </div>
