@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const OPTIONS = [
   "LinkedIn",
@@ -14,9 +15,16 @@ const OPTIONS = [
 export function DiscoveryQuestion() {
   const [selected, setSelected] = useState<string | null>(null);
 
-  const handleSelect = (option: string) => {
+  const handleSelect = async (option: string) => {
     setSelected(option);
     localStorage.setItem("scorecv_discovery_source", option);
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    await supabase.from("discovery_sources").insert({
+      source: option,
+      user_id: user?.id ?? null,
+    });
   };
 
   return (
