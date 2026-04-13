@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Target, Share2, Mail, Loader2, Sparkles } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
-import { detectQuestions } from "./RewriteQuestionsModal";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
@@ -11,6 +10,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+
+interface ContextualQuestion {
+  id: string;
+  priorite: number;
+  lacune_ciblee: string;
+  question: string;
+  type: "text" | "textarea" | "select";
+  placeholder: string;
+  obligatoire: boolean;
+  options?: string[];
+}
 
 interface ResultsPanelProps {
   results: AnalysisResult;
@@ -109,12 +119,9 @@ const ResultsPanel = ({
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewDone, setReviewDone] = useState(false);
   const [inlineAnswers, setInlineAnswers] = useState<Record<string, string>>({});
-
-  // Détecter les questions contextuelles basées sur l'analyse
-  const contextualQuestions = useMemo(
-    () => detectQuestions(results, cvText, jobDescription, targetJob, region),
-    [results, cvText, jobDescription, targetJob, region],
-  );
+  const [contextualQuestions, setContextualQuestions] = useState<ContextualQuestion[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
 
   // Vérification serveur au montage pour contenu payant existant
   useEffect(() => {
@@ -140,9 +147,12 @@ const ResultsPanel = ({
     verifyAndSetContent();
   }, [initialRewrite, initialCoverLetter, user, analysisId]);
 
-  // Réinitialiser reviewDone à chaque nouvelle analyse
+  // Réinitialiser les états à chaque nouvelle analyse
   useEffect(() => {
     setReviewDone(false);
+    setQuestionsLoaded(false);
+    setContextualQuestions([]);
+    setInlineAnswers({});
   }, [analysisId]);
 
   useEffect(() => {
@@ -156,6 +166,51 @@ const ResultsPanel = ({
     checkReview();
   }, [user, analysisId]);
 
+  // Appeler l'edge function pour générer les questions contextuelles quand isPaid
+  useEffect(() => {
+    if (!isPaid || questionsLoaded || rewrittenCV) return;
+
+    const fetchQuestions = async () => {
+      setQuestionsLoading(true);
+      try {
+        // Construire la liste des problèmes à partir du rapport
+        const problemsList = [
+          ...results.checklist
+            .filter(c => c.status === "fail" || c.status === "warn")
+            .map(c => `- ${c.label}: ${c.detail}`),
+          ...results.suggestions.map(s => `- ${s.title}: ${s.text}`),
+        ].join("\n");
+
+        const { data, error } = await supabase.functions.invoke("generate-questions", {
+          body: {
+            cv_text: cvText,
+            score: results.score,
+            score_format: results.scoreDetails.format,
+            score_mots_cles: results.scoreDetails.keywords,
+            score_contenu: results.scoreDetails.experience,
+            score_lisibilite: results.scoreDetails.readability,
+            problems_list: problemsList,
+            job_offer: jobDescription || null,
+          },
+        });
+
+        if (error) {
+          console.error("[generate-questions] Error:", error);
+          setContextualQuestions([]);
+        } else {
+          setContextualQuestions(data?.questions || []);
+        }
+      } catch (err) {
+        console.error("[generate-questions] Exception:", err);
+        setContextualQuestions([]);
+      } finally {
+        setQuestionsLoading(false);
+        setQuestionsLoaded(true);
+      }
+    };
+
+    fetchQuestions();
+  }, [isPaid, questionsLoaded, rewrittenCV, cvText, results, jobDescription]);
 
   const handleGenerateCV = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
@@ -661,8 +716,30 @@ const ResultsPanel = ({
               <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} />
             ) : (
               <div className="space-y-6">
-                {/* Questions contextuelles inline */}
-                {contextualQuestions.length >= 3 && (
+                {/* Skeleton loader pendant le chargement des questions */}
+                {questionsLoading && (
+                  <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-200 animate-pulse">
+                    <div className="h-5 bg-amber-200/50 rounded w-3/4 mb-3"></div>
+                    <div className="h-4 bg-amber-200/30 rounded w-1/2 mb-6"></div>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="h-4 bg-amber-200/50 rounded w-2/3 mb-2"></div>
+                        <div className="h-12 bg-amber-200/30 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 bg-amber-200/50 rounded w-1/2 mb-2"></div>
+                        <div className="h-12 bg-amber-200/30 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 bg-amber-200/50 rounded w-3/5 mb-2"></div>
+                        <div className="h-12 bg-amber-200/30 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Questions contextuelles générées par l'IA */}
+                {!questionsLoading && contextualQuestions.length > 0 && (
                   <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-200">
                     <h4 className="text-base font-bold text-foreground mb-1">✏️ Quelques précisions pour personnaliser votre CV</h4>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -671,8 +748,19 @@ const ResultsPanel = ({
                     <div className="space-y-4">
                       {contextualQuestions.map((q) => (
                         <div key={q.id}>
-                          <label className="block text-sm font-semibold text-foreground mb-1.5">{q.label}</label>
-                          {q.type === "textarea" ? (
+                          <label className="block text-sm font-semibold text-foreground mb-1.5">{q.question}</label>
+                          {q.type === "select" && q.options ? (
+                            <select
+                              value={inlineAnswers[q.id] || ""}
+                              onChange={(e) => setInlineAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                              className="w-full p-3 bg-white rounded-xl text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none border border-border"
+                            >
+                              <option value="">Sélectionnez une option</option>
+                              {q.options.map((opt, i) => (
+                                <option key={i} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          ) : q.type === "textarea" ? (
                             <textarea
                               value={inlineAnswers[q.id] || ""}
                               onChange={(e) => setInlineAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
@@ -694,11 +782,15 @@ const ResultsPanel = ({
                     </div>
                   </div>
                 )}
-                <button onClick={handleGenerateCV} disabled={loadingRewrite}
-                  className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
-                  style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
-                  ✨ Générer mon CV optimisé
-                </button>
+
+                {/* Bouton Générer CV - apparaît après chargement des questions */}
+                {!questionsLoading && (
+                  <button onClick={handleGenerateCV} disabled={loadingRewrite}
+                    className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+                    style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
+                    ✨ Générer mon CV optimisé
+                  </button>
+                )}
               </div>
             )}
           </div>
