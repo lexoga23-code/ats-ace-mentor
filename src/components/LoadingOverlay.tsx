@@ -3,6 +3,13 @@ interface LoadingOverlayProps {
   stepLabel?: string;
 }
 
+import { DiscoveryQuestion } from "./DiscoveryQuestion";
+
+interface LoadingOverlayProps {
+  progress?: number;
+  stepLabel?: string;
+}
+
 const LoadingOverlay = ({ progress = 0, stepLabel }: LoadingOverlayProps) => {
   const displayProgress = Math.min(Math.round(progress), 100);
 
