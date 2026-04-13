@@ -6,7 +6,7 @@ import marcImg from "@/assets/marc.webp";
 const TESTIMONIALS = [
   {
     name: "Marie L.",
-    role: "Chef de projet, Paris",
+    role: "Commerciale, Paris",
     text: "Mon CV passait à la trappe depuis des mois. Après ScoreCV, j'ai décroché 3 entretiens en 2 semaines.",
     rating: 5,
     photo: marieImg,
