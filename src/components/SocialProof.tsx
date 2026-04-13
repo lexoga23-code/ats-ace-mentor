@@ -1,4 +1,7 @@
 import { Shield, Star, Zap, Users } from "lucide-react";
+import marieImg from "@/assets/marie.webp";
+import sophieImg from "@/assets/sophie.webp";
+import marcImg from "@/assets/marc.webp";
 
 const TESTIMONIALS = [
   {
@@ -6,18 +9,21 @@ const TESTIMONIALS = [
     role: "Chef de projet, Paris",
     text: "Mon CV passait à la trappe depuis des mois. Après ScoreCV, j'ai décroché 3 entretiens en 2 semaines.",
     rating: 5,
+    photo: marieImg,
   },
   {
     name: "Sophie M.",
     role: "Formatrice RH, Lausanne",
     text: "En tant que professionnelle RH, je recommande ScoreCV à tous mes stagiaires. L'analyse est précise et les suggestions concrètes. Un outil indispensable pour le marché suisse.",
     rating: 5,
+    photo: sophieImg,
   },
   {
     name: "Marc D.",
     role: "Chef de projet, Bordeaux",
     text: "Reconverti après 15 ans dans la banque, je pensais que mon expérience parlait d'elle-même. ScoreCV m'a montré que sans les bons mots-clés, mon profil était invisible. 3 semaines après avoir optimisé mon CV, j'ai signé un CDI.",
     rating: 5,
+    photo: marcImg,
   },
 ];
 
@@ -31,7 +37,6 @@ const SocialProof = () => {
   return (
     <section className="py-16 px-6 bg-secondary/30">
       <div className="max-w-6xl mx-auto">
-        {/* Testimonials */}
         <h2 className="text-2xl font-bold text-center mb-8 text-foreground">
           Ce que disent nos utilisateurs
         </h2>
@@ -44,15 +49,21 @@ const SocialProof = () => {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground mb-4 italic">"{t.text}"</p>
-              <div>
-                <p className="text-sm font-bold text-foreground">{t.name}</p>
-                <p className="text-xs text-muted-foreground">{t.role}</p>
+              <div className="flex items-center gap-3 mt-4">
+                <img
+                  src={t.photo}
+                  alt={t.name}
+                  className="w-12 h-12 rounded-full object-cover object-top"
+                />
+                <div>
+                  <p className="text-sm font-bold text-foreground">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Trust badges */}
         <div className="flex flex-wrap justify-center gap-6">
           {TRUST_BADGES.map((badge) => (
             <div key={badge.label} className="flex items-center gap-2 px-4 py-2 bg-card rounded-full shadow-soft">
