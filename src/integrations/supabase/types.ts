@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      discovery_sources: {
+        Row: {
+          created_at: string
+          id: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
