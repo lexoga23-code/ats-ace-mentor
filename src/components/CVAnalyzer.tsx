@@ -403,11 +403,11 @@ const CVAnalyzer = () => {
     progressIntervalRef.current = setInterval(() => {
       current += 1;
       setLoadingProgress(current);
-      if (current >= 85) {
+      if (current >= 95) {
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-    }, 140);
+    }, 210);
   };
 
   const stopProgressTimer = () => {
