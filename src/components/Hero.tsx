@@ -6,7 +6,8 @@ const Hero = () => {
           Votre CV mérite d'être lu.
         </h1>
         <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto text-pretty">
-          75% des CV sont éliminés par les logiciels ATS avant même d'atteindre un recruteur. Reprenez le contrôle.
+          Ton CV est-il filtré par les recruteurs sans que tu le saches ?
+          Analyse-le gratuitement et augmente tes chances d'entretien.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {[
