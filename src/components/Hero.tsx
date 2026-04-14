@@ -6,7 +6,8 @@ const Hero = () => {
           Votre CV mérite d'être lu.
         </h1>
         <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto text-pretty">
-          Ton CV est-il filtré par les recruteurs sans que tu le saches ?
+          Ton cv est il filtré par les ATS des recruteurs sans que tu le saches?
+          <br />
           Analyse-le gratuitement et augmente tes chances d'entretien.
         </p>
         <div className="flex flex-wrap justify-center gap-4 mb-12">
