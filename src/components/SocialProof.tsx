@@ -59,7 +59,7 @@ const SocialProof = () => {
                   <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground italic">"{t.text}"</p>
+              <p className="text-sm text-foreground/80 leading-relaxed">"{t.text}"</p>
             </div>
           ))}
         </div>

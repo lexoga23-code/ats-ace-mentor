@@ -101,7 +101,7 @@ const Pricing = () => {
                 <span className="text-lg">{currency}</span>
                 {plan.period && <span className="text-sm text-muted-foreground font-normal">{plan.period}</span>}
               </div>
-              <ul className="space-y-4 text-sm text-muted-foreground mb-8 flex-1">
+              <ul className="space-y-4 text-sm text-foreground/80 mb-8 flex-1">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-primary flex-shrink-0" /> {f}
