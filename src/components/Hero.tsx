@@ -9,19 +9,7 @@ const Hero = () => {
           Ton CV est-il filtré par les recruteurs sans que tu le saches ?
           Analyse-le gratuitement et augmente tes chances d'entretien.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {[
-            { value: "94%", label: "Passage ATS" },
-            { value: "3x", label: "Plus d'entretiens" },
-            { value: "5000+", label: "CVs analysés" },
-          ].map((stat) => (
-            <div key={stat.label} className="p-6 bg-card rounded-2xl shadow-soft">
-              <div className="text-3xl font-bold text-primary mb-1">{stat.value}</div>
-              <div className="text-sm text-muted-foreground font-medium uppercase tracking-wide">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
           <a
             href="#optimiser"
             className="px-8 py-4 bg-foreground text-background rounded-xl font-bold hover:opacity-90 transition-all"
@@ -34,6 +22,18 @@ const Hero = () => {
           >
             {"C'est quoi l'ATS ?"}
           </a>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { value: "94%", label: "Passage ATS" },
+            { value: "3x", label: "Plus d'entretiens" },
+            { value: "5000+", label: "CVs analysés" },
+          ].map((stat) => (
+            <div key={stat.label} className="p-6 bg-card rounded-2xl shadow-soft">
+              <div className="text-3xl font-bold text-primary mb-1">{stat.value}</div>
+              <div className="text-sm text-muted-foreground font-medium uppercase tracking-wide">{stat.label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
