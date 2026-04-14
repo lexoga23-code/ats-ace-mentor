@@ -26,7 +26,7 @@ const Hero = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { value: "94%", label: "Passage ATS" },
+            { value: "100%", label: "Passage ATS" },
             { value: "3x", label: "Plus d'entretiens" },
             { value: "5000+", label: "CVs analysés" },
           ].map((stat) => (
