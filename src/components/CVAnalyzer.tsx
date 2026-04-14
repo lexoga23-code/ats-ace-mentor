@@ -44,7 +44,8 @@ const CVAnalyzer = () => {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [uploaderResetKey, setUploaderResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
-  const uploadInProgressRef = useRef(false);  // Flag pour éviter race condition avec restauration DB
+  const uploadInProgressRef = useRef(false);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /** Bug #2/#3 fix: Check server-side if user has paid for THIS SPECIFIC analysis OR has active pro subscription */
   const checkServerPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
@@ -397,6 +398,25 @@ const CVAnalyzer = () => {
     console.log('HARD RESET — CV et lettre effacés');
   };
 
+  const startProgressTimer = () => {
+    let current = 0;
+    progressIntervalRef.current = setInterval(() => {
+      current += 1;
+      setLoadingProgress(current);
+      if (current >= 85) {
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }, 140);
+  };
+
+  const stopProgressTimer = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+
   const startAnalysis = async () => {
     if (!cvText || !targetJob) {
       alert("Veuillez charger un CV et indiquer le poste ciblé.");
@@ -405,14 +425,13 @@ const CVAnalyzer = () => {
 
     hardResetCVAndLetter();
     setLoading(true);
-    setLoadingProgress(5);
+    setLoadingProgress(0);
     justAnalyzedRef.current = true;
+    startProgressTimer();
 
     try {
       const effectiveIndustry = industry === "Autre" ? (customIndustry || "Non précisé") : (industry || "Non précisé");
-      setLoadingProgress(15);
       const result = await analyzeCV(cvText, targetJob, region, effectiveIndustry, jobDescription);
-      setLoadingProgress(55);
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);
@@ -420,7 +439,6 @@ const CVAnalyzer = () => {
       result.score = Math.min(result.score, 100);
       if (!result.sectionScores) result.sectionScores = [];
 
-      setLoadingProgress(70);
       setResults(result);
       saveState(result);
 
@@ -437,7 +455,6 @@ const CVAnalyzer = () => {
 
       // For new analyses, isPaid starts as false — must pay first
       let currentPaid = false;
-      setLoadingProgress(80);
       if (user) {
         // Insert analysis first
         const { data: inserted } = await supabase.from("user_analyses").insert({
@@ -449,13 +466,12 @@ const CVAnalyzer = () => {
           results: result as any,
           score: result.score,
           match_score: result.matchScore || null,
-          is_paid: false, // Always false for new analysis
+          is_paid: false,
         }).select("id").single();
 
         if (inserted) {
           setCurrentAnalysisId(inserted.id);
           sessionStorage.setItem("scorecv_current_analysis_id", inserted.id);
-          // Check if user is Pro (Pro users get auto-paid)
           currentPaid = await checkServerPaidStatus(user.id, inserted.id);
           setIsPaid(currentPaid);
         }
@@ -463,18 +479,20 @@ const CVAnalyzer = () => {
 
       // Only generate rewritten CV if server confirms paid
       if (currentPaid) {
-        setLoadingProgress(90);
         const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
         setRewrittenCV(rewritten);
       }
+
+      stopProgressTimer();
       setLoadingProgress(100);
     } catch (err) {
+      stopProgressTimer();
+      setLoadingProgress(0);
       console.error(err);
       const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de l'analyse";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
-      // Scroll to results after analysis completes
       setTimeout(() => {
         document.getElementById('results-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 200);
