@@ -133,11 +133,16 @@ const CVAnalyzer = () => {
         setResults(d.results as AnalysisResult);
         setCurrentAnalysisId(d.id || null);
 
+        // Reset explicite des contenus générés - important pour que les questions contextuelles s'affichent
+        setRewrittenCV("");
+        setCoverLetter("");
+
         // Bug #8: Always verify server-side before trusting isPaid
         if (user && d.id) {
           checkServerPaidStatus(user.id, d.id).then((serverPaid) => {
             setIsPaid(serverPaid);
             if (serverPaid) {
+              // Restaurer les contenus générés s'ils existent
               if (d.rewrittenCV) setRewrittenCV(d.rewrittenCV);
               if (d.coverLetter) setCoverLetter(d.coverLetter);
             }
@@ -240,12 +245,9 @@ const CVAnalyzer = () => {
       setCurrentAnalysisId(data.id);
       setIsPaid(true);
 
-      if (data.rewritten_cv) {
-        setRewrittenCV(data.rewritten_cv);
-      }
-      if (data.cover_letter) {
-        setCoverLetter(data.cover_letter);
-      }
+      // Reset explicite puis restauration - important pour que les questions contextuelles s'affichent
+      setRewrittenCV(data.rewritten_cv || "");
+      setCoverLetter(data.cover_letter || "");
 
       // Nettoyer SEULEMENT après restauration réussie
       localStorage.removeItem("scorecv_paid");
@@ -348,16 +350,10 @@ const CVAnalyzer = () => {
           window.history.replaceState({}, "", window.location.pathname + "#optimiser");
           toast.success("✓ Paiement confirmé — votre rapport complet est prêt !");
 
-          const savedState = localStorage.getItem(STORAGE_KEY);
-          if (savedState) {
-            try {
-              const s = JSON.parse(savedState);
-              if (s.cvText && s.targetJob && s.results) {
-                const rewritten = await rewriteCV(s.cvText, s.targetJob, region, s.results.keywordsMissing || []);
-                setRewrittenCV(rewritten);
-              }
-            } catch { /* ignore */ }
-          }
+          // Reset explicite pour permettre l'affichage des questions contextuelles
+          // L'utilisateur pourra répondre aux questions avant de générer le CV
+          setRewrittenCV("");
+          setCoverLetter("");
           setRestoringPaid(false);
           return;
         }
@@ -432,6 +428,7 @@ const CVAnalyzer = () => {
     try {
       const effectiveIndustry = industry === "Autre" ? (customIndustry || "Non précisé") : (industry || "Non précisé");
       const result = await analyzeCV(cvText, targetJob, region, effectiveIndustry, jobDescription);
+
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
       result.scoreDetails.experience = Math.min(result.scoreDetails.experience, 25);

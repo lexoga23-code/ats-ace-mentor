@@ -153,6 +153,8 @@ const ResultsPanel = ({
     setQuestionsLoaded(false);
     setContextualQuestions([]);
     setInlineAnswers({});
+    // Note: rewrittenCV est géré par l'useEffect de vérification ci-dessus
+    // qui dépend aussi de analysisId
   }, [analysisId]);
 
   useEffect(() => {
