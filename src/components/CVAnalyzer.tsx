@@ -436,24 +436,14 @@ const CVAnalyzer = () => {
       result.score = Math.min(result.score, 100);
       if (!result.sectionScores) result.sectionScores = [];
 
-      setResults(result);
-      saveState(result);
-
-      // Save to local history
-      saveToHistory({
-        targetJob,
-        score: result.score,
-        matchScore: result.matchScore,
-        results: result,
-        cvText,
-        jobDescription,
-        industry,
-      });
-
-      // For new analyses, isPaid starts as false — must pay first
+      // FIX: Regrouper TOUS les setState dans le même batch pour éviter la race condition
+      // où ResultsPanel se monte avec isPaid = false et le useEffect questions fait return immédiatement.
+      // On fait d'abord les appels async, puis tous les setState ensemble.
       let currentPaid = false;
+      let insertedId: string | null = null;
+
       if (user) {
-        // Insert analysis first
+        // Insert analysis first (async - AVANT les setState)
         const { data: inserted } = await supabase.from("user_analyses").insert({
           user_id: user.id,
           cv_text: cvText,
@@ -467,12 +457,29 @@ const CVAnalyzer = () => {
         }).select("id").single();
 
         if (inserted) {
-          setCurrentAnalysisId(inserted.id);
+          insertedId = inserted.id;
           sessionStorage.setItem("scorecv_current_analysis_id", inserted.id);
           currentPaid = await checkServerPaidStatus(user.id, inserted.id);
-          setIsPaid(currentPaid);
         }
       }
+
+      // BATCH: Tous les setState ensemble - ResultsPanel se montera avec isPaid correct
+      setResults(result);
+      setCurrentAnalysisId(insertedId);
+      setIsPaid(currentPaid);
+
+      saveState(result);
+
+      // Save to local history
+      saveToHistory({
+        targetJob,
+        score: result.score,
+        matchScore: result.matchScore,
+        results: result,
+        cvText,
+        jobDescription,
+        industry,
+      });
 
       // Only generate rewritten CV if server confirms paid
       if (currentPaid) {
@@ -611,6 +618,7 @@ const CVAnalyzer = () => {
         <div ref={resultsRef} id="results-panel">
           {results && (
             <ResultsPanel
+              key={currentAnalysisId || 'new'}
               results={results}
               isPaid={isPaid}
               rewrittenCV={rewrittenCV}

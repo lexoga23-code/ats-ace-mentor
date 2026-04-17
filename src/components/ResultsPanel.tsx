@@ -170,8 +170,12 @@ const ResultsPanel = ({
 
   // Appeler l'edge function pour générer les questions contextuelles quand isPaid
   useEffect(() => {
+    // DEBUG: À retirer après validation du fix
+    console.log("[questions useEffect]", { isPaid, questionsLoaded, rewrittenCV: !!rewrittenCV, analysisId });
+
     if (!isPaid || questionsLoaded || rewrittenCV) return;
 
+    console.log("[questions useEffect] Fetching questions...");
     const fetchQuestions = async () => {
       setQuestionsLoading(true);
       try {
