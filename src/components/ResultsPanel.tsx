@@ -171,9 +171,9 @@ const ResultsPanel = ({
   // Appeler l'edge function pour générer les questions contextuelles quand isPaid
   useEffect(() => {
     // DEBUG: À retirer après validation du fix
-    console.log("[questions useEffect]", { isPaid, questionsLoaded, rewrittenCV: !!rewrittenCV, analysisId });
+    console.log("[questions useEffect]", { isPaid, questionsLoaded, analysisId });
 
-    if (!isPaid || questionsLoaded || rewrittenCV) return;
+    if (!isPaid || questionsLoaded) return;
 
     console.log("[questions useEffect] Fetching questions...");
     const fetchQuestions = async () => {
@@ -216,7 +216,7 @@ const ResultsPanel = ({
     };
 
     fetchQuestions();
-  }, [isPaid, questionsLoaded, rewrittenCV, cvText, results, jobDescription]);
+  }, [isPaid, questionsLoaded, cvText, results, jobDescription]);
 
   const handleGenerateCV = async () => {
     if (!user) { toast.error("Connectez-vous pour accéder à cette fonctionnalité."); return; }
