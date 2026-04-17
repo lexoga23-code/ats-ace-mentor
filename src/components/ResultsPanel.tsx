@@ -122,6 +122,21 @@ const ResultsPanel = ({
   const [contextualQuestions, setContextualQuestions] = useState<ContextualQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  const [questionsLoadingLong, setQuestionsLoadingLong] = useState(false);
+
+  // Affiche le lien de fallback si le chargement dépasse 15s
+  useEffect(() => {
+    if (!questionsLoading) {
+      setQuestionsLoadingLong(false);
+      return;
+    }
+    const t = setTimeout(() => setQuestionsLoadingLong(true), 15000);
+    return () => clearTimeout(t);
+  }, [questionsLoading]);
+
+  const scrollToGenerateButton = () => {
+    document.getElementById("generate-cv-button")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   // Vérification serveur au montage pour contenu payant existant
   useEffect(() => {
