@@ -805,7 +805,7 @@ const ResultsPanel = ({
 
                 {/* Bouton Générer CV - apparaît après chargement des questions */}
                 {!questionsLoading && (
-                  <button onClick={handleGenerateCV} disabled={loadingRewrite}
+                  <button id="generate-cv-button" onClick={handleGenerateCV} disabled={loadingRewrite}
                     className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
                     style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
                     ✨ Générer mon CV optimisé
