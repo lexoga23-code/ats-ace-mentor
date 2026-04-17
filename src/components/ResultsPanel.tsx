@@ -122,6 +122,21 @@ const ResultsPanel = ({
   const [contextualQuestions, setContextualQuestions] = useState<ContextualQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  const [questionsLoadingLong, setQuestionsLoadingLong] = useState(false);
+
+  // Affiche le lien de fallback si le chargement dépasse 15s
+  useEffect(() => {
+    if (!questionsLoading) {
+      setQuestionsLoadingLong(false);
+      return;
+    }
+    const t = setTimeout(() => setQuestionsLoadingLong(true), 15000);
+    return () => clearTimeout(t);
+  }, [questionsLoading]);
+
+  const scrollToGenerateButton = () => {
+    document.getElementById("generate-cv-button")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   // Vérification serveur au montage pour contenu payant existant
   useEffect(() => {
@@ -722,25 +737,24 @@ const ResultsPanel = ({
               <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} />
             ) : (
               <div className="space-y-6">
-                {/* Skeleton loader pendant le chargement des questions */}
+                {/* Indicateur de chargement (même style que la génération du rapport gratuit) */}
                 {questionsLoading && (
-                  <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-200 animate-pulse">
-                    <div className="h-5 bg-amber-200/50 rounded w-3/4 mb-3"></div>
-                    <div className="h-4 bg-amber-200/30 rounded w-1/2 mb-6"></div>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="h-4 bg-amber-200/50 rounded w-2/3 mb-2"></div>
-                        <div className="h-12 bg-amber-200/30 rounded"></div>
-                      </div>
-                      <div>
-                        <div className="h-4 bg-amber-200/50 rounded w-1/2 mb-2"></div>
-                        <div className="h-12 bg-amber-200/30 rounded"></div>
-                      </div>
-                      <div>
-                        <div className="h-4 bg-amber-200/50 rounded w-3/5 mb-2"></div>
-                        <div className="h-12 bg-amber-200/30 rounded"></div>
-                      </div>
-                    </div>
+                  <div className="p-8 rounded-2xl bg-amber-50/50 border border-amber-200 text-center space-y-4">
+                    <Loader2 className="w-10 h-10 mx-auto animate-spin text-primary" />
+                    <p className="text-primary font-medium text-sm">
+                      Personnalisation des questions en cours...
+                    </p>
+                    {questionsLoadingLong && (
+                      <p className="text-xs text-muted-foreground">
+                        <button
+                          type="button"
+                          onClick={scrollToGenerateButton}
+                          className="underline hover:text-primary transition-colors"
+                        >
+                          Vous pouvez générer le CV directement sans questions.
+                        </button>
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -791,7 +805,7 @@ const ResultsPanel = ({
 
                 {/* Bouton Générer CV - apparaît après chargement des questions */}
                 {!questionsLoading && (
-                  <button onClick={handleGenerateCV} disabled={loadingRewrite}
+                  <button id="generate-cv-button" onClick={handleGenerateCV} disabled={loadingRewrite}
                     className="w-full font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
                     style={{ padding: "1.2rem 2rem", fontSize: "1.1rem", borderRadius: "8px", background: "#1a365d" }}>
                     ✨ Générer mon CV optimisé
