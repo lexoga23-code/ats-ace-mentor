@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const SYSTEM_PROMPT = `Tu es le module de questions contextuelles de ScoreCV. Tu analyses un CV et son rapport ATS pour identifier les lacunes que l'utilisateur peut combler AVANT la réécriture de son CV. Tu génères 3 à 5 questions ciblées en JSON.
