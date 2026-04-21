@@ -1,4 +1,6 @@
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, convertInchesToTwip, BorderStyle } from "docx";
+import { parseCV, formatContact } from "./cv/parser";
+import type { CVData } from "./cv/types";
 
 const saveAs = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -9,70 +11,115 @@ const saveAs = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-// Parse CV text into structured sections
-const parseCV = (text: string) => {
-  const lines = text.split("\n").map(l => l.trim());
-  let name = "";
-  let contact = "";
+// Reconstruit les sections au format legacy depuis CVData
+const buildSectionsFromCVData = (data: CVData): { title: string; items: string[] }[] => {
   const sections: { title: string; items: string[] }[] = [];
-  let currentSection: { title: string; items: string[] } | null = null;
-  let lineIndex = 0;
 
-  for (const line of lines) {
-    if (!line) {
-      lineIndex++;
-      continue;
-    }
-
-    // First non-empty line = name (usually uppercase)
-    if (!name && lineIndex < 3 && line.length < 60 && !line.startsWith("•")) {
-      name = line;
-      lineIndex++;
-      continue;
-    }
-
-    // Contact line (contains @ or phone pattern)
-    if (!contact && (line.includes("@") || /\d{2}[\s.-]\d{2}/.test(line) || line.includes("|"))) {
-      contact = line;
-      lineIndex++;
-      continue;
-    }
-
-    // Section header (uppercase, or ends with :, reasonable length)
-    const isHeader = (
-      (line === line.toUpperCase() && line.length > 3 && line.length < 60 && !line.startsWith("•")) ||
-      (line.endsWith(":") && line.length < 50)
-    );
-
-    if (isHeader) {
-      if (currentSection) sections.push(currentSection);
-      currentSection = { title: line.replace(/:$/, ""), items: [] };
-      lineIndex++;
-      continue;
-    }
-
-    // Add to current section or create default
-    if (currentSection) {
-      currentSection.items.push(line);
-    } else if (!sections.length && line.length > 20) {
-      // Profile section (first long text before any header)
-      currentSection = { title: "PROFIL", items: [line] };
-    }
-    lineIndex++;
+  // Profil
+  if (data.profile) {
+    sections.push({
+      title: "PROFIL PROFESSIONNEL",
+      items: [data.profile]
+    });
   }
-  if (currentSection) sections.push(currentSection);
 
-  return { name, contact, sections };
+  // Compétences techniques
+  if (data.technicalSkills && data.technicalSkills.length > 0) {
+    sections.push({
+      title: "COMPÉTENCES",
+      items: data.technicalSkills.map(sk => `${sk.category} : ${sk.skills}`)
+    });
+  }
+
+  // Expériences
+  if (data.experiences.length > 0) {
+    const items: string[] = [];
+    for (const exp of data.experiences) {
+      // Header de l'expérience
+      const header = [exp.company, exp.location, `${exp.startDate} – ${exp.endDate}`]
+        .filter(Boolean)
+        .join(" | ");
+      items.push(header);
+
+      // Titre du poste
+      if (exp.jobTitle) {
+        items.push(exp.jobTitle);
+      }
+
+      // Bullets
+      for (const bullet of exp.bullets) {
+        items.push(`• ${bullet}`);
+      }
+    }
+    sections.push({
+      title: "EXPÉRIENCE PROFESSIONNELLE",
+      items
+    });
+  }
+
+  // Formation
+  if (data.education.length > 0) {
+    const items: string[] = [];
+    for (const edu of data.education) {
+      const line = [edu.degree, edu.school, edu.year]
+        .filter(Boolean)
+        .join(" — ");
+      items.push(line);
+      if (edu.description) {
+        items.push(edu.description);
+      }
+    }
+    sections.push({
+      title: "FORMATION",
+      items
+    });
+  }
+
+  // Certifications
+  if (data.certifications && data.certifications.length > 0) {
+    const items = data.certifications.map(cert => {
+      return [cert.name, cert.issuer, cert.year].filter(Boolean).join(" — ");
+    });
+    sections.push({
+      title: "CERTIFICATIONS",
+      items
+    });
+  }
+
+  // Langues
+  if (data.languages && data.languages.length > 0) {
+    const items = data.languages.map(lang => {
+      return lang.level ? `${lang.language} — ${lang.level}` : lang.language;
+    });
+    sections.push({
+      title: "LANGUES",
+      items
+    });
+  }
+
+  return sections;
 };
 
 export const exportCVToDocx = async (cvText: string) => {
-  const { name, contact, sections } = parseCV(cvText);
+  const cvData = parseCV(cvText);
+  const contact = formatContact(cvData.contact);
+  const sections = buildSectionsFromCVData(cvData);
+
   const paragraphs: Paragraph[] = [];
 
   // Name - large, bold, centered
-  if (name) {
+  if (cvData.name) {
     paragraphs.push(new Paragraph({
-      children: [new TextRun({ text: name, bold: true, size: 48, font: "Calibri" })],
+      children: [new TextRun({ text: cvData.name, bold: true, size: 48, font: "Calibri" })],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 100 },
+    }));
+  }
+
+  // Job Title - if present
+  if (cvData.jobTitle) {
+    paragraphs.push(new Paragraph({
+      children: [new TextRun({ text: cvData.jobTitle, bold: true, size: 28, font: "Calibri", color: "1a365d" })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 100 },
     }));
