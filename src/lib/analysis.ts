@@ -190,6 +190,7 @@ Vérifie :
 Le titre/accroche correspond-il au poste visé ?
 Les expériences récentes sont-elles pertinentes ?
 Alignement clair entre le profil et les exigences (objectif : 70%+)
+RÈGLE TITRE DU CV : un titre est correct s'il reprend exactement les mots-clés métier de l'offre. La seule modification acceptable est l'ajout d'un qualificatif d'expérience (Senior, Confirmé, Expert, Junior). Ne jamais signaler cela comme une erreur. En revanche, signaler comme erreur tout titre qui supprime, remplace ou reformule un mot-clé métier de l'offre.
 CRITÈRE 4 — Impact chiffré (0-8 pts)
 Vérifie :
 Résultats quantifiés (%, €, nombre de personnes, délais)
@@ -412,11 +413,9 @@ N'ajoute AUCUN chiffre absent du CV original — ne jamais inventer de statistiq
 DONNÉES DE CONTACT : si une information est absente (email, téléphone, adresse, ville), laisser le champ VIDE — ne jamais inventer ni compléter
 Cette règle est NON NÉGOCIABLE — une seule invention = échec total
 ---
-RÈGLE ABSOLUE N°2 — TITRE ET RECONVERSION
-Utiliser le titre EXACT de l'offre d'emploi comme titre principal du CV (jamais de synonyme)
-Ne JAMAIS écrire "en reconversion" dans le titre
-Pour les reconversions : "Titre du poste | Expertise [domaine transférable]"
-Ajouter un sous-titre valorisant les compétences transférables si le profil est en reconversion
+RÈGLE ABSOLUE N°2 — TITRE DU CV
+Le titre du CV doit être basé sur le titre exact de l'offre, mot pour mot. Tu peux uniquement ajouter un qualificatif d'expérience (Senior, Confirmé, Expert, Junior) si l'expérience du candidat le justifie clairement. Tu ne dois jamais supprimer, remplacer, reformuler ou réordonner les mots-clés métier de l'offre. Tu ne dois jamais inventer un titre différent. Le titre de l'offre est la référence absolue — seul un qualificatif d'expérience peut s'y ajouter, rien d'autre.
+Ne JAMAIS écrire "en reconversion" dans le titre. Pour les reconversions : utiliser le titre exact de l'offre suivi de "| Expertise [domaine transférable]"
 ---
 RÈGLE ABSOLUE N°3 — TEMPS VERBAL
 L'infinitif est la convention dominante du CV ${region === "CH" ? "suisse" : "français"}. Il est plus concis et plus universel (pas de problème de reconnaissance ATS avec les temps conjugués). Recommandé par Indeed France, Randstad, TopCV, APEC.
