@@ -39,7 +39,7 @@ export const generatePDF = async (html: string, filename: string): Promise<void>
     }
 
     // Créer un Blob à partir des données binaires
-    const blob = new Blob([data], { type: "application/pdf" });
+    const blob = new Blob([data as BlobPart], { type: "application/pdf" });
 
     // Créer un lien temporaire pour le téléchargement
     const url = URL.createObjectURL(blob);

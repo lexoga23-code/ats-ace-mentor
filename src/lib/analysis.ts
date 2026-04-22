@@ -938,8 +938,8 @@ FORMAT DE SORTIE OBLIGATOIRE — JSON uniquement, aucun texte avant ou après :
   const senderCity = cvData.contact.location || "";
 
   // Date formatée
-  const today = new Date();
-  const dateStr = today.toLocaleDateString(region === "CH" ? 'fr-CH' : 'fr-FR', {
+  const todayDate = new Date();
+  const dateStr = todayDate.toLocaleDateString(region === "CH" ? 'fr-CH' : 'fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
