@@ -77,3 +77,25 @@ export type Theme = {
   templateId: TemplateId;
   colorId: ColorPaletteId;
 };
+
+// Interface pour les lettres de motivation - format français
+export interface LetterData {
+  // Expéditeur (depuis profil utilisateur)
+  senderName: string;
+  senderPhone: string;
+  senderEmail: string;
+  senderCity: string;
+
+  // Destinataire (depuis l'offre — champs optionnels sauf recipientName)
+  recipientName: string;
+  recipientDept?: string;
+  recipientAddress?: string;
+  recipientCityZip?: string;
+
+  // Contenu généré par l'IA
+  date: string;           // ex: "Bordeaux, le 15 janvier 2025"
+  objet: string;
+  paragraphs: string[];  // toujours 4 éléments
+  politesse: string;
+  signatureName: string;
+}

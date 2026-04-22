@@ -1,4 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
+import { parseCV } from "./cv/parser";
+import { buildLetterHTML } from "./cv/letterHTML";
+import type { LetterData } from "./cv/types";
 
 export interface SectionScore {
   name: string;
@@ -902,8 +905,68 @@ CONTRAINTE DE LONGUEUR ABSOLUE : la lettre doit faire entre 200 et 280 mots dans
 ---
 CV du candidat : ${cvText.substring(0, 1500)}
 Offre d'emploi : ${offerDetails || "Non précisée"}
-Ne JAMAIS ajouter de commentaires, notes ou explications après la lettre.
-Ne JAMAIS proposer de variantes — fournir UNE seule lettre optimale, prête à envoyer.`;
 
-  return callAnthropic(prompt, 2000, 0.4);
+FORMAT DE SORTIE OBLIGATOIRE — JSON uniquement, aucun texte avant ou après :
+{
+  "objet": "Candidature au poste de [titre exact tel qu'il apparaît dans l'offre]",
+  "paragraphs": [
+    "Texte paragraphe 1 — accroche + VOUS (3-4 phrases)",
+    "Texte paragraphe 2 — MOI (4-5 phrases)",
+    "Texte paragraphe 3 — NOUS (2-3 phrases max)",
+    "Texte paragraphe 4 — conclusion + disponibilité (2-3 phrases)"
+  ],
+  "politesse": "Je vous prie d'agréer, Madame, Monsieur, l'expression de mes sincères salutations."
+}`;
+
+  const text = await callAnthropic(prompt, 2000, 0.4);
+
+  // Parser le JSON retourné par l'IA
+  const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
+  let parsed: { objet: string; paragraphs: string[]; politesse: string };
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err) {
+    console.error("[generateCoverLetter] JSON parsing error:", err, "Raw text:", text.substring(0, 200));
+    throw new Error("Erreur lors du parsing de la lettre générée");
+  }
+
+  // Parser le CV pour extraire les données expéditeur
+  const cvData = parseCV(cvText);
+  const senderName = cvData.name || "Prénom NOM";
+  const senderPhone = cvData.contact.phone || "";
+  const senderEmail = cvData.contact.email || "";
+  const senderCity = cvData.contact.location || "";
+
+  // Date formatée
+  const today = new Date();
+  const dateStr = today.toLocaleDateString(region === "CH" ? 'fr-CH' : 'fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  const cityForDate = senderCity || (region === "CH" ? "Lausanne" : "Paris");
+  const formattedDate = `${cityForDate}, le ${dateStr}`;
+
+  // Données destinataire (depuis l'offre)
+  // Pour l'instant, on utilise un placeholder car on n'a pas de parsing de l'offre
+  // L'utilisateur devra remplir ces champs manuellement ou via une future fonctionnalité
+  const recipientName = "À l'attention du Service Recrutement";
+
+  // Construire l'objet LetterData
+  const letterData: LetterData = {
+    senderName,
+    senderPhone,
+    senderEmail,
+    senderCity,
+    recipientName,
+    // recipientDept, recipientAddress, recipientCityZip restent undefined (optionnels)
+    date: formattedDate,
+    objet: parsed.objet,
+    paragraphs: parsed.paragraphs,
+    politesse: parsed.politesse,
+    signatureName: senderName,
+  };
+
+  // Générer et retourner le HTML
+  return buildLetterHTML(letterData);
 };
