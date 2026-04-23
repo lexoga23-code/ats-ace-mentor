@@ -100,8 +100,23 @@ const buildSectionsFromCVData = (data: CVData): { title: string; items: string[]
   return sections;
 };
 
-export const exportCVToDocx = async (cvText: string) => {
-  const cvData = parseCV(cvText);
+/**
+ * Exporte un CV en format DOCX
+ * @param cvTextOrData - Soit le texte brut du CV (string), soit les données CVData directement
+ * @param cvDataOverride - Si cvTextOrData est un string, on peut passer un CVData pour l'utiliser à la place du parsing
+ */
+export const exportCVToDocx = async (cvTextOrData: string | CVData, cvDataOverride?: CVData) => {
+  // Déterminer les données CV à utiliser
+  let cvData: CVData;
+  if (typeof cvTextOrData === "string") {
+    // Mode rétrocompatible : cvTextOrData est le texte brut
+    // Utiliser cvDataOverride si fourni, sinon parser le texte
+    cvData = cvDataOverride ?? parseCV(cvTextOrData);
+  } else {
+    // Nouveau mode : cvTextOrData est directement un CVData
+    cvData = cvTextOrData;
+  }
+
   const contact = formatContact(cvData.contact);
   const sections = buildSectionsFromCVData(cvData);
 
@@ -187,7 +202,10 @@ export const exportCVToDocx = async (cvText: string) => {
   });
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, "CV_ScoreCV.docx");
+  const filename = cvData.name
+    ? `CV_${cvData.name.replace(/[^a-zA-Z0-9À-ÿ]/g, "_")}.docx`
+    : "CV_ScoreCV.docx";
+  saveAs(blob, filename);
 };
 
 export const exportLetterToDocx = async (letterText: string) => {

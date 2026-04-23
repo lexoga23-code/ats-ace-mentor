@@ -734,7 +734,7 @@ const ResultsPanel = ({
                 <span className="font-bold">✨ Génération de votre CV optimisé en cours…</span>
               </div>
             ) : rewrittenCV ? (
-              <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} />
+              <CVPreview cvText={rewrittenCV} onChange={(text) => { setRewrittenCV(text); onRewrittenCVChange?.(text); }} analysisId={analysisId} />
             ) : (
               <div className="space-y-6">
                 {/* Indicateur de chargement (même style que la génération du rapport gratuit) */}
