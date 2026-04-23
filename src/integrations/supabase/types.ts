@@ -166,6 +166,7 @@ export type Database = {
           cover_letter: string | null
           created_at: string
           cv_text: string
+          edited_cv_data: Json | null
           id: string
           industry: string | null
           is_paid: boolean
@@ -181,6 +182,7 @@ export type Database = {
           cover_letter?: string | null
           created_at?: string
           cv_text: string
+          edited_cv_data?: Json | null
           id?: string
           industry?: string | null
           is_paid?: boolean
@@ -196,6 +198,7 @@ export type Database = {
           cover_letter?: string | null
           created_at?: string
           cv_text?: string
+          edited_cv_data?: Json | null
           id?: string
           industry?: string | null
           is_paid?: boolean
