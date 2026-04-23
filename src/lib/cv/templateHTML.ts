@@ -19,23 +19,27 @@ const escapeHtml = (str: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
+// Génère les attributs contenteditable + data-field si editable=true
+const editableAttrs = (field: string, editable: boolean): string =>
+  editable ? ` contenteditable="true" data-field="${field}"` : '';
+
 // Génère le header du CV (différent pour le template moderne)
-const renderHeader = (data: CVData, templateId: TemplateId): string => {
+const renderHeader = (data: CVData, templateId: TemplateId, editable: boolean): string => {
   const contact = `
     <p class="contact">
-      ${data.contact.phone ? `<span>${escapeHtml(data.contact.phone)}</span>` : ''}
+      ${data.contact.phone ? `<span${editableAttrs('contact.phone', editable)}>${escapeHtml(data.contact.phone)}</span>` : ''}
       ${data.contact.phone && data.contact.email ? '<span class="sep">|</span>' : ''}
-      ${data.contact.email ? `<span>${escapeHtml(data.contact.email)}</span>` : ''}
+      ${data.contact.email ? `<span${editableAttrs('contact.email', editable)}>${escapeHtml(data.contact.email)}</span>` : ''}
       ${(data.contact.phone || data.contact.email) && data.contact.linkedin ? '<span class="sep">|</span>' : ''}
-      ${data.contact.linkedin ? `<span>${escapeHtml(data.contact.linkedin)}</span>` : ''}
+      ${data.contact.linkedin ? `<span${editableAttrs('contact.linkedin', editable)}>${escapeHtml(data.contact.linkedin)}</span>` : ''}
       ${(data.contact.phone || data.contact.email || data.contact.linkedin) && data.contact.location ? '<span class="sep">|</span>' : ''}
-      ${data.contact.location ? `<span>${escapeHtml(data.contact.location)}</span>` : ''}
+      ${data.contact.location ? `<span${editableAttrs('contact.location', editable)}>${escapeHtml(data.contact.location)}</span>` : ''}
     </p>
   `;
 
   const headerContent = `
-    <h1>${escapeHtml(data.name)}</h1>
-    ${data.jobTitle ? `<p class="job-title-header">${escapeHtml(data.jobTitle)}</p>` : ''}
+    <h1${editableAttrs('name', editable)}>${escapeHtml(data.name)}</h1>
+    ${data.jobTitle ? `<p class="job-title-header"${editableAttrs('jobTitle', editable)}>${escapeHtml(data.jobTitle)}</p>` : ''}
     <div class="header-gradient"></div>
     ${contact}
   `;
@@ -166,12 +170,14 @@ a { color: inherit; text-decoration: none; white-space: nowrap; }
  * @param data - Les données du CV parsées
  * @param templateId - L'identifiant du template
  * @param colorId - L'identifiant de la palette de couleurs
+ * @param editable - Si true, ajoute contenteditable + data-field pour édition inline
  * @returns HTML complet avec DOCTYPE, styles inline, prêt pour preview ou PDF
  */
 export const buildHTML = (
   data: CVData,
   templateId: TemplateId,
-  colorId: ColorPaletteId
+  colorId: ColorPaletteId,
+  editable: boolean = false
 ): string => {
   const palette = COLORS[colorId];
   const themeCSS = THEMES[templateId];
@@ -208,17 +214,34 @@ ${getBaseCSS()}
 
 /* === THÈME ACTIF === */
 ${themeCSS}
+
+${editable ? `
+/* === ÉDITION INLINE === */
+[contenteditable]:hover {
+  outline: 2px dashed #94a3b8;
+  border-radius: 3px;
+  cursor: text;
+}
+[contenteditable]:focus {
+  outline: 2px solid #3b82f6;
+  border-radius: 3px;
+  background: rgba(59,130,246,0.04);
+}
+@media print {
+  [contenteditable] { outline: none !important; background: none !important; }
+}
+` : ''}
 </style>
 </head>
 <body>
 <article class="cv-root cv-${templateId}">
 
-  ${renderHeader(data, templateId)}
+  ${renderHeader(data, templateId, editable)}
 
   ${data.profile ? `
   <div class="section avoid-break">
     <div class="section-title">Profil professionnel</div>
-    <p class="summary-text">${escapeHtml(data.profile)}</p>
+    <p class="summary-text"${editableAttrs('profile', editable)}>${escapeHtml(data.profile)}</p>
   </div>
   ` : ''}
 
@@ -234,14 +257,14 @@ ${themeCSS}
   ${data.experiences.length > 0 ? `
   <div class="section">
     <div class="section-title">Expérience professionnelle</div>
-    ${data.experiences.map(exp => `
+    ${data.experiences.map((exp, i) => `
       <div class="job avoid-break">
         <div class="job-header">
-          <span class="job-company">${escapeHtml(exp.company)}${exp.location ? ` — ${escapeHtml(exp.location)}` : ''}</span>
-          <span class="job-period">${escapeHtml(exp.startDate)} – ${escapeHtml(exp.endDate)}</span>
+          <span class="job-company"><span${editableAttrs(`experiences.${i}.company`, editable)}>${escapeHtml(exp.company)}</span>${exp.location ? ` — <span${editableAttrs(`experiences.${i}.location`, editable)}>${escapeHtml(exp.location)}</span>` : ''}</span>
+          <span class="job-period"><span${editableAttrs(`experiences.${i}.startDate`, editable)}>${escapeHtml(exp.startDate)}</span> – <span${editableAttrs(`experiences.${i}.endDate`, editable)}>${escapeHtml(exp.endDate)}</span></span>
         </div>
-        ${exp.jobTitle ? `<p class="job-role">${escapeHtml(exp.jobTitle)}</p>` : ''}
-        ${exp.bullets.length > 0 ? `<ul>${exp.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>` : ''}
+        ${exp.jobTitle ? `<p class="job-role"${editableAttrs(`experiences.${i}.jobTitle`, editable)}>${escapeHtml(exp.jobTitle)}</p>` : ''}
+        ${exp.bullets.length > 0 ? `<ul>${exp.bullets.map((b, j) => `<li${editableAttrs(`experiences.${i}.bullets.${j}`, editable)}>${escapeHtml(b)}</li>`).join('')}</ul>` : ''}
       </div>
     `).join('')}
   </div>
@@ -250,13 +273,13 @@ ${themeCSS}
   ${data.education.length > 0 ? `
   <div class="section avoid-break">
     <div class="section-title">Formation</div>
-    ${data.education.map(edu => `
+    ${data.education.map((edu, i) => `
       <div class="edu-item">
         <div class="edu-header">
-          <span class="edu-title">${escapeHtml(edu.degree)}${edu.school ? ` — <span class="edu-org">${escapeHtml(edu.school)}</span>` : ''}</span>
-          ${edu.year ? `<span class="edu-year">${escapeHtml(edu.year)}</span>` : ''}
+          <span class="edu-title"><span${editableAttrs(`education.${i}.degree`, editable)}>${escapeHtml(edu.degree)}</span>${edu.school ? ` — <span class="edu-org"${editableAttrs(`education.${i}.school`, editable)}>${escapeHtml(edu.school)}</span>` : ''}</span>
+          ${edu.year ? `<span class="edu-year"${editableAttrs(`education.${i}.year`, editable)}>${escapeHtml(edu.year)}</span>` : ''}
         </div>
-        ${edu.description ? `<p class="edu-desc">${escapeHtml(edu.description)}</p>` : ''}
+        ${edu.description ? `<p class="edu-desc"${editableAttrs(`education.${i}.description`, editable)}>${escapeHtml(edu.description)}</p>` : ''}
       </div>
     `).join('')}
   </div>
@@ -279,8 +302,8 @@ ${themeCSS}
   ${data.technicalSkills && data.technicalSkills.length > 0 ? `
   <div class="section avoid-break skills-section">
     <div class="section-title">Compétences techniques</div>
-    ${data.technicalSkills.map(sk => `
-      <p><strong>${escapeHtml(sk.category)} :</strong> ${escapeHtml(sk.skills)}</p>
+    ${data.technicalSkills.map((sk, i) => `
+      <p><strong><span${editableAttrs(`technicalSkills.${i}.category`, editable)}>${escapeHtml(sk.category)}</span> :</strong> <span${editableAttrs(`technicalSkills.${i}.skills`, editable)}>${escapeHtml(sk.skills)}</span></p>
     `).join('')}
   </div>
   ` : ''}
@@ -288,11 +311,24 @@ ${themeCSS}
   ${data.languages && data.languages.length > 0 ? `
   <div class="section avoid-break">
     <div class="section-title">Langues</div>
-    <p class="languages">${data.languages.map(l => `${escapeHtml(l.language)}${l.level ? ` — ${escapeHtml(l.level)}` : ''}`).join(' &nbsp;•&nbsp; ')}</p>
+    <p class="languages">${data.languages.map((l, i) => `<span${editableAttrs(`languages.${i}.language`, editable)}>${escapeHtml(l.language)}</span>${l.level ? ` — <span${editableAttrs(`languages.${i}.level`, editable)}>${escapeHtml(l.level)}</span>` : ''}`).join(' &nbsp;•&nbsp; ')}</p>
   </div>
   ` : ''}
 
 </article>
+${editable ? `
+<script>
+document.querySelectorAll('[contenteditable]').forEach(el => {
+  el.addEventListener('input', () => {
+    window.parent.postMessage({
+      type: 'cv-edit',
+      field: el.dataset.field,
+      value: el.innerText.trim()
+    }, window.location.origin);
+  });
+});
+</script>
+` : ''}
 </body>
 </html>`;
 };
