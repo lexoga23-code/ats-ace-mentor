@@ -111,8 +111,9 @@ const CVTemplate = ({
     if (!isEditable || !onCvDataChange) return;
 
     const handleMessage = (event: MessageEvent) => {
-      // Vérifier que le message vient de notre origin
-      if (event.origin !== window.location.origin) return;
+      // Vérifier que le message vient de notre origin ou d'un iframe srcDoc ("null")
+      const validOrigins = ["null", window.location.origin];
+      if (!validOrigins.includes(event.origin)) return;
 
       // Vérifier que le message est de type cv-edit
       if (event.data?.type !== "cv-edit") return;
