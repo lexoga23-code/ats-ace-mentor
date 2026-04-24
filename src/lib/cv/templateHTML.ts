@@ -324,7 +324,7 @@ document.querySelectorAll('[contenteditable]').forEach(el => {
       type: 'cv-edit',
       field: el.dataset.field,
       value: el.innerText.trim()
-    }, window.location.origin);
+    }, '*');
   });
 });
 </script>
