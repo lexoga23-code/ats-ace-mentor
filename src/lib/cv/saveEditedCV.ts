@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { CVData } from "./types";
 
 /**
@@ -19,7 +20,7 @@ export const saveEditedCvData = async (
   try {
     const { error } = await supabase
       .from("user_analyses")
-      .update({ edited_cv_data: cvData as unknown as Record<string, unknown> })
+      .update({ edited_cv_data: cvData as unknown as Json })
       .eq("id", analysisId);
 
     if (error) {
