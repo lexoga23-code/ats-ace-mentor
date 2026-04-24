@@ -6,7 +6,7 @@
  * Hauteur auto-ajustée au contenu après chargement.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Download, FileText } from "lucide-react";
 import type { CVData, TemplateId, ColorPaletteId } from "@/lib/cv/types";
 import { buildHTML } from "@/lib/cv/templateHTML";
@@ -82,8 +82,22 @@ const CVTemplate = ({
   // Hauteur initiale = A4 à 96dpi (297mm ≈ 1123px)
   const [iframeHeight, setIframeHeight] = useState(1123);
 
+  // Snapshot du cvData pour éviter de reconstruire l'iframe pendant l'édition
+  const snapshotRef = useRef<CVData>(cvData);
+
+  // Mettre à jour le snapshot seulement quand on n'est PAS en mode édition
+  useEffect(() => {
+    if (!isEditable) {
+      snapshotRef.current = cvData;
+    }
+  }, [cvData, isEditable]);
+
+  // Pendant l'édition, utiliser le snapshot (figé) pour éviter les re-renders
+  // Hors édition, utiliser cvData actuel
+  const htmlCvData = isEditable ? snapshotRef.current : cvData;
+
   // Générer le HTML du CV (avec édition si isEditable)
-  const html = buildHTML(cvData, templateId, colorId, isEditable);
+  const html = buildHTML(htmlCvData, templateId, colorId, isEditable);
 
   // Ajuster la hauteur après chargement du contenu
   const handleIframeLoad = useCallback(
