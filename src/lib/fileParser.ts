@@ -5,17 +5,67 @@ declare global {
   }
 }
 
+type PdfTextItem = {
+  str?: string;
+  transform?: number[];
+  hasEOL?: boolean;
+};
+
+const normalizeExtractedLine = (line: string): string =>
+  line.replace(/\s+/g, " ").trim();
+
 export const extractPdf = async (file: File): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
   const typedarray = new Uint8Array(arrayBuffer);
   const pdf = await window.pdfjsLib.getDocument(typedarray).promise;
-  let fullText = "";
+
+  const pages: string[] = [];
+
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    fullText += content.items.map((item: any) => item.str).join(" ");
+
+    const lines: string[] = [];
+    let currentLine: string[] = [];
+    let lastY: number | null = null;
+
+    for (const rawItem of content.items as PdfTextItem[]) {
+      const text = normalizeExtractedLine(rawItem?.str ?? "");
+      if (!text) continue;
+
+      const y = Array.isArray(rawItem.transform) && typeof rawItem.transform[5] === "number"
+        ? rawItem.transform[5]
+        : null;
+
+      const yBreak = y !== null && lastY !== null && Math.abs(y - lastY) > 2.5;
+      if (yBreak && currentLine.length > 0) {
+        lines.push(normalizeExtractedLine(currentLine.join(" ")));
+        currentLine = [];
+      }
+
+      currentLine.push(text);
+      if (y !== null) {
+        lastY = y;
+      }
+
+      if (rawItem.hasEOL) {
+        lines.push(normalizeExtractedLine(currentLine.join(" ")));
+        currentLine = [];
+        lastY = null;
+      }
+    }
+
+    if (currentLine.length > 0) {
+      lines.push(normalizeExtractedLine(currentLine.join(" ")));
+    }
+
+    const pageText = lines.filter(Boolean).join("\n").trim();
+    if (pageText) {
+      pages.push(pageText);
+    }
   }
-  return fullText;
+
+  return pages.join("\n\n").trim();
 };
 
 export const extractDocx = async (file: File): Promise<string> => {

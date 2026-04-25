@@ -67,15 +67,17 @@ body {
 
 /* === EN-TÊTE === */
 .header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: flex-start;
+  column-gap: 12mm;
   margin-bottom: ${LETTER_LAYOUT.headerGapMm}mm;
 }
 
 /* Expéditeur - gauche */
 .sender-block {
   text-align: left;
+  max-width: 90mm;
 }
 
 .sender-name {
@@ -97,28 +99,28 @@ body {
 
 /* Destinataire + Date - droite */
 .right-block {
+  justify-self: end;
+  width: ${LETTER_LAYOUT.header.rightBlockWidthMm}mm;
   text-align: right;
-  margin-top: 28px;
+  margin-top: ${LETTER_LAYOUT.header.recipientTopOffsetMm}mm;
 }
 
 .recipient-block {
-  text-align: left;
-  display: inline-block;
-  text-align: left;
   font-size: 10pt;
   color: #1a1a1a;
-  line-height: 1.4;
-  margin-bottom: 16px;
+  line-height: 1.45;
+  margin-bottom: 12px;
 }
 
 .recipient-block p {
-  margin: 0;
+  margin: 0 0 2px 0;
 }
 
 .date {
   font-size: 10pt;
   color: #1a1a1a;
-  margin-top: 16px;
+  margin-top: 10px;
+  text-align: right;
 }
 
 /* === OBJET === */

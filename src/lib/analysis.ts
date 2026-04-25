@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseCV } from "./cv/parser";
 import { buildLetterHTML } from "./cv/letterHTML";
+import { extractCityFromLine, parseRecipientDetails, sanitizeSenderAddress } from "./cv/coverLetterMetadata";
 import type { LetterData } from "./cv/types";
 
 export interface SectionScore {
@@ -686,7 +687,7 @@ Compter les mots AVANT de finaliser — c'est obligatoire.
 MISE EN PAGE :
 Coordonnées candidat en haut à gauche (prénom, nom, adresse si disponible, téléphone, email)
 Coordonnées entreprise en haut à droite (nom de l'entreprise — si l'adresse est inconnue, laisser la ligne vide sans placeholder)
-Lieu et date à droite : « ${region === "CH" ? "Lausanne" : "Paris"}, le ${today} »
+Lieu et date à droite : « [Ville de l'expéditeur], le ${today} » (si ville inconnue : « Le ${today} »)
 Objet : une ligne, précis → « Objet : Candidature au poste de ${job} »
 Salutation d'ouverture
 3 paragraphes courts (4-6 phrases chacun max)
@@ -935,7 +936,8 @@ FORMAT DE SORTIE OBLIGATOIRE — JSON uniquement, aucun texte avant ou après :
   const senderName = cvData.name || "Prénom NOM";
   const senderPhone = cvData.contact.phone || "";
   const senderEmail = cvData.contact.email || "";
-  const senderCity = cvData.contact.location || "";
+  const senderAddress = sanitizeSenderAddress(cvData.contact.location || "");
+  const senderCityForDate = extractCityFromLine(senderAddress);
 
   // Date formatée
   const todayDate = new Date();
@@ -944,22 +946,22 @@ FORMAT DE SORTIE OBLIGATOIRE — JSON uniquement, aucun texte avant ou après :
     month: 'long',
     year: 'numeric'
   });
-  const cityForDate = senderCity || (region === "CH" ? "Lausanne" : "Paris");
-  const formattedDate = `${cityForDate}, le ${dateStr}`;
+  const formattedDate = senderCityForDate
+    ? `${senderCityForDate}, le ${dateStr}`
+    : `Le ${dateStr}`;
 
-  // Données destinataire (depuis l'offre)
-  // Pour l'instant, on utilise un placeholder car on n'a pas de parsing de l'offre
-  // L'utilisateur devra remplir ces champs manuellement ou via une future fonctionnalité
-  const recipientName = "À l'attention du Service Recrutement";
+  const recipientDetails = parseRecipientDetails(offerDetails);
 
   // Construire l'objet LetterData
   const letterData: LetterData = {
     senderName,
     senderPhone,
     senderEmail,
-    senderCity,
-    recipientName,
-    // recipientDept, recipientAddress, recipientCityZip restent undefined (optionnels)
+    senderCity: senderAddress,
+    recipientName: recipientDetails.recipientName,
+    recipientDept: recipientDetails.recipientDept,
+    recipientAddress: recipientDetails.recipientAddress,
+    recipientCityZip: recipientDetails.recipientCityZip,
     date: formattedDate,
     objet: parsed.objet,
     paragraphs: parsed.paragraphs,

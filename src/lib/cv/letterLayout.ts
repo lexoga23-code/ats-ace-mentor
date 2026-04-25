@@ -5,6 +5,10 @@ export const LETTER_LAYOUT = {
     bottomMm: 16,
     leftMm: 22,
   },
+  header: {
+    recipientTopOffsetMm: 18,
+    rightBlockWidthMm: 82,
+  },
   fontFamily: "Arial, sans-serif",
   docxFont: "Arial",
   bodyFontPt: 11,

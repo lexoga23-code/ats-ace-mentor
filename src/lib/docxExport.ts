@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, convertInchesToTwip, BorderStyle, Table, TableCell, TableRow, WidthType } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, convertInchesToTwip, BorderStyle, Table, TableCell, TableRow, WidthType, TableLayoutType, VerticalAlign } from "docx";
 import { parseCV, formatContact } from "./cv/parser";
 import type { CVData, LetterData } from "./cv/types";
 import { LETTER_LAYOUT } from "./cv/letterLayout";
@@ -366,6 +366,11 @@ const normalizeLetterInput = (letter: LetterData | string): LetterData => {
 
 export const createLetterDocxDocument = (letter: LetterData | string): Document => {
   const letterData = normalizeLetterInput(letter);
+  const pageWidthTwip = convertInchesToTwip(8.27);
+  const contentWidthTwip = pageWidthTwip - mmToTwip(LETTER_LAYOUT.page.leftMm + LETTER_LAYOUT.page.rightMm);
+  const rightColumnTwip = Math.min(mmToTwip(LETTER_LAYOUT.header.rightBlockWidthMm), Math.round(contentWidthTwip * 0.48));
+  const leftColumnTwip = contentWidthTwip - rightColumnTwip;
+
   const recipientLines = [
     cleanText(letterData.recipientName),
     cleanText(letterData.recipientDept),
@@ -386,22 +391,35 @@ export const createLetterDocxDocument = (letter: LetterData | string): Document 
   ];
 
   const recipientParagraphs = [
-    ...recipientLines.map(line => createTextParagraph(line, { sizePt: LETTER_LAYOUT.smallFontPt, after: 20 })),
-    createTextParagraph(cleanText(letterData.date), { sizePt: LETTER_LAYOUT.smallFontPt, before: 200, after: 0 }),
+    new Paragraph({ children: [], spacing: { before: mmToTwip(LETTER_LAYOUT.header.recipientTopOffsetMm), after: 0 } }),
+    ...recipientLines.map((line) => createTextParagraph(line, {
+      sizePt: LETTER_LAYOUT.smallFontPt,
+      after: 20,
+      alignment: AlignmentType.RIGHT,
+    })),
+    createTextParagraph(cleanText(letterData.date), {
+      sizePt: LETTER_LAYOUT.smallFontPt,
+      before: 200,
+      after: 0,
+      alignment: AlignmentType.RIGHT,
+    }),
   ];
 
   const header = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    width: { size: contentWidthTwip, type: WidthType.DXA },
     borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
     rows: [new TableRow({
       children: [
         new TableCell({
-          width: { size: 50, type: WidthType.PERCENTAGE },
+          width: { size: leftColumnTwip, type: WidthType.DXA },
+          verticalAlign: VerticalAlign.TOP,
           borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder },
           children: senderParagraphs,
         }),
         new TableCell({
-          width: { size: 50, type: WidthType.PERCENTAGE },
+          width: { size: rightColumnTwip, type: WidthType.DXA },
+          verticalAlign: VerticalAlign.TOP,
           borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder },
           children: recipientParagraphs,
         }),
