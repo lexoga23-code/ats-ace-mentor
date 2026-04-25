@@ -35,6 +35,7 @@ const createTextParagraph = (
     alignment?: AlignmentType;
     before?: number;
     after?: number;
+    lineTwip?: number;
     justified?: boolean;
   } = {}
 ): Paragraph => new Paragraph({
@@ -49,7 +50,7 @@ const createTextParagraph = (
   spacing: {
     before: options.before ?? 0,
     after: options.after ?? 120,
-    line: 360,
+    line: options.lineTwip ?? LETTER_LAYOUT.bodyLineTwip,
   },
 });
 
@@ -383,11 +384,16 @@ export const createLetterDocxDocument = (letter: LetterData | string): Document 
       bold: true,
       sizePt: LETTER_LAYOUT.senderNameFontPt,
       after: 80,
+      lineTwip: LETTER_LAYOUT.compactLineTwip,
     }),
     ...[letterData.senderPhone, letterData.senderEmail, letterData.senderCity]
       .map(cleanText)
       .filter(Boolean)
-      .map(line => createTextParagraph(line, { sizePt: LETTER_LAYOUT.smallFontPt, after: 20 })),
+      .map(line => createTextParagraph(line, {
+        sizePt: LETTER_LAYOUT.smallFontPt,
+        after: 20,
+        lineTwip: LETTER_LAYOUT.compactLineTwip,
+      })),
   ];
 
   const recipientParagraphs = [
@@ -396,12 +402,14 @@ export const createLetterDocxDocument = (letter: LetterData | string): Document 
       sizePt: LETTER_LAYOUT.smallFontPt,
       after: 20,
       alignment: AlignmentType.RIGHT,
+      lineTwip: LETTER_LAYOUT.compactLineTwip,
     })),
     createTextParagraph(cleanText(letterData.date), {
       sizePt: LETTER_LAYOUT.smallFontPt,
-      before: 200,
+      before: 80,
       after: 0,
       alignment: AlignmentType.RIGHT,
+      lineTwip: LETTER_LAYOUT.compactLineTwip,
     }),
   ];
 
@@ -434,13 +442,13 @@ export const createLetterDocxDocument = (letter: LetterData | string): Document 
         new TextRun({ text: "Objet : ", bold: true, underline: {}, size: ptToHalfPoints(LETTER_LAYOUT.bodyFontPt), font: LETTER_LAYOUT.docxFont }),
         new TextRun({ text: cleanText(letterData.objet), bold: true, underline: {}, size: ptToHalfPoints(LETTER_LAYOUT.bodyFontPt), font: LETTER_LAYOUT.docxFont }),
       ],
-      spacing: { after: 240 },
+      spacing: { after: 180, line: LETTER_LAYOUT.bodyLineTwip },
     }),
-    createTextParagraph("Madame, Monsieur,", { after: 220 }),
+    createTextParagraph("Madame, Monsieur,", { after: LETTER_LAYOUT.bodyStartGapTwip }),
     ...letterData.paragraphs
       .map(cleanText)
       .filter(Boolean)
-      .map(paragraph => createTextParagraph(paragraph, { justified: true, after: 180 })),
+      .map(paragraph => createTextParagraph(paragraph, { justified: true, after: 180, lineTwip: LETTER_LAYOUT.bodyLineTwip })),
     createTextParagraph(cleanText(letterData.politesse), { before: 120, after: 320 }),
     createTextParagraph(cleanText(letterData.signatureName), { bold: true, after: 0 }),
   ];

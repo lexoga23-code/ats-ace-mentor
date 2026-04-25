@@ -1,10 +1,12 @@
-export const RECIPIENT_FALLBACK = "À l'attention du Service Recrutement";
+export const RECIPIENT_FALLBACK = "\u00C0 l'attention du Service Recrutement";
 
-const COMPANY_TOKEN_REGEX = /\b(entreprise|societe|société|groupe|clinique|chu|hopital|hôpital|cabinet|association|sas|sarl|sa)\b/i;
-const STREET_TOKEN_REGEX = /\b(rue|avenue|av\.?|boulevard|bd\.?|chemin|route|impasse|allee|allée|place|quai|cours)\b/i;
+const COMPANY_TOKEN_REGEX = /\b(entreprise|societe|societe|groupe|clinique|chu|hopital|cabinet|association|sas|sarl|sa)\b/i;
+const STREET_TOKEN_REGEX = /\b(rue|avenue|av\.?|boulevard|bd\.?|chemin|route|impasse|allee|place|quai|cours)\b/i;
 const POSTAL_CITY_REGEX = /\b\d{4,5}\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,}\b/;
 const CONTACT_TOKEN_REGEX = /\b(madame|monsieur|mme|m\.|contact|attention)\b/i;
-const NOISY_JOB_WORDS_REGEX = /\b(poste|mission|profil|experience|expérience|competence|compétence|salaire|contrat|cdi|cdd)\b/i;
+const NOISY_JOB_WORDS_REGEX = /\b(poste|mission|profil|experience|competence|salaire|contrat|cdi|cdd)\b/i;
+const OFFER_NOISE_REGEX = /(offre d['’]?emploi|jobup|indeed|linkedin|hellowork|welcome to the jungle|welcometothejungle|monster|apec)/i;
+const PUBLICATION_DATE_REGEX = /^\d{1,2}\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\s+\d{4}$/i;
 
 const cleanLine = (value: string): string => value.replace(/\s+/g, " ").trim();
 
@@ -18,6 +20,17 @@ const unique = (items: string[]): string[] => {
   });
 };
 
+const isNoiseLine = (line: string): boolean => {
+  if (!line) return true;
+  if (/^https?:\/\//i.test(line)) return true;
+  if (/@/.test(line)) return true;
+  if (line.length > 140) return true;
+  if (PUBLICATION_DATE_REGEX.test(line)) return true;
+  if (/^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(line)) return true;
+  if (OFFER_NOISE_REGEX.test(line)) return true;
+  return false;
+};
+
 const splitOfferLines = (offerDetails: string): string[] => {
   const rawLines = offerDetails
     .split(/\r?\n/)
@@ -25,17 +38,34 @@ const splitOfferLines = (offerDetails: string): string[] => {
     .map(cleanLine)
     .filter(Boolean);
 
-  return unique(
-    rawLines.filter((line) =>
-      line.length <= 140 &&
-      !/^https?:\/\//i.test(line) &&
-      !/@/.test(line)
-    )
-  );
+  return unique(rawLines.filter((line) => !isNoiseLine(line)));
 };
 
 const isLikelyAddressLine = (line: string): boolean =>
   STREET_TOKEN_REGEX.test(line) || /^\d{1,4}[,\s-]/.test(line) || POSTAL_CITY_REGEX.test(line);
+
+const extractCompanyFromOfferTitle = (offerDetails?: string): string | undefined => {
+  if (!offerDetails) return undefined;
+  const cleaned = offerDetails.replace(/\s+/g, " ");
+
+  const offerMatch = cleaned.match(/offre d['’]?emploi\s+(?:chez|de)\s+([^|\n-]{2,100})/i);
+  if (offerMatch?.[1]) {
+    const company = cleanLine(offerMatch[1]);
+    if (company && !OFFER_NOISE_REGEX.test(company) && !NOISY_JOB_WORDS_REGEX.test(company)) {
+      return company;
+    }
+  }
+
+  const chezMatch = cleaned.match(/\bchez\s+([^|\n-]{2,100})/i);
+  if (chezMatch?.[1]) {
+    const company = cleanLine(chezMatch[1]);
+    if (company && !OFFER_NOISE_REGEX.test(company) && !NOISY_JOB_WORDS_REGEX.test(company)) {
+      return company;
+    }
+  }
+
+  return undefined;
+};
 
 export const extractCityFromLine = (line: string): string => {
   const cleaned = cleanLine(line);
@@ -85,7 +115,8 @@ export const parseRecipientDetails = (offerDetails?: string): ParsedRecipientDet
   }
 
   const lines = splitOfferLines(offerDetails);
-  if (lines.length === 0) {
+  const companyFromTitle = extractCompanyFromOfferTitle(offerDetails);
+  if (lines.length === 0 && !companyFromTitle) {
     return { recipientName: RECIPIENT_FALLBACK };
   }
 
@@ -94,6 +125,10 @@ export const parseRecipientDetails = (offerDetails?: string): ParsedRecipientDet
   let companyLine = lines.find((line) =>
     COMPANY_TOKEN_REGEX.test(line) && !NOISY_JOB_WORDS_REGEX.test(line)
   );
+
+  if (!companyLine && companyFromTitle) {
+    companyLine = companyFromTitle;
+  }
 
   const cityLine = lines.find((line) => POSTAL_CITY_REGEX.test(line));
   let addressLine = lines.find((line) => isLikelyAddressLine(line) && line !== cityLine);
@@ -115,6 +150,8 @@ export const parseRecipientDetails = (offerDetails?: string): ParsedRecipientDet
       !CONTACT_TOKEN_REGEX.test(line) &&
       !NOISY_JOB_WORDS_REGEX.test(line) &&
       !isLikelyAddressLine(line) &&
+      !PUBLICATION_DATE_REGEX.test(line) &&
+      !OFFER_NOISE_REGEX.test(line) &&
       line.length <= 80
     );
   }

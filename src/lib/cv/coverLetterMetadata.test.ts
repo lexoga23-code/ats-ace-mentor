@@ -13,7 +13,7 @@ describe("coverLetterMetadata", () => {
   });
 
   it("drops sender location when it looks like a company name", () => {
-    expect(sanitizeSenderAddress("Groupe Textile Rhône, Lyon")).toBe("");
+    expect(sanitizeSenderAddress("Groupe Textile Rhone, Lyon")).toBe("");
     expect(sanitizeSenderAddress("18 avenue de la Gare, 69002 Lyon")).toBe("18 avenue de la Gare, 69002 Lyon");
   });
 
@@ -22,7 +22,7 @@ describe("coverLetterMetadata", () => {
     expect(parseRecipientDetails("")).toEqual({ recipientName: RECIPIENT_FALLBACK });
   });
 
-  it("extracts recipient contact and company address from offer text", () => {
+  it("extracts recipient contact and company address from structured offer text", () => {
     const offer = [
       "Madame Martin",
       "Entreprise Durand SAS",
@@ -36,6 +36,20 @@ describe("coverLetterMetadata", () => {
       recipientDept: "Entreprise Durand SAS",
       recipientAddress: "12 rue des Lilas",
       recipientCityZip: "75011 Paris",
+    });
+  });
+
+  it("filters job-board title and publication date while keeping company name", () => {
+    const offer = [
+      "Infirmier(ere) - Offre d'emploi chez Ficoba SA - jobup.ch",
+      "17 avril 2026",
+    ].join("\n");
+
+    expect(parseRecipientDetails(offer)).toEqual({
+      recipientName: RECIPIENT_FALLBACK,
+      recipientDept: "Ficoba SA",
+      recipientAddress: undefined,
+      recipientCityZip: undefined,
     });
   });
 });

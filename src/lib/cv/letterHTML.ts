@@ -50,7 +50,7 @@ html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body {
   font-family: ${LETTER_LAYOUT.fontFamily};
   font-size: ${LETTER_LAYOUT.bodyFontPt}pt;
-  line-height: ${LETTER_LAYOUT.lineHeight};
+  line-height: ${LETTER_LAYOUT.bodyLineHeight};
   color: #1a1a1a;
   background: #ffffff;
 }
@@ -90,11 +90,11 @@ body {
 .sender-contact {
   font-size: 10pt;
   color: #1a1a1a;
-  line-height: 1.4;
+  line-height: ${LETTER_LAYOUT.addressLineHeight};
 }
 
 .sender-contact p {
-  margin: 0;
+  margin: 0 0 2px 0;
 }
 
 /* Destinataire + Date - droite */
@@ -108,8 +108,8 @@ body {
 .recipient-block {
   font-size: 10pt;
   color: #1a1a1a;
-  line-height: 1.45;
-  margin-bottom: 12px;
+  line-height: ${LETTER_LAYOUT.addressLineHeight};
+  margin-bottom: 6px;
 }
 
 .recipient-block p {
@@ -119,15 +119,16 @@ body {
 .date {
   font-size: 10pt;
   color: #1a1a1a;
-  margin-top: 10px;
+  margin-top: 4px;
+  line-height: ${LETTER_LAYOUT.addressLineHeight};
   text-align: right;
 }
 
 /* === OBJET === */
 .objet {
   font-size: 11pt;
-  margin-bottom: 16px;
-  line-height: 1.5;
+  margin-bottom: 10px;
+  line-height: 1.2;
 }
 
 .objet-label {
@@ -137,13 +138,13 @@ body {
 /* === SALUTATION === */
 .salutation {
   font-size: 11pt;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
 /* === CORPS === */
 .body-paragraph {
   font-size: 11pt;
-  line-height: 1.5;
+  line-height: ${LETTER_LAYOUT.bodyLineHeight};
   text-align: justify;
   hyphens: auto;
   margin-bottom: 12px;
@@ -152,7 +153,7 @@ body {
 /* === POLITESSE === */
 .politesse {
   font-size: 11pt;
-  line-height: 1.5;
+  line-height: ${LETTER_LAYOUT.bodyLineHeight};
   margin-top: 12px;
   margin-bottom: 20px;
 }
