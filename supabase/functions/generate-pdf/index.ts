@@ -61,13 +61,13 @@ serve(async (req) => {
           options: {
             format: "A4",
             margin: {
-              top: "15mm",
-              right: "18mm",
-              bottom: "15mm",
-              left: "18mm",
+              top: "0",
+              right: "0",
+              bottom: "0",
+              left: "0",
             },
             printBackground: true,
-            preferCSSPageSize: false,
+            preferCSSPageSize: true,
           },
           // Attendre que les polices soient chargées
           waitFor: 500,

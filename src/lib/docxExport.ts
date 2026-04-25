@@ -1,6 +1,8 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, convertInchesToTwip, BorderStyle } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, convertInchesToTwip, BorderStyle, Table, TableCell, TableRow, WidthType } from "docx";
 import { parseCV, formatContact } from "./cv/parser";
-import type { CVData } from "./cv/types";
+import type { CVData, LetterData } from "./cv/types";
+import { LETTER_LAYOUT } from "./cv/letterLayout";
+import { extractLetterDataFromHTML } from "./cv/letterHTML";
 
 const saveAs = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -10,6 +12,63 @@ const saveAs = (blob: Blob, filename: string) => {
   a.click();
   URL.revokeObjectURL(url);
 };
+
+const mmToTwip = (mm: number): number => convertInchesToTwip(mm / 25.4);
+const ptToHalfPoints = (pt: number): number => pt * 2;
+
+const noBorder = {
+  style: BorderStyle.NIL,
+  size: 0,
+  color: "FFFFFF",
+};
+
+const cleanText = (value?: string): string => (value ?? "").replace(/\s+/g, " ").trim();
+
+const looksLikeHTML = (value: string): boolean => /<\/?[a-z][\s\S]*>/i.test(value);
+
+const createTextParagraph = (
+  text: string,
+  options: {
+    bold?: boolean;
+    underline?: boolean;
+    sizePt?: number;
+    alignment?: AlignmentType;
+    before?: number;
+    after?: number;
+    justified?: boolean;
+  } = {}
+): Paragraph => new Paragraph({
+  children: [new TextRun({
+    text,
+    bold: options.bold,
+    underline: options.underline ? {} : undefined,
+    size: ptToHalfPoints(options.sizePt ?? LETTER_LAYOUT.bodyFontPt),
+    font: LETTER_LAYOUT.docxFont,
+  })],
+  alignment: options.justified ? AlignmentType.JUSTIFIED : options.alignment,
+  spacing: {
+    before: options.before ?? 0,
+    after: options.after ?? 120,
+    line: 360,
+  },
+});
+
+export const getLetterDocxTextLines = (letterData: LetterData): string[] => [
+  cleanText(letterData.senderName),
+  cleanText(letterData.senderPhone),
+  cleanText(letterData.senderEmail),
+  cleanText(letterData.senderCity),
+  cleanText(letterData.recipientName),
+  cleanText(letterData.recipientDept),
+  cleanText(letterData.recipientAddress),
+  cleanText(letterData.recipientCityZip),
+  cleanText(letterData.date),
+  `Objet : ${cleanText(letterData.objet)}`.trim(),
+  "Madame, Monsieur,",
+  ...letterData.paragraphs.map(cleanText),
+  cleanText(letterData.politesse),
+  cleanText(letterData.signatureName),
+].filter(Boolean);
 
 // Reconstruit les sections au format legacy depuis CVData
 const buildSectionsFromCVData = (data: CVData): { title: string; items: string[] }[] => {
@@ -208,7 +267,7 @@ export const exportCVToDocx = async (cvTextOrData: string | CVData, cvDataOverri
   saveAs(blob, filename);
 };
 
-export const exportLetterToDocx = async (letterText: string) => {
+const exportLegacyLetterTextToDocx = async (letterText: string) => {
   const lines = letterText.split("\n");
   const paragraphs: Paragraph[] = [];
 
@@ -270,6 +329,123 @@ export const exportLetterToDocx = async (letterText: string) => {
     }],
   });
 
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, "Lettre_ScoreCV.docx");
+};
+
+const normalizeLetterInput = (letter: LetterData | string): LetterData => {
+  if (typeof letter !== "string") {
+    return letter;
+  }
+
+  if (looksLikeHTML(letter)) {
+    return extractLetterDataFromHTML(letter);
+  }
+
+  const lines = letter.split("\n").map(cleanText).filter(Boolean);
+  const objetIndex = lines.findIndex(line => line.toLowerCase().startsWith("objet"));
+  const salutationIndex = lines.findIndex(line => /^(madame|monsieur)/i.test(line));
+  const politesseIndex = lines.findIndex(line => /^je vous prie/i.test(line));
+
+  return {
+    senderName: lines[0] ?? "",
+    senderPhone: lines[1] ?? "",
+    senderEmail: lines[2] ?? "",
+    senderCity: lines[3] ?? "",
+    recipientName: objetIndex > 0 ? lines.slice(4, Math.max(4, objetIndex - 1)).join(", ") : "",
+    date: objetIndex > 0 ? lines[objetIndex - 1] : "",
+    objet: objetIndex >= 0 ? lines[objetIndex].replace(/^Objet\s*:\s*/i, "") : "",
+    paragraphs: lines.slice(
+      salutationIndex >= 0 ? salutationIndex + 1 : objetIndex + 1,
+      politesseIndex >= 0 ? politesseIndex : Math.max(lines.length - 2, 0)
+    ),
+    politesse: politesseIndex >= 0 ? lines[politesseIndex] : "",
+    signatureName: lines[lines.length - 1] ?? "",
+  };
+};
+
+export const createLetterDocxDocument = (letter: LetterData | string): Document => {
+  const letterData = normalizeLetterInput(letter);
+  const recipientLines = [
+    cleanText(letterData.recipientName),
+    cleanText(letterData.recipientDept),
+    cleanText(letterData.recipientAddress),
+    cleanText(letterData.recipientCityZip),
+  ].filter(Boolean);
+
+  const senderParagraphs = [
+    createTextParagraph(cleanText(letterData.senderName), {
+      bold: true,
+      sizePt: LETTER_LAYOUT.senderNameFontPt,
+      after: 80,
+    }),
+    ...[letterData.senderPhone, letterData.senderEmail, letterData.senderCity]
+      .map(cleanText)
+      .filter(Boolean)
+      .map(line => createTextParagraph(line, { sizePt: LETTER_LAYOUT.smallFontPt, after: 20 })),
+  ];
+
+  const recipientParagraphs = [
+    ...recipientLines.map(line => createTextParagraph(line, { sizePt: LETTER_LAYOUT.smallFontPt, after: 20 })),
+    createTextParagraph(cleanText(letterData.date), { sizePt: LETTER_LAYOUT.smallFontPt, before: 200, after: 0 }),
+  ];
+
+  const header = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+    rows: [new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 50, type: WidthType.PERCENTAGE },
+          borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder },
+          children: senderParagraphs,
+        }),
+        new TableCell({
+          width: { size: 50, type: WidthType.PERCENTAGE },
+          borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder },
+          children: recipientParagraphs,
+        }),
+      ],
+    })],
+  });
+
+  const bodyParagraphs: Paragraph[] = [
+    new Paragraph({ children: [], spacing: { after: mmToTwip(LETTER_LAYOUT.headerGapMm) } }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: "Objet : ", bold: true, underline: {}, size: ptToHalfPoints(LETTER_LAYOUT.bodyFontPt), font: LETTER_LAYOUT.docxFont }),
+        new TextRun({ text: cleanText(letterData.objet), bold: true, underline: {}, size: ptToHalfPoints(LETTER_LAYOUT.bodyFontPt), font: LETTER_LAYOUT.docxFont }),
+      ],
+      spacing: { after: 240 },
+    }),
+    createTextParagraph("Madame, Monsieur,", { after: 220 }),
+    ...letterData.paragraphs
+      .map(cleanText)
+      .filter(Boolean)
+      .map(paragraph => createTextParagraph(paragraph, { justified: true, after: 180 })),
+    createTextParagraph(cleanText(letterData.politesse), { before: 120, after: 320 }),
+    createTextParagraph(cleanText(letterData.signatureName), { bold: true, after: 0 }),
+  ];
+
+  return new Document({
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: mmToTwip(LETTER_LAYOUT.page.topMm),
+            bottom: mmToTwip(LETTER_LAYOUT.page.bottomMm),
+            left: mmToTwip(LETTER_LAYOUT.page.leftMm),
+            right: mmToTwip(LETTER_LAYOUT.page.rightMm),
+          },
+        },
+      },
+      children: [header, ...bodyParagraphs],
+    }],
+  });
+};
+
+export const exportLetterToDocx = async (letter: LetterData | string) => {
+  const doc = createLetterDocxDocument(letter);
   const blob = await Packer.toBlob(doc);
   saveAs(blob, "Lettre_ScoreCV.docx");
 };

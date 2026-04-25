@@ -7,6 +7,7 @@
  */
 
 import type { LetterData } from './types';
+import { LETTER_LAYOUT } from './letterLayout';
 
 // Échappe les caractères HTML dangereux
 const escapeHtml = (str: string): string =>
@@ -42,17 +43,14 @@ export const buildLetterHTML = (data: LetterData): string => {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lettre de motivation — ${escapeHtml(data.senderName)}</title>
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
 <style>
-@import url('https://cdn.jsdelivr.net/npm/@fontsource/dm-sans@5/index.css');
-
 /* === BASE === */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body {
-  font-family: 'DM Sans', Arial, sans-serif;
-  font-size: 11pt;
-  line-height: 1.5;
+  font-family: ${LETTER_LAYOUT.fontFamily};
+  font-size: ${LETTER_LAYOUT.bodyFontPt}pt;
+  line-height: ${LETTER_LAYOUT.lineHeight};
   color: #1a1a1a;
   background: #ffffff;
 }
@@ -60,11 +58,11 @@ body {
 /* === PAGE A4 === */
 .letter-page {
   width: 210mm;
-  height: 297mm;
-  padding: 16mm 22mm;
+  min-height: 297mm;
+  padding: ${LETTER_LAYOUT.page.topMm}mm ${LETTER_LAYOUT.page.rightMm}mm ${LETTER_LAYOUT.page.bottomMm}mm ${LETTER_LAYOUT.page.leftMm}mm;
   margin: 0 auto;
   background: #ffffff;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* === EN-TÊTE === */
@@ -72,7 +70,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20mm;
+  margin-bottom: ${LETTER_LAYOUT.headerGapMm}mm;
 }
 
 /* Expéditeur - gauche */
@@ -167,10 +165,15 @@ body {
 @media print {
   @page {
     size: A4;
-    margin: 0;
+    margin: ${LETTER_LAYOUT.page.topMm}mm ${LETTER_LAYOUT.page.rightMm}mm ${LETTER_LAYOUT.page.bottomMm}mm ${LETTER_LAYOUT.page.leftMm}mm;
   }
   body { margin: 0; padding: 0; }
-  .letter-page { margin: 0; }
+  .letter-page {
+    width: auto;
+    min-height: auto;
+    padding: 0;
+    margin: 0;
+  }
 }
 </style>
 </head>
@@ -183,9 +186,9 @@ body {
     <div class="sender-block">
       <div class="sender-name">${escapeHtml(data.senderName)}</div>
       <div class="sender-contact">
-        ${data.senderPhone ? `<p>${escapeHtml(data.senderPhone)}</p>` : ''}
-        ${data.senderEmail ? `<p>${escapeHtml(data.senderEmail)}</p>` : ''}
-        ${data.senderCity ? `<p>${escapeHtml(data.senderCity)}</p>` : ''}
+        ${data.senderPhone ? `<p class="sender-phone">${escapeHtml(data.senderPhone)}</p>` : ''}
+        ${data.senderEmail ? `<p class="sender-email">${escapeHtml(data.senderEmail)}</p>` : ''}
+        ${data.senderCity ? `<p class="sender-city">${escapeHtml(data.senderCity)}</p>` : ''}
       </div>
     </div>
 
@@ -216,4 +219,42 @@ body {
 </div>
 </body>
 </html>`;
+};
+
+const textFrom = (root: ParentNode, selector: string): string =>
+  root.querySelector(selector)?.textContent?.trim() ?? "";
+
+const normalizeWhitespace = (value: string): string =>
+  value.replace(/\s+/g, " ").trim();
+
+const stripObjetLabel = (value: string): string =>
+  normalizeWhitespace(value).replace(/^Objet\s*:\s*/i, "");
+
+export const extractLetterDataFromHTML = (html: string): LetterData => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const recipientLines = Array.from(doc.querySelectorAll(".recipient-block p"))
+    .map(node => normalizeWhitespace(node.textContent ?? ""))
+    .filter(Boolean);
+
+  const paragraphs = Array.from(doc.querySelectorAll(".body-paragraph"))
+    .map(node => normalizeWhitespace(node.textContent ?? ""))
+    .filter(Boolean);
+
+  return {
+    senderName: normalizeWhitespace(textFrom(doc, ".sender-name")),
+    senderPhone: normalizeWhitespace(textFrom(doc, ".sender-phone")),
+    senderEmail: normalizeWhitespace(textFrom(doc, ".sender-email")),
+    senderCity: normalizeWhitespace(textFrom(doc, ".sender-city")),
+    recipientName: recipientLines[0] ?? "",
+    recipientDept: recipientLines[1],
+    recipientAddress: recipientLines[2],
+    recipientCityZip: recipientLines[3],
+    date: normalizeWhitespace(textFrom(doc, ".date")),
+    objet: stripObjetLabel(textFrom(doc, ".objet")),
+    paragraphs,
+    politesse: normalizeWhitespace(textFrom(doc, ".politesse")),
+    signatureName: normalizeWhitespace(textFrom(doc, ".signature")),
+  };
 };

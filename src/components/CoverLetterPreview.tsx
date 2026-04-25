@@ -7,6 +7,7 @@ import { useState, useCallback } from "react";
 import { Download, FileText } from "lucide-react";
 import { exportLetterToDocx } from "@/lib/docxExport";
 import { generatePDF } from "@/lib/cv/pdf/generatePDF";
+import { extractLetterDataFromHTML } from "@/lib/cv/letterHTML";
 
 interface CoverLetterPreviewProps {
   letter: string; // HTML complet généré par buildLetterHTML()
@@ -44,14 +45,9 @@ const CoverLetterPreview = ({ letter }: CoverLetterPreviewProps) => {
   };
 
   // Handler pour export DOCX
-  // Note: exportLetterToDocx attend du texte brut, pas du HTML
-  // On va extraire le texte depuis le HTML pour l'export Word
   const handleExportDocx = () => {
-    // Créer un élément temporaire pour parser le HTML
-    const temp = document.createElement('div');
-    temp.innerHTML = letter;
-    const textContent = temp.innerText || temp.textContent || letter;
-    exportLetterToDocx(textContent);
+    const letterData = extractLetterDataFromHTML(letter);
+    exportLetterToDocx(letterData);
   };
 
   return (
