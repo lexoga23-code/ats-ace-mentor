@@ -1,12 +1,14 @@
 export const RECIPIENT_FALLBACK = "\u00C0 l'attention du Service Recrutement";
 
-const COMPANY_TOKEN_REGEX = /\b(entreprise|societe|societe|groupe|clinique|chu|hopital|cabinet|association|sas|sarl|sa)\b/i;
-const STREET_TOKEN_REGEX = /\b(rue|avenue|av\.?|boulevard|bd\.?|chemin|route|impasse|allee|place|quai|cours)\b/i;
-const POSTAL_CITY_REGEX = /\b\d{4,5}\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,}\b/;
+const COMPANY_TOKEN_REGEX = /\b(entreprise|societe|soci\u00e9t\u00e9|groupe|clinique|chu|hopital|h\u00f4pital|cabinet|association|sas|sarl|sa)\b/i;
+const STREET_TOKEN_REGEX = /\b(rue|avenue|av\.?|boulevard|bd\.?|chemin|route|impasse|allee|all\u00e9e|place|quai|cours)\b/i;
+const POSTAL_CITY_REGEX = /\b\d{4,5}\s+[A-Za-z\u00C0-\u00FF][A-Za-z\u00C0-\u00FF' -]{1,}\b/;
 const CONTACT_TOKEN_REGEX = /\b(madame|monsieur|mme|m\.|contact|attention)\b/i;
-const NOISY_JOB_WORDS_REGEX = /\b(poste|mission|profil|experience|competence|salaire|contrat|cdi|cdd)\b/i;
-const OFFER_NOISE_REGEX = /(offre d['’]?emploi|jobup|indeed|linkedin|hellowork|welcome to the jungle|welcometothejungle|monster|apec)/i;
-const PUBLICATION_DATE_REGEX = /^\d{1,2}\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\s+\d{4}$/i;
+const NOISY_JOB_WORDS_REGEX = /\b(poste|mission|profil|experience|exp\u00e9rience|competence|comp\u00e9tence|salaire|contrat|cdi|cdd)\b/i;
+const OFFER_NOISE_REGEX = /(offre d['\u2019]?emploi|jobup|indeed|linkedin|hellowork|welcome to the jungle|welcometothejungle|monster|apec)/i;
+const PUBLICATION_DATE_REGEX = /^\d{1,2}\s+(janvier|fevrier|f\u00e9vrier|mars|avril|mai|juin|juillet|aout|ao\u00fbt|septembre|octobre|novembre|decembre|d\u00e9cembre)\s+\d{4}$/i;
+const EMPLOYEE_COUNT_REGEX = /^\d+\s*[-\u2013]\s*\d+\s+employ/i;
+const STANDALONE_CITY_REGEX = /^(gen[\u00e8e]ve|lausanne|paris|lyon|marseille|bordeaux|toulouse|nantes|lille|strasbourg|nice|rennes|montpellier|grenoble|dijon|angers|reims|rouen|nancy|tours|annecy|fribourg|neuch[\u00e2a]tel|sion|nyon|morges|vevey|montreux)$/i;
 
 const cleanLine = (value: string): string => value.replace(/\s+/g, " ").trim();
 
@@ -26,6 +28,7 @@ const isNoiseLine = (line: string): boolean => {
   if (/@/.test(line)) return true;
   if (line.length > 140) return true;
   if (PUBLICATION_DATE_REGEX.test(line)) return true;
+  if (EMPLOYEE_COUNT_REGEX.test(line)) return true;
   if (/^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(line)) return true;
   if (OFFER_NOISE_REGEX.test(line)) return true;
   return false;
@@ -41,14 +44,18 @@ const splitOfferLines = (offerDetails: string): string[] => {
   return unique(rawLines.filter((line) => !isNoiseLine(line)));
 };
 
+const isStandaloneCityLine = (line: string): boolean =>
+  STANDALONE_CITY_REGEX.test(cleanLine(line));
+
 const isLikelyAddressLine = (line: string): boolean =>
-  STREET_TOKEN_REGEX.test(line) || /^\d{1,4}[,\s-]/.test(line) || POSTAL_CITY_REGEX.test(line);
+  !EMPLOYEE_COUNT_REGEX.test(line) &&
+  (STREET_TOKEN_REGEX.test(line) || /^\d{1,4}[,\s]/.test(line) || POSTAL_CITY_REGEX.test(line));
 
 const extractCompanyFromOfferTitle = (offerDetails?: string): string | undefined => {
   if (!offerDetails) return undefined;
   const cleaned = offerDetails.replace(/\s+/g, " ");
 
-  const offerMatch = cleaned.match(/offre d['’]?emploi\s+(?:chez|de)\s+([^|\n-]{2,100})/i);
+  const offerMatch = cleaned.match(/offre d['\u2019]?emploi\s+(?:chez|de)\s+([^|\n-]{2,100})/i);
   if (offerMatch?.[1]) {
     const company = cleanLine(offerMatch[1]);
     if (company && !OFFER_NOISE_REGEX.test(company) && !NOISY_JOB_WORDS_REGEX.test(company)) {
@@ -71,7 +78,7 @@ export const extractCityFromLine = (line: string): string => {
   const cleaned = cleanLine(line);
   if (!cleaned) return "";
 
-  const postalCityMatch = cleaned.match(/\b\d{4,5}\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,})\b/);
+  const postalCityMatch = cleaned.match(/\b\d{4,5}\s+([A-Za-z\u00C0-\u00FF][A-Za-z\u00C0-\u00FF' -]{1,})\b/);
   if (postalCityMatch) {
     return cleanLine(postalCityMatch[1]);
   }
@@ -130,7 +137,8 @@ export const parseRecipientDetails = (offerDetails?: string): ParsedRecipientDet
     companyLine = companyFromTitle;
   }
 
-  const cityLine = lines.find((line) => POSTAL_CITY_REGEX.test(line));
+  const cityLine = lines.find((line) => POSTAL_CITY_REGEX.test(line)) ||
+    lines.find((line) => isStandaloneCityLine(line));
   let addressLine = lines.find((line) => isLikelyAddressLine(line) && line !== cityLine);
 
   if (!companyLine && cityLine) {
@@ -150,6 +158,7 @@ export const parseRecipientDetails = (offerDetails?: string): ParsedRecipientDet
       !CONTACT_TOKEN_REGEX.test(line) &&
       !NOISY_JOB_WORDS_REGEX.test(line) &&
       !isLikelyAddressLine(line) &&
+      !isStandaloneCityLine(line) &&
       !PUBLICATION_DATE_REGEX.test(line) &&
       !OFFER_NOISE_REGEX.test(line) &&
       line.length <= 80

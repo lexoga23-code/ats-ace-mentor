@@ -109,7 +109,7 @@ body {
   font-size: 10pt;
   color: #1a1a1a;
   line-height: ${LETTER_LAYOUT.addressLineHeight};
-  margin-bottom: 6px;
+  margin-bottom: 12px;
 }
 
 .recipient-block p {
@@ -119,7 +119,7 @@ body {
 .date {
   font-size: 10pt;
   color: #1a1a1a;
-  margin-top: 4px;
+  margin-top: 12px;
   line-height: ${LETTER_LAYOUT.addressLineHeight};
   text-align: right;
 }
@@ -127,8 +127,8 @@ body {
 /* === OBJET === */
 .objet {
   font-size: 11pt;
-  margin-bottom: 10px;
-  line-height: 1.2;
+  margin-bottom: 16px;
+  line-height: 1.5;
 }
 
 .objet-label {
@@ -138,7 +138,7 @@ body {
 /* === SALUTATION === */
 .salutation {
   font-size: 11pt;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 /* === CORPS === */

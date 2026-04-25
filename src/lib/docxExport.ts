@@ -406,7 +406,7 @@ export const createLetterDocxDocument = (letter: LetterData | string): Document 
     })),
     createTextParagraph(cleanText(letterData.date), {
       sizePt: LETTER_LAYOUT.smallFontPt,
-      before: 80,
+      before: 240,
       after: 0,
       alignment: AlignmentType.RIGHT,
       lineTwip: LETTER_LAYOUT.compactLineTwip,
@@ -442,7 +442,7 @@ export const createLetterDocxDocument = (letter: LetterData | string): Document 
         new TextRun({ text: "Objet : ", bold: true, underline: {}, size: ptToHalfPoints(LETTER_LAYOUT.bodyFontPt), font: LETTER_LAYOUT.docxFont }),
         new TextRun({ text: cleanText(letterData.objet), bold: true, underline: {}, size: ptToHalfPoints(LETTER_LAYOUT.bodyFontPt), font: LETTER_LAYOUT.docxFont }),
       ],
-      spacing: { after: 180, line: LETTER_LAYOUT.bodyLineTwip },
+      spacing: { after: 240, line: LETTER_LAYOUT.bodyLineTwip },
     }),
     createTextParagraph("Madame, Monsieur,", { after: LETTER_LAYOUT.bodyStartGapTwip }),
     ...letterData.paragraphs

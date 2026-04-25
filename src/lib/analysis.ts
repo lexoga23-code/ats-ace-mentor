@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseCV } from "./cv/parser";
 import { buildLetterHTML } from "./cv/letterHTML";
 import { extractCityFromLine, parseRecipientDetails, sanitizeSenderAddress } from "./cv/coverLetterMetadata";
+import { sanitizeGeneratedLetterContent } from "./cv/letterContent";
 import type { LetterData } from "./cv/types";
 
 export interface SectionScore {
@@ -930,6 +931,8 @@ FORMAT DE SORTIE OBLIGATOIRE — JSON uniquement, aucun texte avant ou après :
     console.error("[generateCoverLetter] JSON parsing error:", err, "Raw text:", text.substring(0, 200));
     throw new Error("Erreur lors du parsing de la lettre générée");
   }
+
+  parsed = sanitizeGeneratedLetterContent(parsed);
 
   // Parser le CV pour extraire les données expéditeur
   const cvData = parseCV(cvText);

@@ -6,7 +6,7 @@ export const LETTER_LAYOUT = {
     leftMm: 22,
   },
   header: {
-    recipientTopOffsetMm: 10,
+    recipientTopOffsetMm: 18,
     rightBlockWidthMm: 82,
   },
   fontFamily: "Arial, sans-serif",
@@ -14,11 +14,11 @@ export const LETTER_LAYOUT = {
   bodyFontPt: 11,
   senderNameFontPt: 14,
   smallFontPt: 10,
-  bodyLineHeight: 1.3,
+  bodyLineHeight: 1.5,
   addressLineHeight: 1.0,
   compactLineTwip: 240,
-  bodyLineTwip: 300,
-  headerGapMm: 10,
-  bodyStartGapTwip: 300,
+  bodyLineTwip: 360,
+  headerGapMm: 20,
+  bodyStartGapTwip: 220,
 } as const;
 

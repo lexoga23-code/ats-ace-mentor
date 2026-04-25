@@ -52,4 +52,19 @@ describe("coverLetterMetadata", () => {
       recipientCityZip: undefined,
     });
   });
+
+  it("keeps standalone recipient city and ignores employee count metadata", () => {
+    const offer = [
+      "Infirmier(ere) - Offre d'emploi chez Ficoba SA - jobup.ch",
+      "21 - 50 employe.e.s",
+      "Geneve",
+    ].join("\n");
+
+    expect(parseRecipientDetails(offer)).toEqual({
+      recipientName: RECIPIENT_FALLBACK,
+      recipientDept: "Ficoba SA",
+      recipientAddress: undefined,
+      recipientCityZip: "Geneve",
+    });
+  });
 });
