@@ -953,7 +953,7 @@ FORMAT DE SORTIE OBLIGATOIRE — JSON uniquement, aucun texte avant ou après :
     ? `${senderCityForDate}, le ${dateStr}`
     : `Le ${dateStr}`;
 
-  const recipientDetails = parseRecipientDetails(offerDetails);
+  const recipientDetails = parseRecipientDetails(offerDetails, region === "CH" ? "CH" : "FR");
 
   // Construire l'objet LetterData
   const letterData: LetterData = {

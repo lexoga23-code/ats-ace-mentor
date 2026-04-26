@@ -60,7 +60,7 @@ describe("coverLetterMetadata", () => {
       "Geneve",
     ].join("\n");
 
-    expect(parseRecipientDetails(offer)).toEqual({
+    expect(parseRecipientDetails(offer, "CH")).toEqual({
       recipientName: RECIPIENT_FALLBACK,
       recipientDept: "Ficoba SA",
       recipientAddress: undefined,
