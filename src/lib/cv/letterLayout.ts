@@ -7,6 +7,7 @@ export const LETTER_LAYOUT = {
   },
   header: {
     recipientTopOffsetMm: 18,
+    htmlRecipientTopOffsetMm: 24,
     rightBlockWidthMm: 82,
   },
   fontFamily: "Arial, sans-serif",

@@ -102,7 +102,7 @@ body {
   justify-self: end;
   width: ${LETTER_LAYOUT.header.rightBlockWidthMm}mm;
   text-align: right;
-  margin-top: ${LETTER_LAYOUT.header.recipientTopOffsetMm}mm;
+  margin-top: ${LETTER_LAYOUT.header.htmlRecipientTopOffsetMm}mm;
 }
 
 .recipient-block {
