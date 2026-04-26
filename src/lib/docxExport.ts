@@ -32,7 +32,7 @@ const createTextParagraph = (
     bold?: boolean;
     underline?: boolean;
     sizePt?: number;
-    alignment?: AlignmentType;
+    alignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
     before?: number;
     after?: number;
     lineTwip?: number;
