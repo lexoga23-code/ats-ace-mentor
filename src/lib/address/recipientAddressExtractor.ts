@@ -137,6 +137,11 @@ const normalizeKey = (value: string): string =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
+const isGenericDepartmentLine = (line: string): boolean => {
+  const key = normalizeKey(line);
+  return /^(service|direction|departement)\s+(rh|ressources humaines|recrutement|du recrutement|des ressources humaines)$/.test(key);
+};
+
 const capitalizeFirst = (value: string): string => {
   const cleaned = normalizeWhitespace(value);
   if (!cleaned) return cleaned;
@@ -213,6 +218,7 @@ const scoreCompany = (
   cityIndexes: Set<number>
 ): number => {
   if (cityIndexes.has(index) || STREET_TOKEN_REGEX.test(line) || isPostalCity(line, country)) return 0;
+  if (isGenericDepartmentLine(line)) return 0;
   if (country === "FR" && /\binc\.?$/i.test(line)) return 0;
 
   let score = 0;
@@ -230,7 +236,7 @@ const scoreAddress = (line: string, country: AddressCountry): number => {
   if (isPostalCity(line, country)) return 0;
 
   let score = 0;
-  if (/\b(CS|BP)\s*\d+/i.test(line) || /\bcedex\b/i.test(line)) score += 30;
+  if (/\b(CS|BP)\s*\d+/i.test(line) || /\bcedex\b/i.test(line)) score += 40;
   if (STREET_TOKEN_REGEX.test(line) && /\d/.test(line)) score += 40;
   if (/^\d{1,4}[,\s]/.test(line) && STREET_TOKEN_REGEX.test(line)) score += 40;
 

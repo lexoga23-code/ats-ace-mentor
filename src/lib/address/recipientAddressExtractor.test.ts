@@ -108,6 +108,30 @@ describe("recipientAddressExtractor - France", () => {
     expect(result.cityLine).toBeUndefined();
     expect(result.confidence.city).toBeLessThan(50);
   });
+
+  it("should keep French postal formats as address lines", () => {
+    const jobText = `
+      Entreprise Tech France SA
+      BP 123
+      75008 Paris
+    `;
+    const result = extractRecipientAddress(jobText, "FR");
+
+    expect(result.addressLine).toBe("BP 123");
+    expect(result.confidence.address).toBeGreaterThanOrEqual(40);
+    expect(result.lines).toEqual(["Entreprise Tech France SA", "BP 123", "75008 Paris"]);
+  });
+
+  it("should not treat generic departments as company names", () => {
+    const jobText = `
+      Service RH
+      75003 Paris
+    `;
+    const result = extractRecipientAddress(jobText, "FR");
+
+    expect(result.companyName).toBeUndefined();
+    expect(result.lines).toEqual(["75003 Paris"]);
+  });
 });
 
 describe("recipientAddressExtractor - Switzerland", () => {
@@ -159,6 +183,19 @@ describe("recipientAddressExtractor - Switzerland", () => {
     expect(result.companyName).toBe("Tech Innovations Sàrl");
     expect(result.cityLine).toBe("Genève");
     expect(result.lines).toEqual(["Tech Innovations Sàrl", "Genève"]);
+  });
+
+  it("should keep Swiss street and postal city address", () => {
+    const jobText = `
+      Tech Innovations Sarl
+      Rue de Lausanne 12
+      1201 Geneve
+    `;
+    const result = extractRecipientAddress(jobText, "CH");
+
+    expect(result.companyName).toBe("Tech Innovations Sarl");
+    expect(result.addressLine).toBe("Rue de Lausanne 12");
+    expect(result.cityLine).toBe("1201 Geneve");
   });
 });
 
