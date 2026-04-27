@@ -2,10 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import CVUploader from "./CVUploader";
 import JobOfferInput from "./JobOfferInput";
-import AnalysisHistory, { saveToHistory, type HistoryEntry } from "./AnalysisHistory";
+import AnalysisHistory, { getHistory, saveToHistory, type HistoryEntry } from "./AnalysisHistory";
 import { useRegion } from "@/contexts/RegionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { analyzeCV, rewriteCV, type AnalysisResult } from "@/lib/analysis";
+import {
+  DEFAULT_ANALYSIS_MODE,
+  TARGETED_UNSPECIFIED_TARGET_JOB,
+  getAnalysisMode,
+  getStoredTargetJob,
+  normalizeAnalysisMode,
+  type AnalysisMode,
+} from "@/lib/analysisTypes";
 import ResultsPanel from "./ResultsPanel";
 import LoadingOverlay from "./LoadingOverlay";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,10 +50,19 @@ const CVAnalyzer = () => {
   const [restoringPaid, setRestoringPaid] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [activeAnalysisMode, setActiveAnalysisMode] = useState<AnalysisMode>(DEFAULT_ANALYSIS_MODE);
+  const [activeStoredTargetJob, setActiveStoredTargetJob] = useState("");
   const [uploaderResetKey, setUploaderResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const uploadInProgressRef = useRef(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentAnalysisMode = getAnalysisMode(targetJob, jobDescription);
+  const getNextUntitledTargetedIndex = () =>
+    getHistory().filter((entry) => {
+      const mode = normalizeAnalysisMode(entry.analysisMode);
+      const title = entry.targetJob?.trim() || "";
+      return mode === "targeted" && (!title || title.startsWith(TARGETED_UNSPECIFIED_TARGET_JOB));
+    }).length + 1;
 
   /** Bug #2/#3 fix: Check server-side if user has paid for THIS SPECIFIC analysis OR has active pro subscription */
   const checkServerPaidStatus = async (userId: string, analysisId?: string | null): Promise<boolean> => {
@@ -110,6 +127,8 @@ const CVAnalyzer = () => {
         setCoverLetter("");
         setIsPaid(false);
         setCurrentAnalysisId(null);
+        setActiveAnalysisMode(DEFAULT_ANALYSIS_MODE);
+        setActiveStoredTargetJob("");
         setUploaderResetKey(k => k + 1);
       }
     };
@@ -126,12 +145,16 @@ const CVAnalyzer = () => {
       localStorage.removeItem("scorecv_restore_analysis");
       try {
         const d = JSON.parse(restoreData);
+        const restoredAnalysisMode = normalizeAnalysisMode(d.analysisMode);
+        const restoredTargetJob = getStoredTargetJob(d.targetJob || "", restoredAnalysisMode);
         setCvText(d.cvText || "");
-        setTargetJob(d.targetJob || "");
+        setTargetJob(restoredAnalysisMode === "general" ? "" : restoredTargetJob);
         setJobDescription(d.jobDescription || "");
         setIndustry(d.industry || "");
         setResults(d.results as AnalysisResult);
         setCurrentAnalysisId(d.id || null);
+        setActiveAnalysisMode(restoredAnalysisMode);
+        setActiveStoredTargetJob(restoredTargetJob);
 
         // Reset explicite des contenus générés - important pour que les questions contextuelles s'affichent
         setRewrittenCV("");
@@ -236,13 +259,17 @@ const CVAnalyzer = () => {
 
     if (data) {
       console.log("[CVAnalyzer] Restoring analysis data...");
+      const restoredAnalysisMode = normalizeAnalysisMode(data.analysis_mode);
+      const restoredTargetJob = getStoredTargetJob(data.target_job || "", restoredAnalysisMode);
       // Restaurer l'état complet depuis la DB
       setCvText(data.cv_text || "");
-      setTargetJob(data.target_job || "");
+      setTargetJob(restoredAnalysisMode === "general" ? "" : restoredTargetJob);
       setJobDescription(data.job_description || "");
       setIndustry(data.industry || "");
       setResults(data.results as unknown as AnalysisResult);
       setCurrentAnalysisId(data.id);
+      setActiveAnalysisMode(restoredAnalysisMode);
+      setActiveStoredTargetJob(restoredTargetJob);
       setIsPaid(true);
 
       // Reset explicite puis restauration - important pour que les questions contextuelles s'affichent
@@ -312,11 +339,15 @@ const CVAnalyzer = () => {
     if (saved) {
       try {
         const state = JSON.parse(saved);
+        const restoredAnalysisMode = normalizeAnalysisMode(state.analysisMode);
+        const restoredTargetJob = getStoredTargetJob(state.targetJob || "", restoredAnalysisMode);
         setCvText(state.cvText || "");
-        setTargetJob(state.targetJob || "");
+        setTargetJob(restoredAnalysisMode === "general" ? "" : restoredTargetJob);
         setJobDescription(state.jobDescription || "");
         setIndustry(state.industry || "");
         setResults(state.results || null);
+        setActiveAnalysisMode(restoredAnalysisMode);
+        setActiveStoredTargetJob(restoredTargetJob);
       } catch { /* ignore */ }
     }
 
@@ -370,9 +401,21 @@ const CVAnalyzer = () => {
   }, [region, user]); // Bug #5: added user
 
 
-  const saveState = (analysisResults: AnalysisResult) => {
+  const saveState = (
+    stateCvText: string,
+    storedTargetJob: string,
+    analysisMode: AnalysisMode,
+    stateJobDescription: string,
+    stateIndustry: string,
+    analysisResults: AnalysisResult
+  ) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      cvText, targetJob, jobDescription, industry, results: analysisResults,
+      cvText: stateCvText,
+      targetJob: storedTargetJob,
+      analysisMode,
+      jobDescription: stateJobDescription,
+      industry: stateIndustry,
+      results: analysisResults,
     }));
   };
 
@@ -382,6 +425,8 @@ const CVAnalyzer = () => {
     setResults(null);
     setIsPaid(false);
     setCurrentAnalysisId(null);
+    setActiveAnalysisMode(DEFAULT_ANALYSIS_MODE);
+    setActiveStoredTargetJob("");
     sessionStorage.removeItem('scorecv_current_analysis_id');
     localStorage.removeItem('rewrittenCV');
     localStorage.removeItem('coverLetter');
@@ -414,12 +459,19 @@ const CVAnalyzer = () => {
   };
 
   const startAnalysis = async () => {
-    if (!cvText || !targetJob) {
-      alert("Veuillez charger un CV et indiquer le poste ciblé.");
+    if (!cvText.trim()) {
+      alert("Veuillez charger un CV.");
       return;
     }
 
+    const analysisMode = currentAnalysisMode;
+    const untitledTargetedIndex =
+      analysisMode === "targeted" && !targetJob.trim() ? getNextUntitledTargetedIndex() : 1;
+    const storedTargetJob = getStoredTargetJob(targetJob, analysisMode, untitledTargetedIndex);
+
     hardResetCVAndLetter();
+    setActiveAnalysisMode(analysisMode);
+    setActiveStoredTargetJob(storedTargetJob);
     setLoading(true);
     setLoadingProgress(0);
     justAnalyzedRef.current = true;
@@ -427,7 +479,7 @@ const CVAnalyzer = () => {
 
     try {
       const effectiveIndustry = industry === "Autre" ? (customIndustry || "Non précisé") : (industry || "Non précisé");
-      const result = await analyzeCV(cvText, targetJob, region, effectiveIndustry, jobDescription);
+      const result = await analyzeCV(cvText, targetJob, region, effectiveIndustry, jobDescription, analysisMode);
 
       result.scoreDetails.format = Math.min(result.scoreDetails.format, 20);
       result.scoreDetails.keywords = Math.min(result.scoreDetails.keywords, 35);
@@ -447,7 +499,8 @@ const CVAnalyzer = () => {
         const { data: inserted } = await supabase.from("user_analyses").insert({
           user_id: user.id,
           cv_text: cvText,
-          target_job: targetJob,
+          target_job: storedTargetJob,
+          analysis_mode: analysisMode,
           job_description: jobDescription,
           industry: effectiveIndustry,
           results: result as any,
@@ -467,12 +520,15 @@ const CVAnalyzer = () => {
       setResults(result);
       setCurrentAnalysisId(insertedId);
       setIsPaid(currentPaid);
+      setActiveAnalysisMode(analysisMode);
+      setActiveStoredTargetJob(storedTargetJob);
 
-      saveState(result);
+      saveState(cvText, storedTargetJob, analysisMode, jobDescription, industry, result);
 
       // Save to local history
       saveToHistory({
-        targetJob,
+        targetJob: storedTargetJob,
+        analysisMode,
         score: result.score,
         matchScore: result.matchScore,
         results: result,
@@ -483,7 +539,7 @@ const CVAnalyzer = () => {
 
       // Only generate rewritten CV if server confirms paid
       if (currentPaid) {
-        const rewritten = await rewriteCV(cvText, targetJob, region, result.keywordsMissing);
+        const rewritten = await rewriteCV(cvText, storedTargetJob, region, result.keywordsMissing, analysisMode);
         setRewrittenCV(rewritten);
       }
 
@@ -538,15 +594,27 @@ const CVAnalyzer = () => {
   };
 
   const handleRestoreHistory = (entry: HistoryEntry) => {
+    const restoredAnalysisMode = normalizeAnalysisMode(entry.analysisMode);
+    const restoredTargetJob = getStoredTargetJob(entry.targetJob, restoredAnalysisMode);
+
     setCvText(entry.cvText);
-    setTargetJob(entry.targetJob);
+    setTargetJob(restoredAnalysisMode === "general" ? "" : restoredTargetJob);
     setJobDescription(entry.jobDescription);
     setIndustry(entry.industry);
     setResults(entry.results);
+    setActiveAnalysisMode(restoredAnalysisMode);
+    setActiveStoredTargetJob(restoredTargetJob);
     setRewrittenCV("");
     setCoverLetter("");
     setIsPaid(false);
-    saveState(entry.results);
+    saveState(
+      entry.cvText,
+      restoredTargetJob,
+      restoredAnalysisMode,
+      entry.jobDescription,
+      entry.industry,
+      entry.results
+    );
   };
 
   // Only auto-scroll to results after a NEW analysis (not on restore)
@@ -568,7 +636,7 @@ const CVAnalyzer = () => {
 
           <div className="bg-secondary p-8 rounded-3xl space-y-6">
             <div>
-              <label className="label-ui block mb-2">Poste ciblé</label>
+              <label className="label-ui block mb-2">Poste ciblé (recommandé)</label>
               <input
                 type="text"
                 value={targetJob}
@@ -576,6 +644,9 @@ const CVAnalyzer = () => {
                 placeholder="ex: Chef de Projet Marketing"
                 className="w-full p-4 bg-card rounded-xl shadow-soft border-none focus:ring-2 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground"
               />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Ajoutez un poste ou une offre pour une analyse plus précise. Sinon, ScoreCV analysera la qualité générale de votre CV.
+              </p>
             </div>
             <JobOfferInput value={jobDescription} onChange={setJobDescription} />
             <div>
@@ -624,7 +695,9 @@ const CVAnalyzer = () => {
               rewrittenCV={rewrittenCV}
               coverLetter={coverLetter}
               cvText={cvText}
-              targetJob={targetJob}
+              targetJob={activeStoredTargetJob}
+              analysisMode={activeAnalysisMode}
+              industry={industry}
               region={region}
               analysisId={currentAnalysisId}
               jobDescription={jobDescription}

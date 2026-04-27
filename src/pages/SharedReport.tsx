@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { type AnalysisResult } from "@/lib/analysis";
+import { DEFAULT_ANALYSIS_MODE, GENERAL_ANALYSIS_TARGET_JOB, type AnalysisMode } from "@/lib/analysisTypes";
 import { CheckCircle, AlertTriangle, XCircle, Target, ArrowLeft } from "lucide-react";
 
 interface SharedReport {
@@ -9,6 +10,7 @@ interface SharedReport {
   created_at: string;
   expires_at: string;
   target_job: string;
+  analysis_mode: AnalysisMode;
   score: number;
   match_score: number | null;
   results: AnalysisResult;
@@ -83,6 +85,9 @@ const SharedReportPage = () => {
   const expiresDate = new Date(report.expires_at).toLocaleDateString("fr-FR", {
     day: "numeric", month: "long", year: "numeric",
   });
+  const analysisMode = report.analysis_mode ?? DEFAULT_ANALYSIS_MODE;
+  const isTargetedMode = analysisMode === "targeted";
+  const reportTitle = analysisMode === "general" ? GENERAL_ANALYSIS_TARGET_JOB : report.target_job;
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,14 +101,14 @@ const SharedReportPage = () => {
         </div>
 
         <h1 className="text-3xl font-bold text-foreground">
-          Rapport — {report.target_job}
+          Rapport — {reportTitle}
         </h1>
 
         {/* Score overview */}
         <div className="grid md:grid-cols-3 gap-8 items-center bg-card p-8 rounded-3xl shadow-soft">
           <div className="space-y-3">
             <ScoreCircle score={report.score} />
-            {report.match_score && (
+            {isTargetedMode && report.match_score && (
               <div className="text-center">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
                   <Target className="w-3.5 h-3.5 text-primary" />

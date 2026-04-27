@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Target, Share2, Mail, Loader2, Sparkles } from "lucide-react";
 import { type AnalysisResult, generateCoverLetter, rewriteCV } from "@/lib/analysis";
+import type { AnalysisMode } from "@/lib/analysisTypes";
 import CVPreview from "./CVPreview";
 import CoverLetterPreview from "./CoverLetterPreview";
 import SectionScores from "./SectionScores";
@@ -29,6 +30,8 @@ interface ResultsPanelProps {
   coverLetter?: string;
   cvText: string;
   targetJob: string;
+  analysisMode: AnalysisMode;
+  industry: string;
   region: string;
   analysisId?: string | null;
   jobDescription?: string;
@@ -101,7 +104,7 @@ const verifyPaidStatus = async (userId: string, analysisId?: string | null): Pro
 
 const ResultsPanel = ({
   results, isPaid, rewrittenCV: initialRewrite, coverLetter: initialCoverLetter,
-  cvText, targetJob, region, analysisId, jobDescription,
+  cvText, targetJob, analysisMode, industry, region, analysisId, jobDescription,
   onRewrittenCVChange, onCoverLetterChange,
 }: ResultsPanelProps) => {
   const { currency, prices } = useRegion();
@@ -240,7 +243,7 @@ const ResultsPanel = ({
     setLoadingRewrite(true);
     console.log('CV utilisé pour réécriture — longueur:', cvText.length);
     try {
-      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing, inlineAnswers);
+      const text = await rewriteCV(cvText, targetJob, region, results.keywordsMissing, analysisMode, inlineAnswers);
       setRewrittenCV(text);
       onRewrittenCVChange?.(text);
     } catch (err) {
@@ -256,7 +259,7 @@ const ResultsPanel = ({
     if (!serverPaid) { toast.error("Veuillez débloquer le rapport complet pour générer votre lettre."); return; }
     setLoadingLetter(true);
     try {
-      const text = await generateCoverLetter(cvText, targetJob, region, jobDescription, inlineAnswers);
+      const text = await generateCoverLetter(cvText, targetJob, region, jobDescription, analysisMode, inlineAnswers);
       setCoverLetter(text);
       onCoverLetterChange?.(text);
     } catch (err) {
@@ -267,17 +270,30 @@ const ResultsPanel = ({
   };
 
   const handleCheckout = async (productType: "report" | "pro") => {
+    const persistedAnalysisState = {
+      cvText,
+      targetJob,
+      analysisMode,
+      jobDescription: jobDescription || "",
+      industry,
+      results,
+    };
+
     if (!user) {
-      localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      // scorecv_data: legacy auth/payment restore payload kept for backward compatibility.
+      // scorecv_analysis: active analysis restore payload used after auth/Stripe returns.
+      localStorage.setItem("scorecv_data", JSON.stringify(persistedAnalysisState));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedAnalysisState));
       toast.info("Créez un compte pour obtenir votre rapport complet");
       navigate("/auth");
       return;
     }
     setCheckoutLoading(productType);
     try {
-      localStorage.setItem("scorecv_data", JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetJob, jobDescription: "", industry: "", results }));
+      // scorecv_data: legacy auth/payment restore payload kept for backward compatibility.
+      // scorecv_analysis: active analysis restore payload used after auth/Stripe returns.
+      localStorage.setItem("scorecv_data", JSON.stringify(persistedAnalysisState));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedAnalysisState));
       // Stocker l'analysis_id pour le récupérer après paiement
       if (analysisId) {
         sessionStorage.setItem("scorecv_pending_analysis_id", analysisId);
@@ -330,7 +346,8 @@ const ResultsPanel = ({
   const statusIcons = { ok: "✅", fail: "❌", warn: "⚠️" };
 
   const totalPossibleGain = 100 - results.score;
-  const hasJobDescription = !!(jobDescription && jobDescription.length >= 50);
+  const isTargetedMode = analysisMode === "targeted";
+  const hasJobDescription = isTargetedMode && !!(jobDescription && jobDescription.length >= 50);
   const matchPct = hasJobDescription ? (results.matchScore ?? null) : null;
 
   // Top 3 problèmes pour le rapport gratuit
@@ -855,7 +872,7 @@ const ResultsPanel = ({
                 setShareLoading(true);
                 try {
                   const { data, error } = await supabase.from("shared_reports").insert({
-                    target_job: targetJob, score: results.score, match_score: results.matchScore || null,
+                    target_job: targetJob, analysis_mode: analysisMode, score: results.score, match_score: isTargetedMode ? results.matchScore || null : null,
                     results: results as any, rewritten_cv: rewrittenCV || null, cover_letter: coverLetter || null,
                   }).select("id").single();
                   if (error) throw error;
