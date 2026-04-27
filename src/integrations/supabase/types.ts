@@ -1,5 +1,3 @@
-import type { AnalysisMode } from "@/lib/analysisTypes"
-
 export type Json =
   | string
   | number
@@ -126,7 +124,7 @@ export type Database = {
       }
       shared_reports: {
         Row: {
-          analysis_mode: AnalysisMode
+          analysis_mode: string
           cover_letter: string | null
           created_at: string
           email: string | null
@@ -139,7 +137,7 @@ export type Database = {
           target_job: string
         }
         Insert: {
-          analysis_mode?: AnalysisMode
+          analysis_mode?: string
           cover_letter?: string | null
           created_at?: string
           email?: string | null
@@ -152,7 +150,7 @@ export type Database = {
           target_job: string
         }
         Update: {
-          analysis_mode?: AnalysisMode
+          analysis_mode?: string
           cover_letter?: string | null
           created_at?: string
           email?: string | null
@@ -168,7 +166,7 @@ export type Database = {
       }
       user_analyses: {
         Row: {
-          analysis_mode: AnalysisMode
+          analysis_mode: string
           cover_letter: string | null
           created_at: string
           cv_text: string
@@ -185,7 +183,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          analysis_mode?: AnalysisMode
+          analysis_mode?: string
           cover_letter?: string | null
           created_at?: string
           cv_text: string
@@ -202,7 +200,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          analysis_mode?: AnalysisMode
+          analysis_mode?: string
           cover_letter?: string | null
           created_at?: string
           cv_text?: string
