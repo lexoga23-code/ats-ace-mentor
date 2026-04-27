@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RegionProvider } from "@/contexts/RegionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { type AnalysisResult } from "@/lib/analysis";
+import { DEFAULT_ANALYSIS_MODE, GENERAL_ANALYSIS_TARGET_JOB, type AnalysisMode } from "@/lib/analysisTypes";
 import ResultsPanel from "@/components/ResultsPanel";
 import Navbar from "@/components/Navbar";
 import { ArrowLeft } from "lucide-react";
@@ -12,6 +13,7 @@ interface AnalysisData {
   id: string;
   cv_text: string;
   target_job: string;
+  analysis_mode: AnalysisMode;
   job_description: string | null;
   industry: string | null;
   results: AnalysisResult;
@@ -91,6 +93,10 @@ const AnalysisReportInner = () => {
     );
   }
 
+  const analysisTitle = (analysis.analysis_mode ?? DEFAULT_ANALYSIS_MODE) === "general"
+    ? GENERAL_ANALYSIS_TARGET_JOB
+    : analysis.target_job;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -102,7 +108,7 @@ const AnalysisReportInner = () => {
           <ArrowLeft className="w-4 h-4" /> Retour à mon compte
         </button>
 
-        <h1 className="text-2xl font-bold text-foreground mb-2">{analysis.target_job}</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{analysisTitle}</h1>
         <p className="text-sm text-muted-foreground mb-8">
           Analysé le{" "}
           {new Date(analysis.created_at).toLocaleDateString("fr-FR", {
@@ -121,6 +127,8 @@ const AnalysisReportInner = () => {
           coverLetter={analysis.cover_letter || undefined}
           cvText={analysis.cv_text}
           targetJob={analysis.target_job}
+          analysisMode={analysis.analysis_mode}
+          industry={analysis.industry || ""}
           region="FR"
           analysisId={analysis.id}
           jobDescription={analysis.job_description || undefined}

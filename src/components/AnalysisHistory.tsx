@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { History, ChevronRight, Trash2, BarChart3 } from "lucide-react";
 import type { AnalysisResult } from "@/lib/analysis";
+import { DEFAULT_ANALYSIS_MODE, GENERAL_ANALYSIS_TARGET_JOB, type AnalysisMode } from "@/lib/analysisTypes";
 
 export interface HistoryEntry {
   id: string;
   date: string;
   targetJob: string;
+  analysisMode?: AnalysisMode;
   score: number;
   matchScore?: number;
   results: AnalysisResult;
@@ -31,7 +33,11 @@ export const saveToHistory = (entry: Omit<HistoryEntry, "id" | "date">) => {
 
 export const getHistory = (): HistoryEntry[] => {
   try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") as HistoryEntry[];
+    return history.map((entry) => ({
+      ...entry,
+      analysisMode: entry.analysisMode ?? DEFAULT_ANALYSIS_MODE,
+    }));
   } catch {
     return [];
   }
@@ -61,6 +67,11 @@ const AnalysisHistory = ({ onRestore }: AnalysisHistoryProps) => {
     if (score >= 50) return "text-amber-600";
     return "text-destructive";
   };
+
+  const getHistoryDisplayTitle = (entry: HistoryEntry) =>
+    (entry.analysisMode ?? DEFAULT_ANALYSIS_MODE) === "general"
+      ? GENERAL_ANALYSIS_TARGET_JOB
+      : entry.targetJob;
 
   return (
     <div className="bg-card rounded-2xl shadow-soft overflow-hidden">
@@ -92,7 +103,7 @@ const AnalysisHistory = ({ onRestore }: AnalysisHistoryProps) => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground truncate">
-                  {entry.targetJob}
+                  {getHistoryDisplayTitle(entry)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(entry.date).toLocaleDateString("fr-FR", {

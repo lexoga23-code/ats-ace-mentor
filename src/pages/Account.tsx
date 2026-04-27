@@ -6,10 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, LogOut, FileText, Clock, Plus, Eye, Loader2, CreditCard, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import { DEFAULT_ANALYSIS_MODE, GENERAL_ANALYSIS_TARGET_JOB, type AnalysisMode } from "@/lib/analysisTypes";
 
 interface AnalysisEntry {
   id: string;
   target_job: string;
+  analysis_mode: AnalysisMode;
   score: number;
   match_score: number | null;
   is_paid: boolean;
@@ -42,10 +44,10 @@ const AccountInner = () => {
     const fetchData = async () => {
       const { data } = await supabase
         .from("user_analyses")
-        .select("id, target_job, score, match_score, is_paid, created_at")
+        .select("id, target_job, analysis_mode, score, match_score, is_paid, created_at")
         .order("created_at", { ascending: false })
         .limit(20);
-      setAnalyses((data as AnalysisEntry[]) || []);
+      setAnalyses(data || []);
       setLoading(false);
     };
 
@@ -148,6 +150,7 @@ const AccountInner = () => {
       cvText: data[0].cv_text,
       targetJob: data[0].target_job,
       jobDescription: data[0].job_description || "",
+      analysisMode: data[0].analysis_mode ?? DEFAULT_ANALYSIS_MODE,
       industry: data[0].industry || "",
       results: data[0].results,
       isPaid: data[0].is_paid,
@@ -183,6 +186,11 @@ const AccountInner = () => {
     if (score >= 50) return "text-amber-600";
     return "text-destructive";
   };
+
+  const getAnalysisTitle = (analysis: Pick<AnalysisEntry, "target_job" | "analysis_mode">) =>
+    (analysis.analysis_mode ?? DEFAULT_ANALYSIS_MODE) === "general"
+      ? GENERAL_ANALYSIS_TARGET_JOB
+      : analysis.target_job;
 
   return (
     <div className="min-h-screen bg-background">
@@ -312,7 +320,7 @@ const AccountInner = () => {
                     className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-left group"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm truncate">{a.target_job}</p>
+                      <p className="font-medium text-foreground text-sm truncate">{getAnalysisTitle(a)}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                         <Clock className="w-3 h-3" />
                         {new Date(a.created_at).toLocaleDateString("fr-FR", {
